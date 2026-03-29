@@ -7,20 +7,21 @@ Contains: `db/` (Exposed table objects + `*RepositoryImpl`), `memory/` (`*Reposi
 - Any `domain/service/` class (never call services from data layer)
 
 ## DB access
-Every DB operation must go through `dbQuery { }` — never a bare `transaction {}` or `withContext(Dispatchers.IO)`.
-`ResultContainer.catching { }` wraps the result and converts exceptions to `DatabaseException`.
+Every DB operation must use `safeDbQuery { }` from `data.db.DatabaseFactory` — never a bare `transaction {}`, `withContext(Dispatchers.IO)`, or manual `ResultContainer.catching { dbQuery { } }`.
+`safeDbQuery` handles both dispatching and exception-to-`DatabaseException` conversion in one call.
 
 ```kotlin
 // Correct
 override suspend fun findByUsername(username: String): ResultContainer<Member?> =
-    dbQuery {
+    safeDbQuery {
         Members.selectAll().where { Members.username eq username }
             .singleOrNull()
             ?.let { MemberMapper.toDomain(it) }
-    }.let { ResultContainer.catching { it } }
+    }
 
-// Wrong: bare transaction, no ResultContainer
+// Wrong: manual wrapping, bare transaction, no ResultContainer
 override suspend fun findAll() = transaction { Members.selectAll().map { MemberMapper.toDomain(it) } }
+override suspend fun findAll() = dbQuery { ... }.let { ResultContainer.catching { it } }
 ```
 
 ## MockImpl repos

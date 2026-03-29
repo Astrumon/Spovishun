@@ -8,21 +8,37 @@ Contains: `bot/` (TelegramBot, MessageHandler, `commands/`), `controller/`, `uti
 
 ## Command flow
 ```
-Command → Controller → returns String → Command sends to Telegram
+Command → Controller → returns CommandResponse → Command formats + sends to Telegram
 ```
-1. **Command** — parse args from `Update`, call one `Controller` method, send the returned `String` to Telegram.
-2. **Controller** — call `Service`(s), apply role checks, return a formatted `String`. Never returns Telegram types.
+1. **Command** — parse args from `Update`, call one `Controller` method, handle `CommandResponse` via `when`, send to Telegram.
+2. **Controller** — call `Service`(s), apply role checks, return `CommandResponse`. Never returns Telegram types or raw strings.
 3. **BotAdminUtils** — query Telegram API only to derive initial role for a new member during registration.
 
+`CommandResponse` sealed class (`presentation/CommandResponse.kt`):
+- `Success(message: String)` — formatted HTML body, no emoji prefix
+- `AccessDenied(reason: String)` — e.g. `"moderator"` or `"admin"`
+- `NotFound(resource: String, identifier: String)`
+- `Error(message: String)`
+
+Commands own emoji prefixes and final text assembly. Controllers return body only.
+
+### CommandResponse.toText()
+
+For the standard rendering pattern (Success/Error/AccessDenied/NotFound), use the `toText()` extension
+instead of repeating the `when` block. Commands with unique `AccessDenied` or `NotFound` text keep explicit `when`.
+
 ```kotlin
-// Correct command
-class GrantRoleCommand(private val groupController: GroupController) {
-    suspend operator fun invoke(bot: Bot, update: Update) {
-        val args = update.message?.text?.split(" ")?.drop(1) ?: emptyList()
-        val chatId = update.message?.chat?.id ?: return
-        val response = groupController.grantRole(chatId, update.message!!.from!!.id, args)
-        bot.sendMessage(chatId = ChatId.fromId(chatId), text = response, parseMode = ParseMode.HTML)
-    }
+// Standard pattern — use toText()
+val text = controller.doSomething(chatId, userId, args).toText()               // no prefix
+val text = controller.register(chatId, userId, args).toText("✅ ")             // success prefix
+val text = controller.getAll(chatId).toText(onError = { "❌ Custom: $it" })    // custom error
+
+// Custom NotFound/AccessDenied — keep explicit when
+val text = when (val r = controller.grantRole(chatId, userId, args)) {
+    is CommandResponse.Success -> "✅ ${r.message}"
+    is CommandResponse.AccessDenied -> "🚫 Лише адміни можуть призначати ролі."
+    is CommandResponse.NotFound -> "❌ ${r.resource} '${r.identifier}' не знайдено."
+    is CommandResponse.Error -> "❌ ${r.message}"
 }
 
 // Wrong: service called directly from command

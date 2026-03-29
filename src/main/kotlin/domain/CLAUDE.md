@@ -34,6 +34,3 @@ suspend fun getAll(): List<Member> = withContext(Dispatchers.IO) {
 `hasAdminAccess()` / `hasModeratorAccess()` live in `MemberService` and query the DB.
 They do NOT call the Telegram API.
 
-## Known violation
-`domain/BotAdminUtils.kt` imports the Telegram SDK — this is a stale file that violates layer rules.
-Do not use it. Do not add code to it. The canonical file is `presentation/util/BotAdminUtils.kt`.

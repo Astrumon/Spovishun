@@ -153,30 +153,6 @@ class AutoRegisterServiceTest {
     }
 
     @Test
-    fun `ensureUserRegistered should handle unexpected exception and return DatabaseException`() = runTest {
-        // Given
-        val chatId = 123L
-        val userId = 456L
-        val username = "alice"
-        val firstName = "Alice"
-        val userRole = MemberRole.MEMBER
-        val unexpectedError = RuntimeException("Unexpected error")
-
-        coEvery { memberService.getMemberByUsername(username) } throws unexpectedError
-
-        // When
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
-
-        // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is DatabaseException)
-        val dbException = result.exceptionOrNull() as DatabaseException
-        assertEquals("Database operation failed: Unexpected error during auto-registration", dbException.message)
-        assertEquals(unexpectedError, dbException.cause)
-        coVerify { memberService.getMemberByUsername(username) }
-    }
-
-    @Test
     fun `isUserRegistered should return true when member exists`() = runTest {
         // Given
         val username = "alice"

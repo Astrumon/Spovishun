@@ -8,8 +8,11 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
+import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.GroupCommand
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -22,6 +25,7 @@ import kotlin.test.Test
 class GroupCommandTest {
 
     private val groupController: GroupController = mockk()
+    private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var groupCommand: GroupCommand
 
@@ -32,7 +36,8 @@ class GroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        groupCommand = GroupCommand(groupController)
+        groupCommand = GroupCommand(groupController, botAdminUtils)
+        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
     private fun createUpdate(
@@ -48,101 +53,91 @@ class GroupCommandTest {
     // --- showGroups ---
 
     @Test
-    fun `showGroups should call controller and send message`() = runTest {
-        // Given
+    fun `showGroups should call controller and send message body`() = runTest {
         val update = createUpdate()
-        coEvery { groupController.getGroups(bot, chatId, any()) } returns "groups list"
+        coEvery { groupController.getGroups(chatId, any(), MemberRole.MEMBER) } returns CommandResponse.Success("groups list")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.showGroups(bot, update)
 
-        // Then
-        coVerify { groupController.getGroups(bot, chatId, any()) }
+        coVerify { groupController.getGroups(chatId, any(), MemberRole.MEMBER) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), "groups list", ParseMode.HTML) }
     }
 
     @Test
     fun `showGroups should return early when user is null`() = runTest {
-        // Given
         val update = createUpdate(fromUser = null)
 
-        // When
         groupCommand.showGroups(bot, update)
 
-        // Then
         coVerify(exactly = 0) { groupController.getGroups(any(), any(), any()) }
     }
 
     // --- addNewGroup ---
 
     @Test
-    fun `addNewGroup should pass args to controller`() = runTest {
-        // Given
+    fun `addNewGroup should pass args to controller and prefix success with checkmark`() = runTest {
         val update = createUpdate(text = "/newgroup devs")
-        coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns "created"
+        coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns CommandResponse.Success("Група <b>devs</b> створена!")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.addNewGroup(bot, update)
 
-        // Then
         coVerify { groupController.createGroup(chatId, userId, listOf("devs")) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "created", ParseMode.HTML) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("✅") }, ParseMode.HTML) }
+    }
+
+    @Test
+    fun `addNewGroup should send access denied message when access denied`() = runTest {
+        val update = createUpdate(text = "/newgroup devs")
+        coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns CommandResponse.AccessDenied("moderator")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+
+        groupCommand.addNewGroup(bot, update)
+
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("🚫") }, ParseMode.HTML) }
     }
 
     @Test
     fun `addNewGroup should pass empty args when no arguments`() = runTest {
-        // Given
         val update = createUpdate(text = "/newgroup")
-        coEvery { groupController.createGroup(chatId, userId, emptyList()) } returns "usage"
+        coEvery { groupController.createGroup(chatId, userId, emptyList()) } returns CommandResponse.Error("usage")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.addNewGroup(bot, update)
 
-        // Then
         coVerify { groupController.createGroup(chatId, userId, emptyList()) }
     }
 
     @Test
     fun `addNewGroup should return early when user is null`() = runTest {
-        // Given
         val update = createUpdate(fromUser = null)
 
-        // When
         groupCommand.addNewGroup(bot, update)
 
-        // Then
         coVerify(exactly = 0) { groupController.createGroup(any(), any(), any()) }
     }
 
     // --- deleteGroup ---
 
     @Test
-    fun `deleteGroup should pass args to controller`() = runTest {
-        // Given
+    fun `deleteGroup should pass args to controller and prefix success`() = runTest {
         val update = createUpdate(text = "/delgroup devs")
-        coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns "deleted"
+        coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns CommandResponse.Success("Група <b>devs</b> видалена.")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.deleteGroup(bot, update)
 
-        // Then
         coVerify { groupController.deleteGroup(chatId, userId, listOf("devs")) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "deleted", ParseMode.HTML) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("🗑") }, ParseMode.HTML) }
     }
 
     @Test
     fun `deleteGroup should return early when user is null`() = runTest {
-        // Given
         val update = createUpdate(fromUser = null)
 
-        // When
         groupCommand.deleteGroup(bot, update)
 
-        // Then
         coVerify(exactly = 0) { groupController.deleteGroup(any(), any(), any()) }
     }
 
@@ -150,27 +145,21 @@ class GroupCommandTest {
 
     @Test
     fun `addUserToGroup should pass args to controller`() = runTest {
-        // Given
         val update = createUpdate(text = "/addtogroup devs @bob")
-        coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns "added"
+        coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns CommandResponse.Success("bob додано до devs")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.addUserToGroup(bot, update)
 
-        // Then
         coVerify { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) }
     }
 
     @Test
     fun `addUserToGroup should return early when user is null`() = runTest {
-        // Given
         val update = createUpdate(fromUser = null)
 
-        // When
         groupCommand.addUserToGroup(bot, update)
 
-        // Then
         coVerify(exactly = 0) { groupController.addUserToGroup(any(), any(), any()) }
     }
 
@@ -178,27 +167,21 @@ class GroupCommandTest {
 
     @Test
     fun `removeUserFromGroup should pass args to controller`() = runTest {
-        // Given
         val update = createUpdate(text = "/removefromgroup devs @bob")
-        coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns "removed"
+        coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns CommandResponse.Success("bob видалено з devs")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        // When
         groupCommand.removeUserFromGroup(bot, update)
 
-        // Then
         coVerify { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) }
     }
 
     @Test
     fun `removeUserFromGroup should return early when user is null`() = runTest {
-        // Given
         val update = createUpdate(fromUser = null)
 
-        // When
         groupCommand.removeUserFromGroup(bot, update)
 
-        // Then
         coVerify(exactly = 0) { groupController.removeUserFromGroup(any(), any(), any()) }
     }
 }

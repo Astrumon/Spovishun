@@ -25,6 +25,8 @@ import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
+import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
@@ -103,15 +105,17 @@ abstract class BaseE2ETest {
 
         val botAdminUtils = BotAdminUtils()
 
-        val groupController = GroupController(groupService, memberService, autoRegisterService, botAdminUtils)
-        val membersController = MembersController(memberService, autoRegisterService, botAdminUtils)
+        val groupController = GroupController(groupService, memberService, autoRegisterService)
+        val membersController = MembersController(memberService, autoRegisterService)
+        val registrationController = RegistrationController(memberService, autoRegisterService)
+        val pingController = PingController(memberService, groupService, autoRegisterService)
 
-        startCommand = StartCommand(autoRegisterService, botAdminUtils)
-        registerCommand = RegisterCommand(memberService, botAdminUtils)
-        pingCommand = PingCommand(memberService, groupService, autoRegisterService, botAdminUtils)
-        groupCommand = GroupCommand(groupController)
+        startCommand = StartCommand(registrationController, botAdminUtils)
+        registerCommand = RegisterCommand(registrationController, botAdminUtils)
+        pingCommand = PingCommand(pingController, botAdminUtils)
+        groupCommand = GroupCommand(groupController, botAdminUtils)
         grantRoleCommand = GrantRoleCommand(groupController)
-        membersCommand = MembersCommand(membersController)
+        membersCommand = MembersCommand(membersController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
 
         val telegramBot = TelegramBot(

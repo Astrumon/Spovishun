@@ -37,10 +37,11 @@ Not related to Kotlin's `Result`. Services and repository interfaces return it.
 Chain with `.flatMap {}`, resolve with `.fold(onSuccess = {}, onFailure = {})`.
 Wrap DB calls with `ResultContainer.catching { }`.
 
-**DB access** — always `dbQuery { }` from `DatabaseFactory`, never bare `transaction {}`.
-Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
+**DB access** — always `safeDbQuery { }` (wraps `dbQuery {}` + `ResultContainer.catching`), never bare `transaction {}` or `ResultContainer.catching { dbQuery { } }` manually.
+`safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`. Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
 
-**Command flow** — `Command` parses args → calls `Controller` → sends returned `String` to Telegram.
+**Command flow** — `Command` parses args → calls `Controller` → handles `CommandResponse` via `when` → sends to Telegram.
+Controllers return `CommandResponse` (never raw strings). Commands own emoji prefixes and final text assembly.
 Never call a `Service` directly from a `Command`.
 
 **Role checks** — `MemberService.hasAdminAccess()` / `hasModeratorAccess()` query the DB.
