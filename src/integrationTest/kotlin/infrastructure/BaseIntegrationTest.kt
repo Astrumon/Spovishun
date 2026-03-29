@@ -24,6 +24,8 @@ import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
+import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -52,6 +54,8 @@ abstract class BaseIntegrationTest {
     // Controllers — real
     protected lateinit var groupController: GroupController
     protected lateinit var membersController: MembersController
+    protected lateinit var registrationController: RegistrationController
+    protected lateinit var pingController: PingController
 
     // Commands — real
     protected lateinit var startCommand: StartCommand
@@ -97,16 +101,18 @@ abstract class BaseIntegrationTest {
         )
 
         // Real controllers
-        groupController = GroupController(groupService, memberService, autoRegisterService, botAdminUtils)
-        membersController = MembersController(memberService, autoRegisterService, botAdminUtils)
+        groupController = GroupController(groupService, memberService, autoRegisterService)
+        membersController = MembersController(memberService, autoRegisterService)
+        registrationController = RegistrationController(memberService, autoRegisterService)
+        pingController = PingController(memberService, groupService, autoRegisterService)
 
         // Real commands
-        startCommand = StartCommand(autoRegisterService, botAdminUtils)
-        registerCommand = RegisterCommand(memberService, botAdminUtils)
-        pingCommand = PingCommand(memberService, groupService, autoRegisterService, botAdminUtils)
-        groupCommand = GroupCommand(groupController)
+        startCommand = StartCommand(registrationController, botAdminUtils)
+        registerCommand = RegisterCommand(registrationController, botAdminUtils)
+        pingCommand = PingCommand(pingController, botAdminUtils)
+        groupCommand = GroupCommand(groupController, botAdminUtils)
         grantRoleCommand = GrantRoleCommand(groupController)
-        membersCommand = MembersCommand(membersController)
+        membersCommand = MembersCommand(membersController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
     }
 

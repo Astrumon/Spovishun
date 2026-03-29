@@ -1,6 +1,6 @@
 package com.ua.astrumon.data.db.repository
 
-import com.ua.astrumon.common.extension.safeDbQuery
+import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.common.exception.*
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.db.table.Groups

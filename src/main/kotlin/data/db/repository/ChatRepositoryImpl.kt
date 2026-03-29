@@ -1,7 +1,7 @@
 package com.ua.astrumon.data.db.repository
 
 import com.ua.astrumon.common.exception.ResourceNotFoundException
-import com.ua.astrumon.common.extension.safeDbQuery
+import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.db.table.Chats
 import com.ua.astrumon.data.mapper.toChat

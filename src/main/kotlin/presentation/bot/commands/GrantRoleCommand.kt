@@ -4,6 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
+import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.GroupController
 import org.slf4j.LoggerFactory
 
@@ -19,14 +20,13 @@ class GrantRoleCommand(
 
         logger.info("GrantRole command invoked - chatId: {}, userId: {}, args: {}", chatId, user.id, args)
 
-        val response = groupController.grantRole(chatId = chatId, userId = user.id, args = args)
+        val text = when (val response = groupController.grantRole(chatId = chatId, userId = user.id, args = args)) {
+            is CommandResponse.Success -> "✅ ${response.message}"
+            is CommandResponse.AccessDenied -> "🚫 Лише адміни можуть призначати ролі."
+            is CommandResponse.NotFound -> "❌ ${response.resource} '${response.identifier}' не знайдено."
+            is CommandResponse.Error -> "❌ ${response.message}"
+        }
 
-        logger.info("GrantRole response for userId: {} in chatId: {}: {}", user.id, chatId, response)
-
-        bot.sendMessage(
-            chatId = ChatId.fromId(update.message!!.chat.id),
-            text = response,
-            parseMode = ParseMode.HTML
-        )
+        bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
     }
 }

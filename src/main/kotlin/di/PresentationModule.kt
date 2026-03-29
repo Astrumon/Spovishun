@@ -1,6 +1,5 @@
 package com.ua.astrumon.di
 
-import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
@@ -12,12 +11,16 @@ import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
+import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.RegistrationController
 import org.koin.dsl.module
 
 val presentationModule = module {
     // Controllers
-    single { GroupController(get(), get(), get(), get()) }
-    single { MembersController(get(), get(), get()) }
+    single { GroupController(get(), get(), get()) }
+    single { MembersController(get(), get()) }
+    single { RegistrationController(get(), get()) }
+    single { PingController(get(), get(), get()) }
 
     // Bot components
     single { TelegramBot(get(), get(), get(), get(), get(), get(), get()) }
@@ -27,8 +30,8 @@ val presentationModule = module {
     // Commands
     single { StartCommand(get(), get()) }
     single { RegisterCommand(get(), get()) }
-    single { GroupCommand(get()) }
+    single { GroupCommand(get(), get()) }
     single { GrantRoleCommand(get()) }
-    single { PingCommand(get(), get(), get(), get()) }
-    single { MembersCommand(get()) }
+    single { PingCommand(get(), get()) }
+    single { MembersCommand(get(), get()) }
 }

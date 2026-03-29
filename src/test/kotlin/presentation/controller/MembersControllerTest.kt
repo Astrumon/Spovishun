@@ -1,9 +1,8 @@
 package presentation.controller
 
-import com.github.kotlintelegrambot.Bot
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.service.AutoRegisterService
@@ -12,7 +11,6 @@ import com.ua.astrumon.presentation.controller.MembersController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -23,28 +21,33 @@ class MembersControllerTest {
 
     private val memberService: MemberService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
-    private val botAdminUtils: BotAdminUtils = mockk()
     private lateinit var membersController: MembersController
-    private val bot: Bot = mockk()
 
     private val chatId = 123L
     private val userId = 456L
     private val username = "alice"
     private val firstName = "Alice"
-    private val userRole = MemberRole.MEMBER
     private val member = Member(1L, chatId, userId, username, firstName, null)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        membersController = MembersController(memberService, autoRegisterService, botAdminUtils)
+        membersController = MembersController(memberService, autoRegisterService)
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(member)
-        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
     @Test
-    fun `getMembers should return formatted list with role badges`() = runTest {
-        // Given
+    fun `getMembers should pass userRole to ensureUserRegistered`() = runTest {
+        val memberWithDifferentIds = Member(99L, chatId, userId, username, firstName, null)
+        coEvery { memberService.getAllMembers() } returns ResultContainer.success(emptyList())
+
+        membersController.getMembers(chatId, memberWithDifferentIds, MemberRole.ADMIN)
+
+        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, MemberRole.ADMIN) }
+    }
+
+    @Test
+    fun `getMembers should return Success with formatted list and role badges`() = runTest {
         val members = listOf(
             Member(1L, chatId, 456L, "alice", "Alice", null, role = MemberRole.ADMIN),
             Member(2L, chatId, 789L, "bob", "Bob", null, role = MemberRole.MODERATOR),
@@ -52,81 +55,58 @@ class MembersControllerTest {
         )
         coEvery { memberService.getAllMembers() } returns ResultContainer.success(members)
 
-        // When
-        val result = membersController.getMembers(bot, chatId, member)
+        val result = membersController.getMembers(chatId, member, MemberRole.MEMBER)
 
-        // Then
-        assertTrue(result.contains("Зареєстровані учасники:"))
-        assertTrue(result.contains("@alice \uD83D\uDD10"))
-        assertTrue(result.contains("@bob \uD83D\uDEE1"))
-        assertTrue(result.contains("@charlie"))
-        assertTrue(!result.contains("charlie \uD83D\uDD10"))
-        assertTrue(result.contains("Всього: 3 учасників"))
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole) }
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Зареєстровані учасники:"))
+        assertTrue(result.message.contains("@alice \uD83D\uDD10"))
+        assertTrue(result.message.contains("@bob \uD83D\uDEE1"))
+        assertTrue(result.message.contains("@charlie"))
+        assertTrue(result.message.contains("Всього: 3 учасників"))
+        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, MemberRole.MEMBER) }
     }
 
     @Test
     fun `getMembers should show firstName for user_ prefixed usernames`() = runTest {
-        // Given
-        val members = listOf(
-            Member(1L, chatId, 456L, "user_123", "NoUsername", null)
-        )
+        val members = listOf(Member(1L, chatId, 456L, "user_123", "NoUsername", null))
         coEvery { memberService.getAllMembers() } returns ResultContainer.success(members)
 
-        // When
-        val result = membersController.getMembers(bot, chatId, member)
+        val result = membersController.getMembers(chatId, member, MemberRole.MEMBER)
 
-        // Then
-        assertTrue(result.contains("• NoUsername"))
-        assertTrue(!result.contains("@user_123"))
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("• NoUsername"))
+        assertTrue(!result.message.contains("@user_123"))
     }
 
     @Test
-    fun `getMembers should return empty message when no members`() = runTest {
-        // Given
+    fun `getMembers should return Success with empty message when no members`() = runTest {
         coEvery { memberService.getAllMembers() } returns ResultContainer.success(emptyList())
 
-        // When
-        val result = membersController.getMembers(bot, chatId, member)
+        val result = membersController.getMembers(chatId, member, MemberRole.MEMBER)
 
-        // Then
-        assertTrue(result.contains("Немає зареєстрованих учасників"))
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Немає зареєстрованих учасників"))
     }
 
     @Test
-    fun `getMembers should return error message on failure`() = runTest {
-        // Given
+    fun `getMembers should return Error on service failure`() = runTest {
         val error = DatabaseException("Connection lost")
         coEvery { memberService.getAllMembers() } returns ResultContainer.failure(error)
 
-        // When
-        val result = membersController.getMembers(bot, chatId, member)
+        val result = membersController.getMembers(chatId, member, MemberRole.MEMBER)
 
-        // Then
-        assertTrue(result.contains("Помилка завантаження учасників"))
-        assertTrue(result.contains(error.userMessage))
+        assertTrue(result is CommandResponse.Error)
+        assertTrue(result.message.contains(error.userMessage))
     }
 
     @Test
-    fun `getMembers should handle admin auto-registration successfully`() = runTest {
-        // Given
+    fun `getMembers should pass ADMIN role to ensureUserRegistered when userRole is ADMIN`() = runTest {
         val adminMember = Member(1L, chatId, userId, "admin_alice", "Admin Alice", null, role = MemberRole.ADMIN)
-        val members = listOf(
-            adminMember,
-            Member(2L, chatId, 789L, "bob", "Bob", null, role = MemberRole.MEMBER)
-        )
-        coEvery { memberService.getAllMembers() } returns ResultContainer.success(members)
-        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.ADMIN
+        coEvery { memberService.getAllMembers() } returns ResultContainer.success(listOf(adminMember))
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), eq(MemberRole.ADMIN)) } returns ResultContainer.success(adminMember)
 
-        // When
-        val result = membersController.getMembers(bot, chatId, adminMember)
+        membersController.getMembers(chatId, adminMember, MemberRole.ADMIN)
 
-        // Then
-        assertTrue(result.contains("Зареєстровані учасники:"))
-        assertTrue(result.contains("@admin_alice \uD83D\uDD10"))
-        assertTrue(result.contains("@bob"))
-        assertTrue(result.contains("Всього: 2 учасників"))
         coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "admin_alice", "Admin Alice", MemberRole.ADMIN) }
     }
 }

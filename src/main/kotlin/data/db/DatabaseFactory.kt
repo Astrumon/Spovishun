@@ -55,10 +55,16 @@ object DatabaseFactory {
 }
 
 suspend fun <T> dbQuery(block: () -> T): T =
-    withContext(Dispatchers.IO) { 
+    withContext(Dispatchers.IO) {
         try {
             transaction { block() }
         } catch (e: Exception) {
             throw DatabaseException("Database query failed", e)
         }
     }
+
+suspend fun <T> safeDbQuery(block: () -> T): com.ua.astrumon.common.result.ResultContainer<T> =
+    com.ua.astrumon.common.result.ResultContainer.catching { dbQuery { block() } }
+
+suspend fun <T> safeDbTransaction(block: () -> T): com.ua.astrumon.common.result.ResultContainer<T> =
+    com.ua.astrumon.common.result.ResultContainer.catching { transaction { block() } }

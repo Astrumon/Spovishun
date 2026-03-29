@@ -1,7 +1,7 @@
 package com.ua.astrumon.data.memory.repository
 
 import com.ua.astrumon.common.exception.DuplicateResourceException
-import com.ua.astrumon.common.exception.NotFoundException
+import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupRepository
@@ -19,7 +19,7 @@ class GroupRepositoryMockImpl : GroupRepository {
     override suspend fun findGroupByKey(chatId: Long, key: String): ResultContainer<Group> {
         logger.info("DEV: Finding group by key: $key")
         return groups["$chatId:$key"]?.let { ResultContainer.success(it) }
-            ?: ResultContainer.failure(NotFoundException("Group not found: $key"))
+            ?: ResultContainer.failure(ResourceNotFoundException("Group", key))
     }
 
     override suspend fun createGroup(chatId: Long, name: String): ResultContainer<Group> {
@@ -41,7 +41,7 @@ class GroupRepositoryMockImpl : GroupRepository {
             logger.info("DEV: Group deleted successfully: $key")
             ResultContainer.success(Unit)
         } else {
-            ResultContainer.failure(NotFoundException("Group not found: $key"))
+            ResultContainer.failure(ResourceNotFoundException("Group", key))
         }
     }
 }

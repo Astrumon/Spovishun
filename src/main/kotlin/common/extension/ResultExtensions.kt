@@ -3,24 +3,6 @@ package com.ua.astrumon.common.extension
 import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.data.db.dbQuery
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.transaction
-
-suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> = ResultContainer.catching {
-    dbQuery { block() }
-}
-
-suspend fun <T> safeDbTransaction(block: () -> T): ResultContainer<T> = ResultContainer.catching {
-    transaction {
-        try {
-            block()
-        } catch (e: Exception) {
-            TransactionManager.current().rollback()
-            throw DatabaseException("Transaction failed and was rolled back", e)
-        }
-    }
-}
 
 inline fun <T> ResultContainer<T>.validate(
     predicate: (T) -> Boolean,
