@@ -19,7 +19,7 @@ object Application : KoinComponent {
     private val telegramBot: TelegramBot by inject()
     private val config: AppConfig by inject()
 
-    private val env = dotenv()
+    private val env = dotenv { ignoreIfMissing = true }
     private val profile = env["PROFILE"] ?: System.getenv("PROFILE") ?: "dev"
     
     suspend fun run() {

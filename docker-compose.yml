@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spovishun
+      POSTGRES_USER: ${DATABASE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-postgres} -d spovishun"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PROFILE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/spovishun
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
