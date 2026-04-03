@@ -36,6 +36,9 @@ function findTriggers(files) {
 }
 
 try {
+  const fs = require('fs');
+  const path = require('path');
+
   const changedFiles = getChangedFiles();
   const triggered = findTriggers(changedFiles);
 
@@ -44,6 +47,14 @@ try {
     const message = `Doc-sync: architectural files changed:\n${fileList}\n\nRun doc-updater to sync Notion documentation.`;
     process.stdout.write(JSON.stringify({ systemMessage: message }) + '\n');
   }
+
+  const stateFile = path.join(__dirname, '..', 'session-state.json');
+  const state = {
+    lastSession: new Date().toISOString(),
+    changedFiles: changedFiles,
+    docSyncNeeded: triggered.length > 0
+  };
+  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 } catch (err) {
   process.stderr.write(`[session-end] Warning: ${err.message}\n`);
 }
