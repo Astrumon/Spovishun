@@ -83,3 +83,8 @@ Branch: <branch name>
 
 ### Step 5: Present the output
 Show the prompt in a code block and offer to update the 🤖 prompt toggle in Notion.
+
+### Step 6: Enter Plan Mode
+After presenting the prompt, immediately enter Plan Mode using the `EnterPlanMode` tool.
+Use the generated prompt as the planning brief.
+Plannotator will intercept `ExitPlanMode` — wait for user approval before proceeding to implementation.

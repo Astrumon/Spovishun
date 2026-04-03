@@ -1,6 +1,6 @@
 ---
 name: doc-updater
-description: Audit codebase state against Notion documentation. Scans database tables, architecture modules, CLAUDE.md files, bot commands, and API endpoints, then produces a structured diff report with proposed Notion updates. Delegate when the user asks to audit or sync documentation, or after significant architectural changes.
+description: Audit changed (uncommitted) files against Notion documentation. Reads only git-changed files, maps them to documentation zones, and produces a structured diff report with proposed Notion updates. Delegate when the user asks to audit or sync documentation, or after significant architectural changes.
 tools: Read, Glob, Grep, Bash
 model: haiku
 maxTurns: 25
@@ -57,100 +57,81 @@ Use these URLs when referencing where changes should go:
 
 ---
 
-## Audit Zones
+## Audit Approach: Changed Files Only
 
-Run all 5 zones in order. Use `Bash` only for `git log --oneline -5` to get recent commit context.
+**IMPORTANT:** Do NOT scan the full codebase. Only audit files that have actually changed.
+
+**Step 1 — Get changed files:**
+```bash
+git diff --name-only HEAD
+git status --short
+```
+Combine both lists (unstaged + untracked). If git is unavailable, report the error and stop.
+
+**Step 2 — Map files to zones** using these patterns:
+
+| File pattern | Zone |
+|---|---|
+| `src/main/kotlin/data/db/table/*.kt` | Zone 1: Database Tables |
+| `src/main/resources/db/migration/V*__*.sql` | Zone 1: Database Tables |
+| `src/main/kotlin/di/*Module.kt` | Zone 2: Architecture |
+| `src/main/kotlin/Application.kt` | Zone 2: Architecture |
+| `**/CLAUDE.md` | Zone 3: CLAUDE.md Files |
+| `src/main/kotlin/presentation/bot/commands/*Command.kt` | Zone 4: Bot Commands |
+| `src/main/kotlin/presentation/bot/handler/MessageHandler.kt` | Zone 4: Bot Commands |
+| `.claude/hooks/*.js` | Zone 5: .claude/ Infrastructure |
+| `.claude/agents/*.md` | Zone 5: .claude/ Infrastructure |
+| `.claude/rules/**/*.md` | Zone 5: .claude/ Infrastructure |
+| `.claude/settings.json` | Zone 5: .claude/ Infrastructure |
+
+**Step 3 — Read only the changed files** in affected zones. Skip zones with no matching changed files entirely.
+
+**Step 4 — Produce the report** for affected zones only (see Output Format below).
+
+Use `Bash` only for `git log --oneline -5` and the git diff/status commands above.
 
 ---
 
 ### Zone 1: Database Tables
 
-**Scan:**
-```
-Glob: src/main/kotlin/data/db/table/*.kt
-Glob: src/main/resources/db/migration/V*__*.sql
-```
+For each changed Table/migration file, extract:
+- Object name and DB table name
+- New/modified columns with type, nullable/default info
+- New indexes, constraints, foreign keys
 
-For each Table file, extract:
-- Object name and corresponding DB table name (from `object X : Table("name")` or `LongIdTable("name")`)
-- All columns with name, type, nullable/default info
-- Index declarations and unique constraints
-- Foreign key references
-
-For migrations, extract version sequence and what each migration adds/modifies.
-
-**Output:** Full table inventory with columns and migration history.
 **Target page:** https://www.notion.so/Bot-Module-3313462f68a98145bbd2f8398bec9bab
 
 ---
 
 ### Zone 2: Architecture
 
-**Scan:**
-```
-Glob: src/main/kotlin/di/*Module.kt
-Read: src/main/kotlin/Application.kt
-```
+For each changed DI module, extract:
+- New or removed bindings: `single<Interface> { Implementation() }` or `factory<...> { ... }`
 
-For each DI module, extract:
-- Module name and purpose (dev/prod/service/presentation)
-- All bindings: `single<Interface> { Implementation() }` or `factory<...> { ... }`
-
-Also describe the overall layer structure from the `src/` directory tree.
-
-**Output:** Module map showing what each module registers and the layer dependency direction.
 **Target page:** https://www.notion.so/Architecture-3193462f68a981a8ae94fcc8669b0eda
 
 ---
 
 ### Zone 3: CLAUDE.md Files
 
-**Scan:**
-```
-Glob: **/CLAUDE.md
-```
+For each changed CLAUDE.md, note what section was added/changed and check for stale references to deleted/renamed files.
 
-For each CLAUDE.md file, record:
-- File path
-- Key sections covered (commands, patterns, layer rules, etc.)
-- Any references to files or patterns that may have changed
-
-Cross-reference with actual code structure to detect stale references.
-
-**Output:** CLAUDE.md inventory with staleness notes only — no Notion update needed unless a stale reference points to a deleted/renamed file.
+**No Notion update needed** unless a stale reference points to a deleted/renamed file.
 
 ---
 
 ### Zone 4: Bot Commands
 
-**Scan:**
-```
-Glob: src/main/kotlin/presentation/bot/commands/*Command.kt
-Read: src/main/kotlin/presentation/bot/handler/MessageHandler.kt
-```
+For each changed Command file, extract the command string and what it does.
 
-For each Command file, extract:
-- The command string (e.g., `/start`, `/register`, `/ping`)
-- Brief description of what it does
-
-**Output:** Command inventory table.
 **Target page:** https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди")
 
 ---
 
 ### Zone 5: .claude/ Infrastructure
 
-**Scan:**
-```
-Glob: .claude/hooks/*.js
-Glob: .claude/agents/*.md
-Glob: .claude/rules/**/*.md
-Read: .claude/settings.json
-```
+For each changed hook/agent/rule/settings file, extract name and purpose.
 
-For each file, extract name and purpose. Compare against what is documented.
-
-**Output:** Inventory of hooks, agents, and rules.
 **Target page:** https://www.notion.so/3303462f68a98175bdf8f79f9103a902
 
 ---
