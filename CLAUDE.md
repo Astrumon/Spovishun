@@ -58,6 +58,13 @@ based on `PROFILE` env var. All bindings use the interface type: `single<MemberR
 - **e2e** — real Telegram API; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`.
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
+## Agent Workflow
+- `@kotlin-reviewer` — after implementing a feature (reviews Kotlin code quality)
+- `@database-reviewer` — after adding a table or migration (reviews DB layer)
+- `@doc-updater` — after architectural changes (audits Notion docs)
+
+Rules in `.claude/rules/` are always active — they load automatically, no explicit invocation needed.
+
 ## Migrations
 Files in `src/main/resources/db/migration/` (PostgreSQL only).
 Run `./gradlew generateMigration`, review SQL, commit `Table` object + migration file together.
