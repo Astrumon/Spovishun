@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * UserPromptSubmit hook — інжектує контекст активної Notion-задачі у промпт.
+ * UserPromptSubmit hook — injects active Notion task context into the prompt.
  *
- * Кешує контекст у .dev-context/{branch}_prd/ — Notion API викликається
- * один раз за весь час існування гілки. Між сесіями на тій самій гілці
- * контекст читається з файлу (без мережевих запитів).
+ * Caches context in .dev-context/{branch}_prd/ — the Notion API is called
+ * once per branch lifetime. Between sessions on the same branch,
+ * context is read from file (no network requests).
  *
- * Файли в папці задачі:
- *   branch.txt    — точна назва гілки
- *   context.md    — кешований текст задачі з Notion
- *   plan.md       — затверджений план розробки (зберігається для історії)
- *   session.lock  — "{ppid}:{timestamp}" поточної сесії (для дедуп ін'єкцій)
+ * Files in the task folder:
+ *   branch.txt    — exact branch name
+ *   context.md    — cached task text from Notion
+ *   plan.md       — approved development plan (kept for history)
+ *   session.lock  — "{ppid}:{timestamp}" of the current session (dedup injections)
  *
- * Вимагає: NOTION_SKILLS_TOKEN (або NOTION_TOKEN) у env або .env файлі.
- * Завжди завершується з exit(0) — помилки не блокують роботу.
+ * Requires: NOTION_SKILLS_TOKEN (or NOTION_TOKEN) in env or .env file.
+ * Always exits with exit(0) — errors do not block work.
  */
 
 const https = require('https');
@@ -24,7 +24,7 @@ const { execSync } = require('child_process');
 const DATABASE_ID = '3193462f68a980d69ec9c7ccc6329b88';
 const NOTION_VERSION = '2022-06-28';
 const DEV_CONTEXT_DIR = '.dev-context';
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 годин
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 const TRIGGER_WORDS = [
   // English
@@ -162,9 +162,9 @@ function getContextDir(branch) {
 }
 
 /**
- * Перевіряє чи lock належить поточній сесії.
- * Формат lock-файлу: "{ppid}:{timestamp}"
- * Захист від PID reuse на Windows: lock вважається невалідним після SESSION_TTL_MS.
+ * Checks whether the lock belongs to the current session.
+ * Lock file format: "{ppid}:{timestamp}"
+ * Guards against PID reuse on Windows: lock is considered invalid after SESSION_TTL_MS.
  */
 function isCurrentSession(lockFile) {
   try {
@@ -173,10 +173,10 @@ function isCurrentSession(lockFile) {
     const pid = parseInt(pidStr, 10);
     const ts = parseInt(tsStr, 10);
 
-    // Якщо lock старший за TTL — нова сесія (захист від PID reuse)
+    // Lock older than TTL means a new session (guards against PID reuse)
     if (Date.now() - ts > SESSION_TTL_MS) return false;
 
-    process.kill(pid, 0); // throws якщо процес не існує
+    process.kill(pid, 0); // throws if process does not exist
     return true;
   } catch {
     return false;
@@ -211,7 +211,7 @@ async function main() {
 
   const currentBranch = getCurrentBranch();
 
-  // ── Try to serve from cache (якщо не refresh і не start-task) ──────────────
+  // ── Try to serve from cache (skip if refresh or start-task) ─────────────────
   if (!isRefresh && !isStartTask && currentBranch && currentBranch !== 'develop' && currentBranch !== 'main') {
     const ctxDir = getContextDir(currentBranch);
     const contextFile = path.join(ctxDir, 'context.md');
@@ -219,10 +219,10 @@ async function main() {
     const planFile = path.join(ctxDir, 'plan.md');
 
     if (fs.existsSync(contextFile)) {
-      // Вже інжектували цієї сесії — пропустити
+      // Already injected in this session — skip
       if (isCurrentSession(lockFile)) process.exit(0);
 
-      // Нова сесія, та сама гілка — inject з кешу
+      // New session, same branch — inject from cache
       const context = fs.readFileSync(contextFile, 'utf8');
       const plan = fs.existsSync(planFile) ? fs.readFileSync(planFile, 'utf8') : null;
       writeSessionLock(lockFile);
@@ -240,7 +240,7 @@ async function main() {
   }
 
   try {
-    // Включаємо обидва статуси — задача може бути вже In progress
+    // Include both statuses — task may already be In progress
     const queryResult = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
       filter: {
         or: [
@@ -280,7 +280,7 @@ async function main() {
       }
     }
 
-    // При start-task: якщо вже на правильній гілці — читати кеш
+    // On start-task: if already on the correct branch — read from cache
     if (isStartTask && taskBranch && currentBranch === taskBranch) {
       const ctxDir = getContextDir(taskBranch);
       const contextFile = path.join(ctxDir, 'context.md');
@@ -298,14 +298,14 @@ async function main() {
       }
     }
 
-    // Визначити папку кешу
+    // Determine cache folder
     const cacheBranch = isStartTask && taskBranch
       ? taskBranch
       : (currentBranch && currentBranch !== 'develop' && currentBranch !== 'main'
           ? currentBranch
           : taskBranch);
 
-    // Зберегти в кеш
+    // Save to cache
     if (cacheBranch) {
       const ctxDir = getContextDir(cacheBranch);
       ensureDir(ctxDir);
@@ -338,7 +338,7 @@ async function main() {
       branchNote = `\n> ⚠️ Current branch: \`${currentBranch}\`. Task branch: \`${taskBranch}\`. Use "start task" to switch and load full context.`;
     }
 
-    // При refresh — також підтягнути plan.md якщо є
+    // On refresh — also load plan.md if present
     let plan = null;
     if (isRefresh && cacheBranch) {
       const planFile = path.join(getContextDir(cacheBranch), 'plan.md');
