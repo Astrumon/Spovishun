@@ -142,7 +142,7 @@ Used for querying the task board (Kanban) — needed by `task-decomposer` and `n
 ## Related Skills
 - `notion-page-builder` — creates/updates pages using IDs from this map
 - `notion-spovishun-task-manager` — uses the Board collection ID for task CRUD
-- `doc-updater` — audits git-changed files and maps them to documentation zones (uses this map implicitly)
+- `technical-documentation-writer` — writes documentation pages placed using IDs from this map
 - `task-decomposer` — uses Board collection ID to determine next task number
 
 ---

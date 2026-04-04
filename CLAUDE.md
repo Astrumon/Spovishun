@@ -59,9 +59,10 @@ based on `PROFILE` env var. All bindings use the interface type: `single<MemberR
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
 ## Agent Workflow
-- `@kotlin-reviewer` — after implementing a feature (reviews Kotlin code quality)
-- `@database-reviewer` — after adding a table or migration (reviews DB layer)
-- `@doc-updater` — after architectural changes (audits Notion docs)
+- `kotlin-specialist` — after implementing a feature (reviews Kotlin code quality, architecture, patterns)
+- `postgresql-exposed-orm` — after adding a table or migration (reviews DB schema and Exposed usage)
+- `technical-documentation-writer` — after architectural changes (updates Notion documentation)
+- `skill-security-auditor` — before adding a new skill (quality gate: frontmatter, triggers, scope, error handling)
 
 ## Idea Planning Pipeline
 Use these skills to go from a raw idea to implementable tasks:

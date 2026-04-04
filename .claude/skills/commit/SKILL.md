@@ -25,7 +25,7 @@ Types: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`, `ci`, `build`, `perf`
 5. Create the commit using a HEREDOC for the message:
    - First line: `type: short description` (max 72 chars, imperative, lowercase, no period)
    - If the change is non-trivial, add a blank line and a body with bullet points explaining key changes
-   - Always end with: `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
+   - Always end with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 6. Run `git status` after the commit to verify success.
 
 ## Arguments
