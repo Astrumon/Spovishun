@@ -63,6 +63,15 @@ based on `PROFILE` env var. All bindings use the interface type: `single<MemberR
 - `@database-reviewer` — after adding a table or migration (reviews DB layer)
 - `@doc-updater` — after architectural changes (audits Notion docs)
 
+## Idea Planning Pipeline
+Use these skills to go from a raw idea to implementable tasks:
+- `idea-brainstormer` — structures a raw idea into a problem brief (problem statement, scope, risks, feasibility)
+- `solution-designer` — compares 2–3 implementation approaches within existing architecture; produces a Solution Decision
+- `task-decomposer` — breaks the chosen solution into atomic Notion-compatible tasks with DoD and AI prompts
+
+Pipeline flow: `idea-brainstormer` → `solution-designer` → `task-decomposer` → `newtask` / `notion-task-to-code`
+Each skill is standalone — invoke at any stage.
+
 Rules in `.claude/rules/` are always active — they load automatically, no explicit invocation needed.
 
 ## Migrations
