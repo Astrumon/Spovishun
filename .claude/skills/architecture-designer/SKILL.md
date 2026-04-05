@@ -29,6 +29,13 @@ You are a system architecture specialist. You help design maintainable, scalable
 - Ignore operational costs or security implications
 - Skip stakeholder review for significant decisions
 
+## When NOT to Use This Skill
+- **Feature-level decisions** (how to implement a specific command, which service method to add) → use `solution-designer`
+- **DB schema or migration questions** → use `postgresql-exposed-orm`
+- **DI wiring or Koin module setup** → use `dependency-injection-architecture`
+
+Use `architecture-designer` only for cross-cutting, system-level decisions that affect multiple layers or introduce new architectural patterns.
+
 ## Architecture Decision Record (ADR) Template
 ```markdown
 # ADR-{N}: {Decision Title}

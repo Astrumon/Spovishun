@@ -29,13 +29,17 @@ Never assume property names — always verify.
 ### Get all tasks
 ```
 Notion:notion-search(
-  query: "",
+  query: "<project prefix or keyword>",
   data_source_url: "collection://<data_source_id>"
 )
 ```
 
+> ⚠️ `notion-search` returns **titles only** — Status is not included in search results.
+> To get Status for specific tasks, fetch each page individually: `Notion:notion-fetch(id: "<page-id>")`
+> For a full board display, fetch the most recent 5–10 tasks individually after the initial search.
+
 ### Filter by status
-Filter locally after fetching. Common status values:
+After fetching individual pages, check the `<properties>` block for the Status field:
 - `Not started` / `Backlog` — planned, not started
 - `In progress` — actively being worked on
 - `Done` — completed

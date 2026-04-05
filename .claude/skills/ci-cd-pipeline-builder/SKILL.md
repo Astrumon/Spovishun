@@ -5,10 +5,6 @@ description: Use this skill when setting up or improving CI/CD pipelines for Kot
 
 # CI/CD Pipeline Builder
 
-**Tier:** POWERFUL
-**Category:** Engineering
-**Domain:** DevOps / Automation
-
 ## Overview
 
 Generate pragmatic CI/CD pipelines from detected project stack signals. Focus on fast baseline generation, repeatable checks, and environment-aware deployment stages.

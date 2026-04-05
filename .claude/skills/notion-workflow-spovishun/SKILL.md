@@ -33,6 +33,13 @@ Refer to the **notion-page-builder** skill for:
 - `replace_content` limitations
 - Migrating external content into Notion
 
+Refer to the **notion-spovishun-task-manager** skill for:
+- ALL task CRUD operations on the Spovishun board (create, update status, read)
+- Setting Status, Priority, Labels on tasks
+
+Refer to the **notion-task-board-manager** skill for:
+- Generic Kanban board operations across any Notion board
+
 Refer to the **notion-database-manager** skill for:
 - Creating and querying databases
 - Schema design and property types

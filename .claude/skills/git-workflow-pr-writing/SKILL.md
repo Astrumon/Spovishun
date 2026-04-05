@@ -33,6 +33,9 @@ docs(readme): update deployment instructions for Docker
 - Subject: imperative mood, lowercase, no period, max 72 chars
 - Body (optional): explain WHY, not WHAT. Separate from subject with blank line
 - Footer: reference issues with `Fixes #123` or `Closes #456`
+- AI-assisted commits must include: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
+
+> For committing changes following project conventions, use the `/commit` skill — it handles staging, conventional format, and co-author line automatically.
 
 ## Pull Request Template
 

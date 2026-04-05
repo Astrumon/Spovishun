@@ -37,6 +37,8 @@ Common topic indicators:
 **Never create more than 20 pages in a single batch** — Notion MCP may rate-limit.
 Use multiple `notion-create-pages` calls if needed.
 
+> Note: database records (rows) can be batched up to 100 per call. The 20-item limit applies to **pages** only.
+
 ## Content Formatting Rules
 
 ### Tips (text + link)

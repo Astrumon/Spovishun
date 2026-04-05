@@ -8,6 +8,8 @@ description: Converts a Spovishun Notion task into a ready-to-use AI agent promp
 Converts a Spovishun Notion board task into a structured, executable prompt for Claude Code or Windsurf agent.
 
 ## Key IDs
+> IDs are stable but if unsure, resolve via the `notion-navigator` skill.
+
 | Resource | ID |
 |---|---|
 | Board collection | `3193462f-68a9-80b8-99b9-000bcbf3b536` |
