@@ -1,33 +1,33 @@
-# ────────────────────────────────────────────
 # Stage 1: Build
-# ────────────────────────────────────────────
-FROM gradle:9.0-jdk21 AS build
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency descriptors first for layer caching
-COPY build.gradle.kts settings.gradle.kts gradle.properties* ./
+# Copy Gradle wrapper and build config first (cacheable layer)
+COPY gradlew .
 COPY gradle/ gradle/
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY buildSrc/ buildSrc/
 
-# Download dependencies (cached layer if above files unchanged)
-RUN gradle dependencies --no-daemon --quiet || true
+# Fix line endings (gradlew may have CRLF on Windows hosts) and warm dependency cache
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-daemon
 
-# Copy source and build distribution
+# Copy source code (changes frequently — separate layer)
 COPY src/ src/
-RUN gradle installDist --no-daemon
 
-# ────────────────────────────────────────────
+# Build the distribution (generateVersionInfo runs automatically via compileKotlin)
+RUN ./gradlew installDist --no-daemon
+
 # Stage 2: Runtime
-# ────────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
 
-COPY --from=build /app/build/install/spovishun/ ./
+# Copy only the distribution from the builder stage
+COPY --from=builder /app/build/install/spovishun/ ./
 
-# Non-root user for security
-RUN addgroup -S botgroup && adduser -S botuser -G botgroup
-USER botuser
+# Run as non-root user
+RUN addgroup -S app && adduser -S app -G app
+USER app
 
-ENTRYPOINT ["bin/spovishun"]
+ENTRYPOINT ["./bin/spovishun"]
