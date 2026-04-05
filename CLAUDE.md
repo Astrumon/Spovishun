@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 SpovishunTelegramBotV2 — Kotlin Telegram bot (Clean Architecture).
-Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Exposed 0.55.0, Flyway 10.x, SQLite (dev), PostgreSQL (prod).
+Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Exposed 0.55.0, Flyway 10.x, PostgreSQL (dev + prod).
 
 ## Commands
 ```bash
