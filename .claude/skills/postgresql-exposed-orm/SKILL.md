@@ -72,3 +72,15 @@ val config = HikariConfig().apply {
 }
 Database.connect(HikariDataSource(config))
 ```
+
+## Spovishun-Specific Rules
+- Always use `safeDbQuery { }` — never bare `transaction { }` or manual `ResultContainer.catching { dbQuery { } }`
+- `safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`
+- Only `DatabaseFactory.kt` may use `Dispatchers.IO`
+
+## Output Format
+When reviewing or designing DB code:
+1. **Schema assessment** — table structure, index coverage, constraint correctness
+2. **Query analysis** — N+1 risks, missing indexes, transaction boundaries
+3. **Migration note** — if DDL changes are needed, generate via `./gradlew generateMigration`
+4. **Code issues** — violations of `safeDbQuery` rule or layer boundary (data → domain)
