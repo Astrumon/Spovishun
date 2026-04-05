@@ -2,6 +2,7 @@ package com.ua.astrumon.tools
 
 import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DataSourceFactory
+import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.ua.astrumon.data.db.table.Groups
@@ -13,20 +14,19 @@ import java.io.File
 @OptIn(ExperimentalDatabaseMigrationApi::class)
 fun main() {
     val config = AppConfig()
-    config.databaseUrl
 
-    val dataSource = DataSourceFactory.create(
+    val dataSource = HikariDataSource(DataSourceFactory.create(
         url = config.databaseUrl,
         driver = config.databaseDriver,
         username = config.databaseUsername,
         password = config.databasePassword,
         poolSize = 2
-    )
+    ))
 
     Database.connect(dataSource)
 
     transaction {
-        val migrationDir = File("src/main/resources/db/migration")
+        val migrationDir = File("src/main/resources/db/migration/postgresql")
         val nextVersion = migrationDir
             .listFiles { f -> f.name.matches(Regex("V\\d+__.*\\.sql")) }
             ?.mapNotNull { it.name.removePrefix("V").substringBefore("__").toIntOrNull() }
@@ -38,7 +38,7 @@ fun main() {
 
         MigrationUtils.generateMigrationScript(
             Groups, Members, GroupMembers,
-            scriptDirectory = "src/main/resources/db/migration",
+            scriptDirectory = "src/main/resources/db/migration/postgresql",
             scriptName = "V${nextVersion}__${description}"
         )
 

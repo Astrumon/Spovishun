@@ -12,37 +12,32 @@ import org.slf4j.LoggerFactory
 
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)
-    
+
     fun initialize(config: AppConfig) {
         try {
-            logger.info("Initializing database connection...")
-            
+            logger.info(
+                "Initializing DB: url={}, driver={}, poolSize={}",
+                config.databaseUrl, config.databaseDriver, config.databasePoolSize
+            )
+
             val hikariConfig = DataSourceFactory.create(
                 url = config.databaseUrl,
                 driver = config.databaseDriver,
                 username = config.databaseUsername,
-                password = config.databasePassword
+                password = config.databasePassword,
+                poolSize = config.databasePoolSize
             )
-            
+
             val dataSource = HikariDataSource(hikariConfig)
             Database.connect(dataSource)
-            
-            logger.info("Database connection established. Creating schema...")
 
-            val migrationLocation = if (config.databaseUrl.contains("postgresql")) {
-                "classpath:db/migration"
-            } else {
-                logger.info("PostgreSQL database is not supported yet")
-                return
-            }
-
-            logger.info("Running Flyway migrations from: $migrationLocation")
-
+            logger.info("Database connection established. Running Flyway migrations...")
 
             val flyway = Flyway.configure()
                 .dataSource(dataSource)
-                .locations(migrationLocation)
+                .locations("classpath:db/migration/postgresql")
                 .baselineOnMigrate(true)
+                .baselineVersion("0")
                 .load()
 
             val result = flyway.migrate()
