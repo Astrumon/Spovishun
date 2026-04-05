@@ -1,7 +1,7 @@
 ---
 name: kotlin-specialist
-description: Use this skill for Kotlin development tasks including coroutines, Flow, Kotlin Multiplatform, Ktor, Gradle Kotlin DSL, and idiomatic Kotlin patterns. Triggers on Kotlin-specific architecture questions, language feature usage, or when implementing complex async logic.
-version: "1.1.0"
+description: Use this skill for Kotlin development tasks including coroutines, Flow, Gradle Kotlin DSL, and idiomatic Kotlin patterns. Triggers on Kotlin-specific architecture questions, language feature usage, coroutine/async questions ("coroutine", "suspend", "Flow", "launch", "withContext"), or when implementing complex async logic.
+version: "1.2.0"
 ---
 
 # Kotlin Specialist
@@ -95,7 +95,6 @@ val state: StateFlow<UiState<User>> = _state.asStateFlow()
 - Use `runBlocking` in production coroutine context — causes deadlock
 - Use `GlobalScope.launch` — causes memory leaks
 - Ignore `CancellationException` — always rethrow or propagate
-- Mix platform-specific code in shared modules (KMP)
 - Use undocumented `!!` operators
 
 ## Gradle Kotlin DSL
@@ -114,4 +113,31 @@ dependencies {
 }
 ```
 
-## Targets: Kotlin 2.x, JVM 21, structured concurrency, explicit API mode for libraries
+## Cancellation & Timeouts
+```kotlin
+// withTimeout throws TimeoutCancellationException (subclass of CancellationException)
+try {
+    val result = withTimeout(5_000L) { fetchData() }
+} catch (e: TimeoutCancellationException) {
+    logger.warn("Fetch timed out")
+    // Don't rethrow — handle gracefully
+}
+
+// isActive check in long loops
+while (isActive) {
+    processNext()
+}
+```
+
+**Rules:**
+- Never catch and swallow `CancellationException` — always rethrow or propagate
+- Verify parent scope is cancelled on teardown
+- Use `isActive` checks in long-running loops
+
+## Dispatcher Rules (Spovishun-specific)
+- Only `data/db/DatabaseFactory.kt` may use `Dispatchers.IO`
+- All DB/I/O functions are `suspend fun` — never use `runBlocking` inside a coroutine
+- `TelegramBot` runs `CoroutineScope(SupervisorJob())` — one failing command never kills the bot
+- Inject `CoroutineDispatcher` via Koin — never hardcode `Dispatchers.IO` inside a class
+
+## Targets: Kotlin 2.x, JVM 21, structured concurrency

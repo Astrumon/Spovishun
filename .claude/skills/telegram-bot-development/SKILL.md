@@ -67,3 +67,16 @@ fun buildKeyboard(options: List<Pair<String, String>>): InlineKeyboardMarkup {
 - Always answer callback queries within 10 seconds
 - Use `answerCallbackQuery()` even when no popup is needed
 - Parse callback data with a consistent format: `action:param1:param2`
+
+## Spovishun Project Context
+- Library: `org.telegram:telegrambots-longpolling` (long-polling mode)
+- Bot class extends `TelegramBotsLongPollingApplication`; updates dispatched via `MessageHandler`
+- Command flow: `TelegramBot` → `MessageHandler` → `Command` → `Controller` → `Service`
+- Never call a `Service` directly from a `Command` — always go through a `Controller`
+
+## Output Format
+When implementing bot features:
+1. **Architecture summary** — which layer is modified and why
+2. **Code snippet** — the new command/handler/helper with Kotlin idioms
+3. **Registration note** — if a new command needs to be registered in `MessageHandler`
+4. **Test hint** — which `BaseIntegrationTest` pattern to follow

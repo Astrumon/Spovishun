@@ -30,7 +30,6 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ## docker-compose.yml (Bot + PostgreSQL)
 ```yaml
-version: '3.8'
 services:
   app:
     build: .
@@ -64,19 +63,8 @@ volumes:
   postgres_data:
 ```
 
-## GitHub Actions CI
-```yaml
-name: CI
-on: [push, pull_request]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
-      - run: ./gradlew test shadowJar --no-daemon
-```
+## CI/CD Pipelines
+For GitHub Actions and deployment automation, use the `ci-cd-pipeline-builder` skill — it covers Gradle caching, matrix builds, and SSH deploy stages.
 
 ## Security Rules
 - Never hardcode credentials — use environment variables or secrets

@@ -91,6 +91,12 @@ All documentation lives under **Documentation** (`3193462f68a981b79936e2e45291df
 | 🤖 Bot Module | `3313462f68a98145bbd2f8398bec9bab` | chats, members, groups, group_members tables |
 | *(future modules)* | — | Add new module sub-page here (e.g., `:server`, `:api`) |
 
+### Skill Testing Zone
+
+| Page | ID | What belongs here |
+|------|----|-------------------|
+| 🧪 Skill Testing Zone | `3383462f68a98118b6bdee9e55e88b8a` | Temporary test pages for skill testing — create all test content here |
+
 ### Claude Code Infrastructure — Sub-pages
 
 | Page | ID | What belongs here |
@@ -142,7 +148,7 @@ Used for querying the task board (Kanban) — needed by `task-decomposer` and `n
 ## Related Skills
 - `notion-page-builder` — creates/updates pages using IDs from this map
 - `notion-spovishun-task-manager` — uses the Board collection ID for task CRUD
-- `doc-updater` — audits git-changed files and maps them to documentation zones (uses this map implicitly)
+- `technical-documentation-writer` — writes documentation pages placed using IDs from this map
 - `task-decomposer` — uses Board collection ID to determine next task number
 
 ---

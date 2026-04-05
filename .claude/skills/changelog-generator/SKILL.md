@@ -5,10 +5,6 @@ description: Use this skill to generate CHANGELOG entries from git commit histor
 
 # Changelog Generator
 
-**Tier:** POWERFUL
-**Category:** Engineering
-**Domain:** Release Management / Documentation
-
 ## Overview
 
 Use this skill to produce consistent, auditable release notes from Conventional Commits. Separates commit parsing, semantic bump logic, and changelog rendering.

@@ -51,13 +51,17 @@ Do not announce this step.
 ### Fetch all tasks
 ```
 Notion:notion-search(
-  query: "",
+  query: "feature/spovishun",
   data_source_url: "collection://3193462f-68a9-80b8-99b9-000bcbf3b536"
 )
 ```
 
+> ⚠️ `notion-search` returns **titles only** — Status is not included in search results.
+> To get Status for a task, fetch it individually: `Notion:notion-fetch(id: "<task-page-id>")`
+> For a full board view with statuses, fetch the most recent 5–10 tasks individually after the search.
+
 ### Filter by status
-After fetching, filter locally by the `Status` field:
+After fetching individual pages, check the `<properties>` block for the `Status` field:
 - `Not started` — new tasks, not yet picked up
 - `In progress` — active development
 - `Done` — completed
