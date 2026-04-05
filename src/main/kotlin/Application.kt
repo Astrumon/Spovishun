@@ -3,12 +3,10 @@ package com.ua.astrumon
 import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DatabaseFactory
 import com.ua.astrumon.di.configModule
-import com.ua.astrumon.di.devRepositoryModule
 import com.ua.astrumon.di.presentationModule
-import com.ua.astrumon.di.prodRepositoryModule
+import com.ua.astrumon.di.repositoryModule
 import com.ua.astrumon.di.serviceModule
 import com.ua.astrumon.presentation.bot.TelegramBot
-import io.github.cdimascio.dotenv.dotenv
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
@@ -19,9 +17,8 @@ object Application : KoinComponent {
     private val telegramBot: TelegramBot by inject()
     private val config: AppConfig by inject()
 
-    private val env = dotenv { ignoreIfMissing = true }
-    private val profile = env["PROFILE"] ?: System.getenv("PROFILE") ?: "dev"
-    
+    private val profile = System.getenv("PROFILE") ?: "dev"
+
     suspend fun run() {
         initializeKoin()
         initializeDatabase()
@@ -31,13 +28,8 @@ object Application : KoinComponent {
     }
 
     fun initializeKoin() {
-        val repositoryModule = when (profile) {
-            "prod" -> prodRepositoryModule
-            else -> devRepositoryModule
-        }
-
         logger.info("Starting application with profile: {}", profile)
-        
+
         startKoin {
             modules(
                 configModule,
@@ -47,11 +39,9 @@ object Application : KoinComponent {
             )
         }
     }
-    
+
     private fun initializeDatabase() {
-        if (profile == "prod") {
-            DatabaseFactory.initialize(config)
-        }
+        DatabaseFactory.initialize(config)
     }
 }
 

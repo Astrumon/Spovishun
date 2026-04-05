@@ -30,6 +30,6 @@ Must implement the same `*Repository` interface as the DB impl — they are the 
 MockImpls must behave consistently with DB semantics (uniqueness checks, not-found returns null, etc.).
 
 ## Migrations
-Files live in `src/main/resources/db/migration/` (PostgreSQL only — no SQLite migrations).
+Files in `src/main/resources/db/migration/postgresql/` — Flyway runs against PostgreSQL for both dev and prod.
 Always update the `Table` object and generate the migration together via `./gradlew generateMigration`.
 Never edit an applied migration file.

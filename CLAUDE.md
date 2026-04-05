@@ -5,8 +5,8 @@ Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Expo
 
 ## Commands
 ```bash
-./gradlew runDev             # PROFILE=dev — MockImpl repos, no DB
-./gradlew runProd            # PROFILE=prod — PostgreSQL + Flyway migrations
+./gradlew runDev             # PROFILE=dev — local PostgreSQL + Flyway migrations
+./gradlew runProd            # PROFILE=prod — cloud PostgreSQL (Neon) + Flyway migrations
 ./gradlew test               # unit tests
 ./gradlew integrationTest    # in-process tests (MockImpl repos)
 ./gradlew e2eTest            # real Telegram API (skips if env vars unset)
@@ -47,8 +47,7 @@ Never call a `Service` directly from a `Command`.
 **Role checks** — `MemberService.hasAdminAccess()` / `hasModeratorAccess()` query the DB.
 `BotAdminUtils` (`presentation/util/`) queries Telegram API only to derive initial role on first registration.
 
-**Profile DI** — `Application.kt` loads `DevRepositoryModule` (MockImpls) or `ProdRepositoryModule` (DB impls)
-based on `PROFILE` env var. All bindings use the interface type: `single<MemberRepository> { ... }`.
+**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 4 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (SQLite for dev, cloud PostgreSQL for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
@@ -77,7 +76,7 @@ Each skill is standalone — invoke at any stage.
 Rules in `.claude/rules/` are always active — they load automatically, no explicit invocation needed.
 
 ## Migrations
-Files in `src/main/resources/db/migration/` (PostgreSQL only).
+Files in `src/main/resources/db/migration/postgresql/` — both dev and prod use Flyway against PostgreSQL.
 Run `./gradlew generateMigration`, review SQL, commit `Table` object + migration file together.
 Never edit a migration that has been applied to any database.
 
