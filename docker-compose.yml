@@ -1,0 +1,36 @@
+services:
+  bot:
+    build: .
+    container_name: spovishun-bot
+    env_file: .env
+    environment:
+      # Override DB host for Docker networking (service name 'postgres', not 'localhost')
+      DEV_DATABASE_URL: jdbc:postgresql://postgres:5432/spovishun_dev
+      DEV_DATABASE_USERNAME: postgres
+      DEV_DATABASE_PASSWORD: ${DEV_DATABASE_PASSWORD}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: spovishun-db
+    profiles: ["dev"]
+    environment:
+      POSTGRES_DB: spovishun_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DEV_DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spovishun_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

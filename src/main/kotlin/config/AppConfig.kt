@@ -4,7 +4,7 @@ import io.github.cdimascio.dotenv.dotenv
 
 class AppConfig {
     private val profile = System.getenv("PROFILE") ?: "dev"
-    private val env = dotenv()
+    private val env = dotenv { ignoreIfMissing = true }
     val telegramBotToken: String = env["TELEGRAM_BOT_TOKEN"]
     val telegramAdminIds: Set<Long> = env["ADMINS"].split(",").map { it.trim().toLong() }.toSet()
     
