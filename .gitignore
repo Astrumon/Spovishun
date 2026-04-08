@@ -142,3 +142,5 @@ yarn-error.log*
 # Dev Context (local task cache)
 # ======================
 .dev-context/
+# Skill temp files
+.claude/tmp/

@@ -7,7 +7,7 @@ description: >
   "notion page for", "where in notion", "find the notion page".
   Refresh triggers: "оновити карту", "refresh navigator", "перевір notion структуру", "sync notion map".
   Load silently before any Notion write operation.
-last_verified: 2026-04-04
+last_verified: 2026-04-08
 ---
 
 # Notion Navigator — Spovishun Workspace Map
@@ -25,6 +25,12 @@ Invoke when: user says "оновити карту", "refresh navigator", "пер
 ```
 Notion:notion-fetch(id: "3193462f68a981b79936e2e45291df85")   ← Documentation root
 Notion:notion-fetch(id: "3183462f68a9803aa93ae34eb81d2659")   ← Workspace root
+Notion:notion-fetch(id: "33c3462f68a9819894a4df73c3b7d9fe")   ← Architecture category
+Notion:notion-fetch(id: "33c3462f68a9817e83aef4f1a912a8dd")   ← Database category
+Notion:notion-fetch(id: "33c3462f68a98108b41cf3b5c83610fb")   ← Testing category
+Notion:notion-fetch(id: "33c3462f68a98146bf26cc0e5f5c2799")   ← CI/CD category
+Notion:notion-fetch(id: "33c3462f68a981439024cf50673df3a7")   ← AI Tools category
+Notion:notion-fetch(id: "33c3462f68a9819c97cffd4d1ae31db4")   ← Other category
 ```
 
 ### Step 2: Compare
@@ -63,46 +69,36 @@ Report a one-line summary: "Оновлено: +N нових, ~M змінених
 
 ---
 
-## Documentation — Child Pages
+## Documentation — Category Structure
 
 All documentation lives under **Documentation** (`3193462f68a981b79936e2e45291df85`).
+Documentation is organized into **category group pages**, each containing an **inline database** of articles.
+
+### Top-level items
+
+| Page | ID | Notes |
+|------|----|-------|
+| CLAUDE.md — Rules for AI | `31c3462f68a9819c8150ff31d729293e` | Project rules for AI assistant; direct child of Documentation |
+
+### Category Group Pages
+
+Each category page hosts an inline database. New documentation articles are created as **records in the database**, not as standalone sub-pages.
+
+| Category | Group Page ID | Inline DB ID | Collection ID | What belongs here |
+|----------|--------------|--------------|---------------|-------------------|
+| 🏗️ Architecture | `33c3462f68a9819894a4df73c3b7d9fe` | `c4cea10d5e4d4ad6a4f226e1022eb49a` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` | Clean Architecture, layers, patterns, ResultContainer, Koin DI, code conventions, tech stack |
+| 🗄️ Database | `33c3462f68a9817e83aef4f1a912a8dd` | `e1e21982827642a3a56d2ea602a0170e` | `collection://74e2c987-7021-4d70-8a4f-dc04e82269b4` | PostgreSQL setup, Flyway migrations, schema/tables, Exposed ORM |
+| 🧪 Testing | `33c3462f68a98108b41cf3b5c83610fb` | `c017b7d0138c400ab5f5e52f85dfd7bf` | `collection://af9016e6-c28e-4962-8976-4ba43bb4b419` | E2E tests, integration tests, test setup, test environment |
+| ⚙️ CI/CD | `33c3462f68a98146bf26cc0e5f5c2799` | `a565714f075f4b7b89dec10812dbe7f4` | `collection://ed906931-fd5e-4033-93e1-7aaf43873438` | GitHub Actions workflows, repo setup, branch protection, CI pipelines |
+| 🤖 AI Tools | `33c3462f68a981439024cf50673df3a7` | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` | Claude Code skills, hooks, agents, rules, Idea Planning Pipeline |
+| 📚 Other | `33c3462f68a9819c97cffd4d1ae31db4` | *(no inline DB — has sub-pages)* | *(no collection)* | Learning materials, skill testing zone |
+
+### Other — Sub-pages
 
 | Page | ID | What belongs here |
 |------|----|-------------------|
-| CLAUDE.md — Rules for AI | `31c3462f68a9819c8150ff31d729293e` | Project rules for AI assistant; commands, patterns, layer rules |
-| 🏬 Architecture | `3193462f68a981a8ae94fcc8669b0eda` | Clean Architecture overview, data flow, layer responsibilities, ResultContainer, coroutine patterns |
-| 🔧 Technologies / Frameworks | `3193462f68a981b5a080d8d46bb2b350` | Tech stack reference (Kotlin 2.3.0, Koin, Exposed, Flyway, etc.) |
-| 📐 Code Convention | `3193462f68a98193ac1cfab8daf0269c` | Kotlin naming, coding style, patterns |
-| 🐘 PostgreSQL & pgAdmin Setup | `3233462f68a98151a0bedf3448c446cd` | Dev database setup, Docker, pgAdmin config |
-| 🔄 Database Migrations (Flyway) | `3243462f68a981c9bddbefebc5153fde` | Migration workflow, Flyway versioning, `generateMigration` task |
-| 🗄️ Database Tables | `32f3462f68a9810c965efe50a7a53a52` | Schema documentation; add new module tables here as sub-pages |
-| 🪝 Claude Code — .claude/ Infrastructure | `3303462f68a98175bdf8f79f9103a902` | Hooks (notion-task-inject, session-end, session-start), agents, rules |
-| 🛠️ Claude Code — Installed Skills | `32b3462f68a981719106c6b1d82f906c` | Skills registry (auto-synced); reference for available skills |
-| 🧪 E2E Tests — Setup & Guide | `3313462f68a98161a27bc3fd079a9442` | E2E test environment, Telegram API test setup |
-| ⚙️ GitHub Actions — CI/CD | `3313462f68a981199b92c9184221dee8` | CI/CD pipeline, workflow files, secret management |
-| 🔀 GitHub Repository Setup | `31a3462f68a981919e43cefbe8056bd3` | Branch structure, Conventional Commits, branch protection |
 | 📚 Learning Materials | `31d3462f68a981d1b134eebd436830eb` | Reference links: SQL, Exposed, PostgreSQL, Docker, Testing |
-| 💡 Idea Planning Pipeline | `3383462f68a9817daabcfce958998cba` | How-to guide for idea-brainstormer → solution-designer → task-decomposer |
-
-### Database Tables — Sub-pages
-
-| Page | ID | What belongs here |
-|------|----|-------------------|
-| 🤖 Bot Module | `3313462f68a98145bbd2f8398bec9bab` | chats, members, groups, group_members tables |
-| *(future modules)* | — | Add new module sub-page here (e.g., `:server`, `:api`) |
-
-### Skill Testing Zone
-
-| Page | ID | What belongs here |
-|------|----|-------------------|
 | 🧪 Skill Testing Zone | `3383462f68a98118b6bdee9e55e88b8a` | Temporary test pages for skill testing — create all test content here |
-
-### Claude Code Infrastructure — Sub-pages
-
-| Page | ID | What belongs here |
-|------|----|-------------------|
-| notion-task-inject (hook) | `3303462f68a981d49731ea0245fd39c8` | Hook internals: branch caching, status update logic |
-| session-end (hook) | `3373462f68a981b3a677e0fe2162362f` | session-end hook details, trigger patterns |
 
 ---
 
@@ -118,18 +114,19 @@ Used for querying the task board (Kanban) — needed by `task-decomposer` and `n
 
 ## Decision Table: Where to Put New Documentation
 
-| I want to document... | Parent page | ID |
-|-----------------------|-------------|-----|
-| New architecture pattern or design decision | Architecture | `3193462f68a981a8ae94fcc8669b0eda` |
-| New DB table or schema change | Database Tables → (module sub-page) | `32f3462f68a9810c965efe50a7a53a52` |
-| New Flyway migration workflow change | Database Migrations | `3243462f68a981c9bddbefebc5153fde` |
-| New hook, agent, or rule in `.claude/` | Claude Code — .claude/ Infrastructure | `3303462f68a98175bdf8f79f9103a902` |
-| New or updated skill | Claude Code — Installed Skills | `32b3462f68a981719106c6b1d82f906c` |
-| Feature how-to guide or step-by-step | Documentation (top-level child) | `3193462f68a981b79936e2e45291df85` |
-| Idea planning or pipeline docs | Idea Planning Pipeline | `3383462f68a9817daabcfce958998cba` |
-| GitHub / CI/CD workflow change | GitHub Actions — CI/CD | `3313462f68a981199b92c9184221dee8` |
-| Tech stack change or new dependency | Technologies / Frameworks | `3193462f68a981b5a080d8d46bb2b350` |
-| Code style or naming convention change | Code Convention | `3193462f68a98193ac1cfab8daf0269c` |
+New documentation articles are created as **records in the category's inline database** (not as standalone pages).
+
+| I want to document... | Category group page | Group Page ID |
+|-----------------------|---------------------|--------------|
+| New architecture pattern, design decision, layer change | 🏗️ Architecture | `33c3462f68a9819894a4df73c3b7d9fe` |
+| Tech stack change, new dependency, code convention | 🏗️ Architecture | `33c3462f68a9819894a4df73c3b7d9fe` |
+| New DB table, schema change, Exposed ORM update | 🗄️ Database | `33c3462f68a9817e83aef4f1a912a8dd` |
+| Flyway migration workflow, PostgreSQL setup | 🗄️ Database | `33c3462f68a9817e83aef4f1a912a8dd` |
+| E2E test setup, integration test infrastructure | 🧪 Testing | `33c3462f68a98108b41cf3b5c83610fb` |
+| GitHub Actions workflow, CI pipeline, repo setup | ⚙️ CI/CD | `33c3462f68a98146bf26cc0e5f5c2799` |
+| New or updated skill, hook, agent, rule in `.claude/` | 🤖 AI Tools | `33c3462f68a981439024cf50673df3a7` |
+| Idea planning pipeline, Claude Code guides | 🤖 AI Tools | `33c3462f68a981439024cf50673df3a7` |
+| Learning resources, reference links | 📚 Other → Learning Materials | `31d3462f68a981d1b134eebd436830eb` |
 | General project rules (for AI or devs) | CLAUDE.md | `31c3462f68a9819c8150ff31d729293e` |
 | New feature roadmap item | План розвитку | `31c3462f68a98029a084df47ae579e2b` |
 
@@ -137,11 +134,11 @@ Used for querying the task board (Kanban) — needed by `task-decomposer` and `n
 
 ## Critical Rules
 
-- **NEVER create a page at the root** — always under Documentation or a specific section
+- **NEVER create a standalone page** — new documentation is a **record in the category's inline database**
 - **NEVER hardcode IDs from memory** — use this map; IDs here are verified against live Notion
-- When a topic spans multiple sections (e.g., new feature with DB + architecture changes), create one page and link from the others using Notion mentions
-- New module tables always get their own sub-page under Database Tables, never merged into Bot Module
-- How-to guides and pipeline documentation go as direct children of Documentation
+- To add a doc article: create a new page in the inline DB of the matching category group page
+- When a topic spans multiple categories (e.g., new feature with DB + architecture changes), create one article in the primary category and mention it from the other
+- Learning Materials and Skill Testing Zone are the only standalone sub-pages (under Other)
 
 ---
 

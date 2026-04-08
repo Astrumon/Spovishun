@@ -64,6 +64,9 @@ Never call a `Service` directly from a `Command`.
 - `skill-security-auditor` — before adding a new skill (quality gate: frontmatter, triggers, scope, error handling)
 - `code-reviewer` — for PR review with Kotlin-specific checks and verdict section
 
+## Documentation Sync
+- `update-doc-full` — range-based Notion doc audit; invoke via `/update-doc-full [range]` (e.g. `1m`); default range `2w`; delegates to `doc-updater` agent, batch-confirms via plannotator, applies via Notion MCP.
+
 ## Idea Planning Pipeline
 Use these skills to go from a raw idea to implementable tasks:
 - `idea-brainstormer` — structures a raw idea into a problem brief (problem statement, scope, risks, feasibility)
