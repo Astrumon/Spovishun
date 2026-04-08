@@ -51,9 +51,10 @@ notion-search(query: "short descriptive phrase", query_type: "internal")
 
 ## Reading Database Records
 
-1. Fetch database URL → get `<data-source url="collection://...">` and schema
-2. Use `notion-search(data_source_url: "collection://...")` to query records
-3. Fetch individual records by their URL for full content
+1. **If the DB is a known Spovishun category** (Architecture, Database, Testing, CI/CD, AI Tools) → use the Collection ID directly from `notion-navigator` — no need to fetch the DB first.
+2. **Otherwise** → fetch the DB page to get `<data-source url="collection://...">` from its schema.
+3. Use `notion-search(query: "", data_source_url: "collection://...")` to list all records.
+4. Fetch individual records by their URL for full content.
 
 ## Output Format
 

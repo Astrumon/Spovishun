@@ -42,18 +42,44 @@ You are a documentation auditor for the Spovishun project. You scan the codebase
 
 ## Notion Page Map
 
-Use these URLs when referencing where changes should go:
+Use these URLs when referencing where changes should go.
+Documentation is now organized into **category group pages** with inline databases.
+New articles go as records in the category's inline DB — reference the category group page URL.
 
 | Zone | Notion Page |
 |------|------------|
-| Database tables (schema, columns, Exposed definitions) | https://www.notion.so/32f3462f68a9810c965efe50a7a53a52 |
-| Database migrations (Flyway, new/modified .sql files) | https://www.notion.so/3243462f68a981c9bddbefebc5153fde |
-| Architecture (DI modules, layers, patterns, services) | https://www.notion.so/Architecture-3193462f68a981a8ae94fcc8669b0eda |
+| Database tables (schema, columns, Exposed definitions) | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
+| Database migrations (Flyway, new/modified .sql files) | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
+| Architecture (DI modules, layers, patterns, services) | https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe |
 | Bot commands (user-facing command list) | https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди") |
-| Hooks, subagents, rules (.claude/ infrastructure) | https://www.notion.so/3303462f68a98175bdf8f79f9103a902 |
-| Claude Code skills (.claude/skills/) | https://www.notion.so/32b3462f68a981719106c6b1d82f906c |
-| CI/CD pipelines (GitHub Actions workflows) | https://www.notion.so/3313462f68a981199b92c9184221dee8 |
-| E2E tests setup and infrastructure | https://www.notion.so/3313462f68a98161a27bc3fd079a9442 |
+| Hooks, subagents, rules (.claude/ infrastructure) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
+| Claude Code skills (.claude/skills/) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
+| CI/CD pipelines (GitHub Actions workflows) | https://www.notion.so/33c3462f68a98146bf26cc0e5f5c2799 |
+| E2E tests setup and infrastructure | https://www.notion.so/33c3462f68a98108b41cf3b5c83610fb |
+
+---
+
+## RANGE-MODE: Notion Records Cross-Reference
+
+When the prompt contains a `--- NOTION RECORDS ---` section (injected by `update-doc-full`), perform this analysis **before** zone mapping:
+
+### A — Ingest provided records
+- Parse each `#### <Category>` subsection → store as `notion_records[category]`
+- If a category is marked "NOT AVAILABLE", skip it in cross-referencing (do not fail)
+- Only affected categories are present — no need to check others
+
+### B — Detect duplicates / already-documented items
+For every change you identify in zone mapping, before proposing a Notion update:
+1. Check `notion_records[relevant_category]` for a record with a matching name or topic
+2. **Status = Stable** → do NOT propose a new entry; note "already documented as `<Name>`" in the zone's Current State section
+3. **Status = Draft or Outdated** → propose an update to that record (not a new one), label Change Type as "Update existing record"
+4. No matching record → propose a new record as usual
+
+### C — Detect potentially outdated records
+For each category in `notion_records`:
+1. Check if any existing record's topic is directly affected by the code changes
+2. If clearly impacted (e.g., a DB schema article exists but the table was just modified) → add a `- [ ]` proposing to mark that record "Outdated"
+3. Only flag records with clear, direct impact — do not flag unrelated records
 
 ---
 
@@ -62,6 +88,10 @@ Use these URLs when referencing where changes should go:
 **IMPORTANT:** Do NOT scan the full codebase. Only audit files that have actually changed.
 
 **Step 1 — Get changed files:**
+
+If the prompt contains `RANGE-MODE RUN` — **skip this step entirely**. The file list was provided by the parent skill. Use it as-is.
+
+Otherwise (standalone run):
 ```bash
 git diff --name-only HEAD
 git status --short
@@ -99,7 +129,7 @@ For each changed Table/migration file, extract:
 - New/modified columns with type, nullable/default info
 - New indexes, constraints, foreign keys
 
-**Target page:** https://www.notion.so/Bot-Module-3313462f68a98145bbd2f8398bec9bab
+**Target page:** https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd
 
 ---
 
@@ -108,7 +138,7 @@ For each changed Table/migration file, extract:
 For each changed DI module, extract:
 - New or removed bindings: `single<Interface> { Implementation() }` or `factory<...> { ... }`
 
-**Target page:** https://www.notion.so/Architecture-3193462f68a981a8ae94fcc8669b0eda
+**Target page:** https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe
 
 ---
 
@@ -132,7 +162,7 @@ For each changed Command file, extract the command string and what it does.
 
 For each changed hook/agent/rule/settings file, extract name and purpose.
 
-**Target page:** https://www.notion.so/3303462f68a98175bdf8f79f9103a902
+**Target page:** https://www.notion.so/33c3462f68a981439024cf50673df3a7
 
 ---
 
@@ -199,8 +229,23 @@ Last commits: <output of git log --oneline -5>
 
 ---
 
+### Notion Category Analysis (only when RANGE-MODE with Notion context)
+
+#### Already Documented (skipped — no new entry needed)
+| Topic | Existing Record | Status |
+|-------|----------------|--------|
+
+#### Potentially Outdated Records (need update)
+| Category | Record Name | Why Outdated |
+|----------|-------------|-------------|
+- [ ] <update proposal with target Notion page URL>
+
+---
+
 ### Summary
 - Zones audited: 5
 - Total proposed changes: N
+- Already documented (skipped): N
+- Potentially outdated records: N
 - Priority updates: <top 1-3 most important>
 ```
