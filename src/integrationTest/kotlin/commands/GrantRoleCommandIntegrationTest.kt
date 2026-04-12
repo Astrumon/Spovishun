@@ -16,7 +16,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MODERATOR)
         val update = buildUpdate("/grantrole @alice moderator")
 
-        grantRoleCommand(bot, update)
+        grantRoleCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -37,7 +37,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             username = testAdminUsername
         )
 
-        grantRoleCommand(bot, update)
+        grantRoleCommand.execute(bot, update)
 
         val alice = memberService.getMemberByUsername("alice").getOrThrow()
         assertEquals(MemberRole.MODERATOR, alice.role)
@@ -59,7 +59,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             username = testAdminUsername
         )
 
-        grantRoleCommand(bot, update)
+        grantRoleCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -80,7 +80,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             username = testAdminUsername
         )
 
-        grantRoleCommand(bot, update)
+        grantRoleCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(

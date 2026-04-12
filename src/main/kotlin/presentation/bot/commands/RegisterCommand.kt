@@ -1,8 +1,6 @@
 package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.ChatId
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.toText
@@ -13,10 +11,13 @@ import org.slf4j.LoggerFactory
 class RegisterCommand(
     private val registrationController: RegistrationController,
     private val botAdminUtils: BotAdminUtils,
-) {
+) : BotCommand {
+
+    override val name = "register"
+
     private val logger = LoggerFactory.getLogger(RegisterCommand::class.java)
 
-    suspend operator fun invoke(bot: Bot, update: Update) {
+    override suspend fun execute(bot: Bot, update: Update) {
         val user = update.message?.from ?: return
         val chatId = update.message?.chat?.id ?: return
 
@@ -28,6 +29,6 @@ class RegisterCommand(
 
         val text = response.toText("✅ ")
 
-        bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
+        bot.reply(chatId, text)
     }
 }

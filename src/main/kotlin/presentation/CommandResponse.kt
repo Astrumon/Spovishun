@@ -8,17 +8,19 @@ sealed class CommandResponse {
 }
 
 /**
- * Default rendering for commands that follow the standard pattern:
- * Success → [successPrefix] + message, Error → "❌ msg", AccessDenied → "🚫 reason", NotFound → "❌ Помилка."
+ * Universal rendering for all commands.
+ * Provide callbacks only for the cases that differ from defaults.
  *
- * Commands with custom NotFound/AccessDenied text use explicit `when` instead.
+ * Defaults: Success → message, Error → "❌ msg", AccessDenied → "🚫 reason", NotFound → "❌ Помилка."
  */
 fun CommandResponse.toText(
     successPrefix: String = "",
     onError: (String) -> String = { "❌ $it" },
+    onAccessDenied: (String) -> String = { "🚫 $it" },
+    onNotFound: (CommandResponse.NotFound) -> String = { "❌ Помилка." },
 ): String = when (this) {
     is CommandResponse.Success -> "$successPrefix$message"
     is CommandResponse.Error -> onError(message)
-    is CommandResponse.AccessDenied -> "🚫 $reason"
-    is CommandResponse.NotFound -> "❌ Помилка."
+    is CommandResponse.AccessDenied -> onAccessDenied(reason)
+    is CommandResponse.NotFound -> onNotFound(this)
 }

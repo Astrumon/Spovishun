@@ -16,7 +16,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
     fun `start should send welcome message containing bot name`() = runTest {
         val update = buildUpdate("/start")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -31,7 +31,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
     fun `start should auto-register the calling user via full service stack`() = runTest {
         val update = buildUpdate("/start")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
@@ -52,7 +52,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
         every { bot.getChatAdministrators(ChatId.fromId(testChatId)) } returns
             com.github.kotlintelegrambot.types.TelegramBotResult.Success(listOf(adminMember))
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         val adminInRepo = memberService.getMemberByUsername(testAdminUsername)
         assertTrue(adminInRepo.isSuccess)
@@ -68,7 +68,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
         every { bot.getChatAdministrators(ChatId.fromId(testChatId)) } returns
             com.github.kotlintelegrambot.types.TelegramBotResult.Success(emptyList())
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         verify(atLeast = 1) {
             bot.sendMessage(
@@ -83,7 +83,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
     fun `start with null message should do nothing`() = runTest {
         val update = com.github.kotlintelegrambot.entities.Update(updateId = 1L, message = null)
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         verify(exactly = 0) { bot.sendMessage(any(), any<String>(), any()) }
     }

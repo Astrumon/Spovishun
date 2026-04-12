@@ -15,11 +15,16 @@ import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
+import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
-import com.ua.astrumon.presentation.bot.commands.GroupCommand
 import com.ua.astrumon.presentation.bot.commands.MembersCommand
-import com.ua.astrumon.presentation.bot.commands.PingCommand
+import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
+import com.ua.astrumon.presentation.bot.commands.PingAllCommand
+import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
 import com.ua.astrumon.presentation.bot.commands.RegisterCommand
+import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
+import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
@@ -60,10 +65,15 @@ abstract class BaseIntegrationTest {
     // Commands — real
     protected lateinit var startCommand: StartCommand
     protected lateinit var registerCommand: RegisterCommand
-    protected lateinit var pingCommand: PingCommand
-    protected lateinit var groupCommand: GroupCommand
-    protected lateinit var grantRoleCommand: GrantRoleCommand
     protected lateinit var membersCommand: MembersCommand
+    protected lateinit var grantRoleCommand: GrantRoleCommand
+    protected lateinit var showGroupsCommand: ShowGroupsCommand
+    protected lateinit var newGroupCommand: NewGroupCommand
+    protected lateinit var deleteGroupCommand: DeleteGroupCommand
+    protected lateinit var addUserToGroupCommand: AddUserToGroupCommand
+    protected lateinit var removeUserFromGroupCommand: RemoveUserFromGroupCommand
+    protected lateinit var pingAllCommand: PingAllCommand
+    protected lateinit var pingGroupCommand: PingGroupCommand
     protected lateinit var messageHandler: MessageHandler
 
     // Test constants
@@ -109,10 +119,15 @@ abstract class BaseIntegrationTest {
         // Real commands
         startCommand = StartCommand(registrationController, botAdminUtils)
         registerCommand = RegisterCommand(registrationController, botAdminUtils)
-        pingCommand = PingCommand(pingController, botAdminUtils)
-        groupCommand = GroupCommand(groupController, botAdminUtils)
-        grantRoleCommand = GrantRoleCommand(groupController)
         membersCommand = MembersCommand(membersController, botAdminUtils)
+        grantRoleCommand = GrantRoleCommand(groupController)
+        showGroupsCommand = ShowGroupsCommand(groupController, botAdminUtils)
+        newGroupCommand = NewGroupCommand(groupController)
+        deleteGroupCommand = DeleteGroupCommand(groupController)
+        addUserToGroupCommand = AddUserToGroupCommand(groupController)
+        removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController)
+        pingAllCommand = PingAllCommand(pingController, botAdminUtils)
+        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
     }
 

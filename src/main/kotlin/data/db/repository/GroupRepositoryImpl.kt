@@ -4,6 +4,7 @@ import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.common.exception.*
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.db.table.Groups
+import com.ua.astrumon.data.mapper.toGroup
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupRepository
 import org.jetbrains.exposed.sql.*

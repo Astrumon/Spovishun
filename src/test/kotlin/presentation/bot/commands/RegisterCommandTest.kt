@@ -55,7 +55,7 @@ class RegisterCommandTest {
         coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
             CommandResponse.Success("Alice, зареєстровані в системі!")
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         coVerify { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
         coVerify {
@@ -69,7 +69,7 @@ class RegisterCommandTest {
         coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
             CommandResponse.Success("Alice, ви вже зареєстровані в системі.")
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("вже зареєстровані") }, ParseMode.HTML) }
     }
@@ -81,7 +81,7 @@ class RegisterCommandTest {
         coEvery { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) } returns
             CommandResponse.Success("ok")
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         coVerify { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
     }
@@ -90,7 +90,7 @@ class RegisterCommandTest {
     fun `invoke should return early when user is null`() = runTest {
         val update = createUpdate(fromUser = null)
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
         coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
@@ -100,7 +100,7 @@ class RegisterCommandTest {
     fun `invoke should return early when message is null`() = runTest {
         val update = Update(updateId = 1L, message = null)
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
     }

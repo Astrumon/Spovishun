@@ -6,22 +6,23 @@ import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.toText
 import org.slf4j.LoggerFactory
 
-class GrantRoleCommand(
-    private val groupController: GroupController
+class AddUserToGroupCommand(
+    private val groupController: GroupController,
 ) : BotCommand {
 
-    override val name = "grantrole"
+    override val name = "addtogroup"
 
-    private val logger = LoggerFactory.getLogger(GrantRoleCommand::class.java)
+    private val logger = LoggerFactory.getLogger(AddUserToGroupCommand::class.java)
 
     override suspend fun execute(bot: Bot, update: Update) {
         val (chatId, userId, args) = update.messageContext() ?: return
 
-        logger.info("GrantRole command invoked - chatId: {}, userId: {}, args: {}", chatId, userId, args)
+        logger.info("AddUserToGroup command invoked - chatId: {}, userId: {}, args: {}", chatId, userId, args)
 
-        val text = groupController.grantRole(chatId = chatId, userId = userId, args = args).toText(
+        val text = groupController.addUserToGroup(chatId, userId = userId, args = args).toText(
             successPrefix = "✅ ",
-            onAccessDenied = { "🚫 Лише адміни можуть призначати ролі." },
+            onError = { "⚠️ $it" },
+            onAccessDenied = { "🚫 Лише адміни та модератори." },
             onNotFound = { "❌ ${it.resource} '${it.identifier}' не знайдено." },
         )
 

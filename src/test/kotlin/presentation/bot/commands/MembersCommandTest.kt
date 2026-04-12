@@ -55,7 +55,7 @@ class MembersCommandTest {
         coEvery { membersController.getMembers(chatId, any(), MemberRole.MEMBER) } returns CommandResponse.Success("members list")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        membersCommand(bot, update)
+        membersCommand.execute(bot, update)
 
         coVerify { membersController.getMembers(chatId, any(), MemberRole.MEMBER) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), "members list", ParseMode.HTML) }
@@ -68,7 +68,7 @@ class MembersCommandTest {
         coEvery { membersController.getMembers(chatId, match { it.username == "user_$userId" }, MemberRole.MEMBER) } returns CommandResponse.Success("ok")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        membersCommand(bot, update)
+        membersCommand.execute(bot, update)
 
         coVerify { membersController.getMembers(chatId, match { it.username == "user_$userId" }, MemberRole.MEMBER) }
     }
@@ -77,7 +77,7 @@ class MembersCommandTest {
     fun `invoke should return early when user is null`() = runTest {
         val update = createUpdate(fromUser = null)
 
-        membersCommand(bot, update)
+        membersCommand.execute(bot, update)
 
         coVerify(exactly = 0) { membersController.getMembers(any(), any(), any()) }
         coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
@@ -87,7 +87,7 @@ class MembersCommandTest {
     fun `invoke should return early when message is null`() = runTest {
         val update = Update(updateId = 1L, message = null)
 
-        membersCommand(bot, update)
+        membersCommand.execute(bot, update)
 
         coVerify(exactly = 0) { membersController.getMembers(any(), any(), any()) }
     }
