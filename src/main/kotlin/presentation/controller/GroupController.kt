@@ -160,24 +160,29 @@ class GroupController(
     suspend fun grantRole(chatId: Long, userId: Long, args: List<String>): CommandResponse {
         requireAdminAccess(chatId, userId)?.let { return it }
 
-        if (args.size < 2) return CommandResponse.Error("Використання: /grantrole @username moderator|admin|member")
+        if (args.size < 2) return CommandResponse.Error("Використання: /grantrole @user1,@user2 moderator|admin|member")
 
-        val targetUsername = args[0].removePrefix("@")
+        val usernames = args[0].split(",").map { it.trim().removePrefix("@") }.filter { it.isNotEmpty() }
         val roleArg = args[1].uppercase()
 
-        val role = runCatching { com.ua.astrumon.domain.model.MemberRole.valueOf(roleArg) }.getOrNull()
+        val role = runCatching { MemberRole.valueOf(roleArg) }.getOrNull()
             ?: return CommandResponse.Error("Невідома роль: ${args[1]}. Доступні: moderator, admin, member")
 
-        return memberService.getMemberByUsername(targetUsername)
-            .flatMap { targetMember -> memberService.setMemberRole(chatId, targetMember.userId, role) }
-            .fold(
-                onSuccess = { CommandResponse.Success("@$targetUsername отримав роль ${role.name.lowercase()}.") },
-                onFailure = { exception ->
-                    when (exception) {
-                        is ResourceNotFoundException -> CommandResponse.NotFound("Користувач", targetUsername)
-                        else -> CommandResponse.Error(exception.userMessage)
-                    }
-                }
-            )
+        val succeeded = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+
+        for (username in usernames) {
+            memberService.getMemberByUsername(username)
+                .flatMap { member -> memberService.setMemberRole(chatId, member.userId, role) }
+                .fold(
+                    onSuccess = { succeeded.add("@$username") },
+                    onFailure = { failed.add("@$username") }
+                )
+        }
+
+        val lines = mutableListOf<String>()
+        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} отримали роль ${role.name.lowercase()}.")
+        if (failed.isNotEmpty()) lines.add("Не знайдено: ${failed.joinToString(", ")}.")
+        return CommandResponse.Success(lines.joinToString("\n"))
     }
 }

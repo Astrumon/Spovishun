@@ -76,7 +76,7 @@ class RegistrationController(
         • /delgroup &lt;ключ&gt; — видалити групу
         • /addtogroup &lt;ключ&gt; @user — додати до групи
         • /removefromgroup &lt;ключ&gt; @user — видалити з групи
-        • /grantrole @user member|moderator|admin — змінити роль учасника
+        • /grantrole @user1,@user2 member|moderator|admin — призначити роль одному або кільком учасникам
           └ member: базовий доступ · moderator 🛡: керує групами · admin 🔐: повний доступ
     """.trimIndent()
 }
