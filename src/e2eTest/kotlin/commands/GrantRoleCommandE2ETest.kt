@@ -44,4 +44,14 @@ class GrantRoleCommandE2ETest : BaseE2ETest() {
         // Only the two pre-registered members should exist
         assertEquals(2, allMembers().size, "No extra member should be created for unknown user")
     }
+
+    @Test
+    fun `grantrole command grants role to multiple comma-separated users`() {
+        registerMember(userId = 996L, username = "roletarget2", firstName = "RoleTarget2", role = MemberRole.MEMBER)
+        dispatch("/grantrole @roletarget,@roletarget2 moderator")
+        val target1 = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 995L).getOrThrow() }
+        val target2 = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 996L).getOrThrow() }
+        assertEquals(MemberRole.MODERATOR, target1.role, "Expected roletarget to have MODERATOR role")
+        assertEquals(MemberRole.MODERATOR, target2.role, "Expected roletarget2 to have MODERATOR role")
+    }
 }
