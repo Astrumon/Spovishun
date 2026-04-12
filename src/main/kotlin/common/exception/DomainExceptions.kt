@@ -17,7 +17,7 @@ class BusinessException(
 }
 
 class ResourceNotFoundException(
-    resource: String,
+    val resource: String,
     identifier: String,
     cause: Throwable? = null
 ) : BaseException(

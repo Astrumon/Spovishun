@@ -11,26 +11,53 @@ sqlite = "3.46.1.3"
 postgresql = "42.7.7"
 hikari = "5.1.0"
 logback = "1.5.32"
+flyway = "12.1.0"
+mockk = "1.13.13"
+h2 = "2.3.232"
 
 [libraries]
+
+# Env
 dotenv = { group = "io.github.cdimascio", name = "dotenv-kotlin", version.ref = "dotenv" }
+
+# Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin" }
+
+# Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+
+# Database
 exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }
 exposed-dao = { group = "org.jetbrains.exposed", name = "exposed-dao", version.ref = "exposed" }
 exposed-jdbc = { group = "org.jetbrains.exposed", name = "exposed-jdbc", version.ref = "exposed" }
 exposed-date = { group = "org.jetbrains.exposed", name = "exposed-kotlin-datetime", version.ref = "exposed" }
+exposed-migration = { group = "org.jetbrains.exposed", name = "exposed-migration", version.ref = "exposed" }
 sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite" }
+flyway-core = { group = "org.flywaydb", name = "flyway-core", version.ref = "flyway" }
+flyway-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
 postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
+
+# Logging
 logback = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+
+# Ktor
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+# Telegram
 telegram-bot = { group = "io.github.kotlin-telegram-bot.kotlin-telegram-bot", name = "telegram", version.ref = "telegram-bot" }
+
+# Tests
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
+
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

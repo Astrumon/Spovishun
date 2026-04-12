@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.ua.astrumon"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -13,7 +13,12 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    // Tests
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.h2)
+
     // Env
     implementation(libs.dotenv)
 
@@ -29,6 +34,7 @@ dependencies {
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.date)
+    implementation(libs.exposed.migration)
 
     // Database drivers
     implementation(libs.sqlite.jdbc)
@@ -36,6 +42,10 @@ dependencies {
 
     // Connection pool
     implementation(libs.hikari)
+
+    // Db Migration
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
 
     // Logging
     implementation(libs.logback)
@@ -58,22 +68,51 @@ application {
     mainClass.set("com.ua.astrumon.MainKt")
 }
 
-tasks.register<JavaExec>("runDev") {
-    group = "application"
-    description = "Run the application in development mode"
-    classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("com.ua.astrumon.MainKt")
-    environment("PROFILE", "dev")
-}
-
-tasks.register<JavaExec>("runProd") {
-    group = "application"
-    description = "Run the application in production mode"
-    classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("com.ua.astrumon.MainKt")
-    environment("PROFILE", "prod")
-}
+registerAppTasks()
 
 tasks.test {
     useJUnitPlatform()
+}
+
+val integrationTestSourceSet = sourceSets.create("integrationTest") {
+    kotlin.srcDir("src/integrationTest/kotlin")
+    resources.srcDir("src/integrationTest/resources")
+    compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+    runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+}
+
+configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
+
+tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests"
+    group = "verification"
+    testClassesDirs = integrationTestSourceSet.output.classesDirs
+    classpath = integrationTestSourceSet.runtimeClasspath
+    useJUnitPlatform()
+    shouldRunAfter(tasks.test)
+}
+
+val e2eTestSourceSet = sourceSets.create("e2eTest") {
+    kotlin.srcDir("src/e2eTest/kotlin")
+    resources.srcDir("src/e2eTest/resources")
+    compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+    runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+}
+
+configurations["e2eTestImplementation"].extendsFrom(configurations["testImplementation"])
+configurations["e2eTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
+
+tasks.register<Test>("e2eTest") {
+    description = "Runs end-to-end tests against real Telegram API"
+    group = "verification"
+    testClassesDirs = e2eTestSourceSet.output.classesDirs
+    classpath = e2eTestSourceSet.runtimeClasspath
+    useJUnitPlatform()
+    maxParallelForks = 1
+    shouldRunAfter(tasks.named("integrationTest"))
+    environment("TEST_BOT_TOKEN", System.getenv("TEST_BOT_TOKEN") ?: "")
+    environment("TEST_HELPER_BOT_TOKEN", System.getenv("TEST_HELPER_BOT_TOKEN") ?: "")
+    environment("TEST_CHAT_ID", System.getenv("TEST_CHAT_ID") ?: "")
+    environment("TEST_ADMINS", System.getenv("TEST_ADMINS") ?: "")
 }

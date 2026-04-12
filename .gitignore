@@ -70,6 +70,7 @@ hs_err_pid*
 .env
 .env.*
 !.env.example
+!.env.e2e.example
 local.properties
 secrets.properties
 application-local.conf
@@ -129,3 +130,17 @@ docker-compose.override.yml
 node_modules/
 npm-debug.log*
 yarn-error.log*
+
+# ======================
+# Claude Code
+# ======================
+.claude/settings.local.json
+.claude/scripts/.skills-last-sync
+.claude/session-state.json
+
+# ======================
+# Dev Context (local task cache)
+# ======================
+.dev-context/
+# Skill temp files
+.claude/tmp/
