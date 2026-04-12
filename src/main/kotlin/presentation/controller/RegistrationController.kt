@@ -76,5 +76,6 @@ class RegistrationController(
         • /delgroup &lt;ключ&gt; — видалити групу
         • /addtogroup &lt;ключ&gt; @user — додати до групи
         • /removefromgroup &lt;ключ&gt; @user — видалити з групи
+        • /grantrole @user &lt;роль&gt; — призначити роль учаснику
     """.trimIndent()
 }
