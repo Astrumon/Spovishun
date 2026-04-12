@@ -14,7 +14,7 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
     fun `register should save new member and send success response`() = runTest {
         val update = buildUpdate("/register")
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
@@ -32,7 +32,7 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
         registerMember()
         val update = buildUpdate("/register")
 
-        registerCommand(bot, update)
+        registerCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -56,7 +56,7 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
         )
         val nullUsernameUpdate = com.github.kotlintelegrambot.entities.Update(updateId = 1L, message = message)
 
-        registerCommand(bot, nullUsernameUpdate)
+        registerCommand.execute(bot, nullUsernameUpdate)
 
         val fallbackUsername = "user_$testUserId"
         val member = memberService.getMemberByUsername(fallbackUsername).getOrThrow()

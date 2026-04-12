@@ -13,7 +13,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
     fun `pingAll with no registered members should send empty list message`() = runTest {
         val update = buildUpdate("/all")
 
-        pingCommand.pingAll(bot, update)
+        pingAllCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -31,7 +31,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(userId = 3L, username = "carol")
         val update = buildUpdate("/all")
 
-        pingCommand.pingAll(bot, update)
+        pingAllCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -47,7 +47,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(userId = 1L, username = "alice")
         val update = buildUpdate("/all standup time")
 
-        pingCommand.pingAll(bot, update)
+        pingAllCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -67,7 +67,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         groupService.addMemberToGroup(testChatId, "devs", "bob")
         val update = buildUpdate("/ping devs")
 
-        pingCommand.pingGroup(bot, update)
+        pingGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -83,7 +83,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "devs")
         val update = buildUpdate("/ping unknown")
 
-        pingCommand.pingGroup(bot, update)
+        pingGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(

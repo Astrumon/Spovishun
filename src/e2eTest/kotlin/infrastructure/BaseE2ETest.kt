@@ -15,12 +15,18 @@ import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.TelegramBot
+import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
+import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
-import com.ua.astrumon.presentation.bot.commands.GroupCommand
 import com.ua.astrumon.presentation.bot.commands.MembersCommand
-import com.ua.astrumon.presentation.bot.commands.PingCommand
+import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
+import com.ua.astrumon.presentation.bot.commands.PingAllCommand
+import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
 import com.ua.astrumon.presentation.bot.commands.RegisterCommand
+import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
+import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
@@ -74,12 +80,7 @@ abstract class BaseE2ETest {
     protected lateinit var autoRegisterService: AutoRegisterService
 
     // Command handlers (for direct dispatch)
-    private lateinit var startCommand: StartCommand
-    private lateinit var registerCommand: RegisterCommand
-    private lateinit var pingCommand: PingCommand
-    private lateinit var groupCommand: GroupCommand
-    private lateinit var grantRoleCommand: GrantRoleCommand
-    private lateinit var membersCommand: MembersCommand
+    private lateinit var commandRegistry: CommandRegistry
     private lateinit var messageHandler: MessageHandler
 
     protected val testChatId: Long get() = E2EConfig.testChatId!!
@@ -110,18 +111,24 @@ abstract class BaseE2ETest {
         val registrationController = RegistrationController(memberService, autoRegisterService)
         val pingController = PingController(memberService, groupService, autoRegisterService)
 
-        startCommand = StartCommand(registrationController, botAdminUtils)
-        registerCommand = RegisterCommand(registrationController, botAdminUtils)
-        pingCommand = PingCommand(pingController, botAdminUtils)
-        groupCommand = GroupCommand(groupController, botAdminUtils)
-        grantRoleCommand = GrantRoleCommand(groupController)
-        membersCommand = MembersCommand(membersController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
-
-        val telegramBot = TelegramBot(
-            startCommand, registerCommand, pingCommand,
-            groupCommand, grantRoleCommand, membersCommand, messageHandler
+        commandRegistry = CommandRegistry(
+            listOf(
+                StartCommand(registrationController, botAdminUtils),
+                RegisterCommand(registrationController, botAdminUtils),
+                MembersCommand(membersController, botAdminUtils),
+                GrantRoleCommand(groupController),
+                ShowGroupsCommand(groupController, botAdminUtils),
+                NewGroupCommand(groupController),
+                DeleteGroupCommand(groupController),
+                AddUserToGroupCommand(groupController),
+                RemoveUserFromGroupCommand(groupController),
+                PingAllCommand(pingController, botAdminUtils),
+                PingGroupCommand(pingController, botAdminUtils),
+            )
         )
+
+        val telegramBot = TelegramBot(commandRegistry, messageHandler)
         mainBot = telegramBot.create(E2EConfig.mainBotToken!!)
 
         // Send a sentinel message and enqueue its range for bulk cleanup in @AfterAll
@@ -178,20 +185,9 @@ abstract class BaseE2ETest {
 
     protected suspend fun dispatchCommand(command: String, update: Update) {
         val name = command.trimStart('/').split(" ").firstOrNull() ?: return
-        when (name) {
-            "start" -> startCommand(mainBot, update)
-            "register" -> registerCommand(mainBot, update)
-            "all" -> pingCommand.pingAll(mainBot, update)
-            "ping" -> pingCommand.pingGroup(mainBot, update)
-            "groups" -> groupCommand.showGroups(mainBot, update)
-            "members" -> membersCommand(mainBot, update)
-            "newgroup" -> groupCommand.addNewGroup(mainBot, update)
-            "delgroup" -> groupCommand.deleteGroup(mainBot, update)
-            "addtogroup" -> groupCommand.addUserToGroup(mainBot, update)
-            "removefromgroup" -> groupCommand.removeUserFromGroup(mainBot, update)
-            "grantrole" -> grantRoleCommand(mainBot, update)
-            else -> messageHandler.handleIncomingMessage(mainBot, update)
-        }
+        val cmd = commandRegistry.commands.find { it.name == name }
+        if (cmd != null) cmd.execute(mainBot, update)
+        else messageHandler.handleIncomingMessage(mainBot, update)
     }
 
     /** Pre-register a member directly via service (bypasses Telegram). */

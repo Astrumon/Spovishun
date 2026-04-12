@@ -15,7 +15,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember()
         val update = buildUpdate("/groups")
 
-        groupCommand.showGroups(bot, update)
+        showGroupsCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -32,7 +32,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "devs")
         val update = buildUpdate("/groups")
 
-        groupCommand.showGroups(bot, update)
+        showGroupsCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -48,7 +48,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MEMBER)
         val update = buildUpdate("/newgroup devs")
 
-        groupCommand.addNewGroup(bot, update)
+        newGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -64,7 +64,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MODERATOR)
         val update = buildUpdate("/newgroup devs")
 
-        groupCommand.addNewGroup(bot, update)
+        newGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -83,7 +83,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "devs")
         val update = buildUpdate("/delgroup devs")
 
-        groupCommand.deleteGroup(bot, update)
+        deleteGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -99,7 +99,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MODERATOR)
         val update = buildUpdate("/delgroup unknown")
 
-        groupCommand.deleteGroup(bot, update)
+        deleteGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -117,7 +117,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "devs")
         val update = buildUpdate("/addtogroup devs @alice")
 
-        groupCommand.addUserToGroup(bot, update)
+        addUserToGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -133,7 +133,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MODERATOR)
         val update = buildUpdate("/addtogroup unknown @alice")
 
-        groupCommand.addUserToGroup(bot, update)
+        addUserToGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -152,7 +152,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         groupService.addMemberToGroup(testChatId, "devs", "alice")
         val update = buildUpdate("/removefromgroup devs @alice")
 
-        groupCommand.removeUserFromGroup(bot, update)
+        removeUserFromGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
@@ -168,7 +168,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         registerMember(role = MemberRole.MEMBER)
         val update = buildUpdate("/removefromgroup devs @alice")
 
-        groupCommand.removeUserFromGroup(bot, update)
+        removeUserFromGroupCommand.execute(bot, update)
 
         verify {
             bot.sendMessage(
