@@ -64,7 +64,53 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
-                match { it.contains("не знайдено") },
+                match { it.contains("Не знайдено") },
+                ParseMode.HTML
+            )
+        }
+    }
+
+    @Test
+    fun `grantrole with multiple users should update all roles`() = runTest {
+        registerMember(userId = testAdminId, username = testAdminUsername, role = MemberRole.ADMIN)
+        registerMember(userId = 2L, username = "alice", role = MemberRole.MEMBER)
+        registerMember(userId = 3L, username = "bob", role = MemberRole.MEMBER)
+        val update = buildUpdate(
+            "/grantrole @alice,@bob moderator",
+            userId = testAdminId,
+            username = testAdminUsername
+        )
+
+        grantRoleCommand.execute(bot, update)
+
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("alice").getOrThrow().role)
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("bob").getOrThrow().role)
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("alice") && it.contains("bob") && it.contains("moderator") },
+                ParseMode.HTML
+            )
+        }
+    }
+
+    @Test
+    fun `grantrole with mixed users should report partial result`() = runTest {
+        registerMember(userId = testAdminId, username = testAdminUsername, role = MemberRole.ADMIN)
+        registerMember(userId = 2L, username = "alice", role = MemberRole.MEMBER)
+        val update = buildUpdate(
+            "/grantrole @alice,@nobody moderator",
+            userId = testAdminId,
+            username = testAdminUsername
+        )
+
+        grantRoleCommand.execute(bot, update)
+
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("alice").getOrThrow().role)
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("alice") && it.contains("Не знайдено") && it.contains("nobody") },
                 ParseMode.HTML
             )
         }

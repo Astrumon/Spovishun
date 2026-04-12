@@ -350,14 +350,16 @@ class GroupControllerTest {
     }
 
     @Test
-    fun `grantRole should return NotFound when target user not found`() = runTest {
+    fun `grantRole should report not found user in success message`() = runTest {
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.failure(
             ResourceNotFoundException("Member", "bob")
         )
 
         val result = groupController.grantRole(chatId, userId, listOf("@bob", "moderator"))
 
-        assertTrue(result is CommandResponse.NotFound)
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Не знайдено"))
+        assertTrue(result.message.contains("@bob"))
         coVerify(exactly = 0) { memberService.setMemberRole(any(), any(), any()) }
     }
 
@@ -376,5 +378,41 @@ class GroupControllerTest {
 
         assertTrue(result is CommandResponse.Error)
         assertTrue(result.message.contains("/grantrole"))
+    }
+
+    @Test
+    fun `grantRole should grant role to multiple users`() = runTest {
+        val alice = Member(2L, chatId, 101L, "alice", "Alice", null, role = MemberRole.MEMBER)
+        val bob = Member(3L, chatId, 102L, "bob", "Bob", null, role = MemberRole.MEMBER)
+        coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
+        coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(bob)
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) } returns ResultContainer.success(alice.copy(role = MemberRole.MODERATOR))
+        coEvery { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) } returns ResultContainer.success(bob.copy(role = MemberRole.MODERATOR))
+
+        val result = groupController.grantRole(chatId, userId, listOf("@alice,@bob", "moderator"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("@alice"))
+        assertTrue(result.message.contains("@bob"))
+        assertTrue(result.message.contains("moderator"))
+        coVerify(exactly = 1) { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) }
+        coVerify(exactly = 1) { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) }
+    }
+
+    @Test
+    fun `grantRole should report partial failure when some users not found`() = runTest {
+        val alice = Member(2L, chatId, 101L, "alice", "Alice", null, role = MemberRole.MEMBER)
+        coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.ADMIN) } returns ResultContainer.success(alice.copy(role = MemberRole.ADMIN))
+        coEvery { memberService.getMemberByUsername("unknown") } returns ResultContainer.failure(
+            ResourceNotFoundException("Member", "unknown")
+        )
+
+        val result = groupController.grantRole(chatId, userId, listOf("@alice,@unknown", "admin"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("@alice"))
+        assertTrue(result.message.contains("Не знайдено"))
+        assertTrue(result.message.contains("@unknown"))
     }
 }
