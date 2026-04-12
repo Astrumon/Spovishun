@@ -55,7 +55,7 @@ class StartCommandTest {
     fun `invoke should delegate to controller and send welcome message`() = runTest {
         val update = createUpdate()
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { registrationController.start(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
@@ -66,7 +66,7 @@ class StartCommandTest {
         val noUsernameUser = User(id = userId, isBot = false, firstName = "Alice", username = null)
         val update = createUpdate(fromUser = noUsernameUser)
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { registrationController.start(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
     }
@@ -75,7 +75,7 @@ class StartCommandTest {
     fun `invoke should return early when user is null`() = runTest {
         val update = createUpdate(fromUser = null)
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
@@ -85,7 +85,7 @@ class StartCommandTest {
     fun `invoke should return early when message is null`() = runTest {
         val update = Update(updateId = 1L, message = null)
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
     }
@@ -99,7 +99,7 @@ class StartCommandTest {
         )
         val update = createUpdate(chatType = "group")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
     }
@@ -113,7 +113,7 @@ class StartCommandTest {
         )
         val update = createUpdate(chatType = "supergroup")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
     }
@@ -124,7 +124,7 @@ class StartCommandTest {
         every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
         val update = createUpdate(chatType = "group")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("Реєстрація учасників") }, ParseMode.HTML) }
     }
@@ -135,7 +135,7 @@ class StartCommandTest {
         every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
         val update = createUpdate(chatType = "supergroup")
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify(exactly = 0) { bot.sendMessage(any(), match { it.contains("Реєстрація учасників") }, any()) }
     }
@@ -145,7 +145,7 @@ class StartCommandTest {
         val specialUser = User(id = userId, isBot = false, firstName = "Alice", username = "al!ce@#")
         val update = createUpdate(fromUser = specialUser)
 
-        startCommand(bot, update)
+        startCommand.execute(bot, update)
 
         coVerify { registrationController.start(chatId, userId, "al_ce__", "Alice", MemberRole.MEMBER) }
     }

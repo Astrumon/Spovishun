@@ -45,6 +45,15 @@
 - Constructor injection only — no `by inject()` inside business logic classes
 - Bind by interface: `single<MemberRepository> { MemberRepositoryImpl() }`
 
+## Imports
+- Always write explicit imports — never rely on star imports (`import com.example.*`)
+- When a type from an external library conflicts with a project class name, use `import as`:
+  ```kotlin
+  import com.github.kotlintelegrambot.Bot as TelegramBot
+  ```
+- Apply `import as` consistently: if a rename is chosen in one file, use the same alias across all files in the module
+- Never leave an ambiguous import that requires a fully-qualified name at the call site — resolve it with `import as` instead
+
 ## Naming
 - Repository: `XxxRepository` (interface) / `XxxRepositoryImpl` (implementation)
 - Use case: `XxxUseCase`

@@ -14,7 +14,7 @@ import urllib.error
 from pathlib import Path
 
 
-PARENT_PAGE_ID = "32b3462f-68a9-8171-9106-c6b1d82f906c"
+PARENT_PAGE_ID = "32b3462f68a981719106c6b1d82f906c"
 SKILLS_DIR = Path(__file__).parent.parent / "skills"
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"

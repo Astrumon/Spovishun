@@ -2,10 +2,8 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -14,10 +12,13 @@ import org.slf4j.LoggerFactory
 class StartCommand(
     private val registrationController: RegistrationController,
     private val botAdminUtils: BotAdminUtils,
-) {
+) : BotCommand {
+
+    override val name = "start"
+
     private val logger = LoggerFactory.getLogger(StartCommand::class.java)
 
-    suspend operator fun invoke(bot: Bot, update: Update) {
+    override suspend fun execute(bot: Bot, update: Update) {
         val chatId = update.message?.chat?.id ?: return
         val user = update.message?.from ?: return
 
@@ -44,7 +45,7 @@ class StartCommand(
                             logger.warn("Failed to get chat administrators for chatId: {}", chatId)
                         }
                         if (chat.type == "group") {
-                            bot.sendMessage(ChatId.fromId(chatId), buildInvitationText(), ParseMode.HTML)
+                            bot.reply(chatId, buildInvitationText())
                         }
                     }
                 }
@@ -59,7 +60,7 @@ class StartCommand(
 
         val text = response.toText()
 
-        bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
+        bot.reply(chatId, text)
     }
 
     private fun sanitizeUsername(username: String?, userId: Long): String {
