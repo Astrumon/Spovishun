@@ -10,7 +10,7 @@ Contains: `bot/` (TelegramBot, MessageHandler, `commands/`), `controller/`, `uti
 ```
 Command → Controller → returns CommandResponse → Command formats + sends to Telegram
 ```
-1. **Command** — parse args from `Update`, call one `Controller` method, handle `CommandResponse` via `when`, send to Telegram.
+1. **Command** — parse args from `Update`, call one `Controller` method, convert result via `toText()`, send to Telegram.
 2. **Controller** — call `Service`(s), apply role checks, return `CommandResponse`. Never returns Telegram types or raw strings.
 3. **BotAdminUtils** — query Telegram API only to derive initial role for a new member during registration.
 
@@ -24,22 +24,21 @@ Commands own emoji prefixes and final text assembly. Controllers return body onl
 
 ### CommandResponse.toText()
 
-For the standard rendering pattern (Success/Error/AccessDenied/NotFound), use the `toText()` extension
-instead of repeating the `when` block. Commands with unique `AccessDenied` or `NotFound` text keep explicit `when`.
+Always use `toText()` — never repeat a `when` block in a command. Pass callbacks only for cases that differ from defaults.
 
 ```kotlin
-// Standard pattern — use toText()
-val text = controller.doSomething(chatId, userId, args).toText()               // no prefix
-val text = controller.register(chatId, userId, args).toText("✅ ")             // success prefix
-val text = controller.getAll(chatId).toText(onError = { "❌ Custom: $it" })    // custom error
+// No custom cases — use defaults
+val text = controller.doSomething(chatId, userId, args).toText()
 
-// Custom NotFound/AccessDenied — keep explicit when
-val text = when (val r = controller.grantRole(chatId, userId, args)) {
-    is CommandResponse.Success -> "✅ ${r.message}"
-    is CommandResponse.AccessDenied -> "🚫 Лише адміни можуть призначати ролі."
-    is CommandResponse.NotFound -> "❌ ${r.resource} '${r.identifier}' не знайдено."
-    is CommandResponse.Error -> "❌ ${r.message}"
-}
+// Success prefix only
+val text = controller.register(chatId, userId, args).toText(successPrefix = "✅ ")
+
+// Custom access denied and not found
+val text = controller.grantRole(chatId, userId, args).toText(
+    successPrefix = "✅ ",
+    onAccessDenied = { "🚫 Лише адміни можуть призначати ролі." },
+    onNotFound = { "❌ ${it.resource} '${it.identifier}' не знайдено." },
+)
 
 // Wrong: service called directly from command
 class BadCommand(private val memberService: MemberService) { ... }
@@ -58,7 +57,7 @@ Routes updates to commands via `when`. No logic beyond routing.
 Do NOT unit test `MessageHandler` or `TelegramBot`.
 
 ## Adding a new command
-1. Create `bot/commands/{Name}Command.kt`
+1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)
-3. Register both with `single` in `di/PresentationModule.kt`
-4. Add routing entry in `bot/handler/MessageHandler.kt`
+3. Register in `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
+4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`
