@@ -8,9 +8,10 @@ import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.data.memory.repository.ChatRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.GroupMemberRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.GroupRepositoryMockImpl
+import com.ua.astrumon.data.memory.repository.MemberChatRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.MemberRepositoryMockImpl
-import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.GroupService
@@ -42,6 +43,7 @@ abstract class BaseIntegrationTest {
 
     // Repos — fresh per test, no shared state
     protected lateinit var memberRepo: MemberRepositoryMockImpl
+    protected lateinit var memberChatRepo: MemberChatRepositoryMockImpl
     protected lateinit var chatRepo: ChatRepositoryMockImpl
     protected lateinit var groupRepo: GroupRepositoryMockImpl
     protected lateinit var groupMemberRepo: GroupMemberRepositoryMockImpl
@@ -90,12 +92,13 @@ abstract class BaseIntegrationTest {
 
         // Fresh repos each test
         memberRepo = MemberRepositoryMockImpl()
+        memberChatRepo = MemberChatRepositoryMockImpl()
         chatRepo = ChatRepositoryMockImpl()
         groupRepo = GroupRepositoryMockImpl()
         groupMemberRepo = GroupMemberRepositoryMockImpl()
 
         // Wire services with real repos
-        memberService = MemberService(memberRepo)
+        memberService = MemberService(memberRepo, memberChatRepo)
         chatService = ChatService(chatRepo)
         groupService = GroupService(groupRepo, groupMemberRepo)
         autoRegisterService = AutoRegisterService(memberService, chatService)
@@ -157,7 +160,7 @@ abstract class BaseIntegrationTest {
         firstName: String = testFirstName,
         chatId: Long = testChatId,
         role: MemberRole = MemberRole.MEMBER
-    ): Member {
+    ): MemberWithChat {
         return memberService.createMember(chatId, userId, username, firstName, role)
             .getOrThrow()
     }

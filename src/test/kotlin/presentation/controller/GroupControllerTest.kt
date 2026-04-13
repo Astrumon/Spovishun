@@ -9,7 +9,9 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.model.Member
+import com.ua.astrumon.domain.model.MemberChat
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.GroupWithMembers
@@ -35,13 +37,14 @@ class GroupControllerTest {
     private val userId = 456L
     private val username = "alice"
     private val firstName = "Alice"
-    private val adminMember = Member(1L, chatId, userId, username, firstName, null, role = MemberRole.ADMIN)
+    private val adminMember = Member(1L, userId, username, firstName)
+    private val adminMemberWithChat = MemberWithChat(1L, userId, username, firstName, MemberRole.ADMIN, null)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
         groupController = GroupController(groupService, memberService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(adminMember)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(adminMemberWithChat)
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true
         coEvery { memberService.hasAdminAccess(chatId, userId) } returns true
     }
@@ -50,16 +53,16 @@ class GroupControllerTest {
 
     @Test
     fun `getGroups should return success with formatted list and badges`() = runTest {
-        val moderatorMember = Member(2L, chatId, 789L, "bob", "Bob", null, role = MemberRole.MODERATOR)
-        val regularMember = Member(3L, chatId, 111L, "charlie", "Charlie", null, role = MemberRole.MEMBER)
+        val moderatorWithChat = MemberWithChat(2L, 789L, "bob", "Bob", MemberRole.MODERATOR, null)
+        val regularWithChat = MemberWithChat(3L, 111L, "charlie", "Charlie", MemberRole.MEMBER, null)
         val groups = listOf(
             GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice", "bob", "charlie")),
             GroupWithMembers(2L, chatId, "qa", "qa", emptyList())
         )
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
-        coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(adminMember)
-        coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(moderatorMember)
-        coEvery { memberService.getMemberByUsername("charlie") } returns ResultContainer.success(regularMember)
+        coEvery { memberService.getMemberWithChatByUsername(chatId, "alice") } returns ResultContainer.success(adminMemberWithChat)
+        coEvery { memberService.getMemberWithChatByUsername(chatId, "bob") } returns ResultContainer.success(moderatorWithChat)
+        coEvery { memberService.getMemberWithChatByUsername(chatId, "charlie") } returns ResultContainer.success(regularWithChat)
 
         val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
 
@@ -75,7 +78,7 @@ class GroupControllerTest {
     fun `getGroups should handle member lookup failure gracefully`() = runTest {
         val groups = listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("unknown")))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
-        coEvery { memberService.getMemberByUsername("unknown") } returns ResultContainer.failure(
+        coEvery { memberService.getMemberWithChatByUsername(chatId, "unknown") } returns ResultContainer.failure(
             ResourceNotFoundException("Member", "unknown")
         )
 
@@ -326,10 +329,11 @@ class GroupControllerTest {
 
     @Test
     fun `grantRole should return success when admin grants moderator role`() = runTest {
-        val targetMember = Member(2L, chatId, 789L, "bob", "Bob", null, role = MemberRole.MEMBER)
+        val targetMember = Member(2L, 789L, "bob", "Bob")
+        val targetMemberChat = MemberChat(2L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(targetMember)
         coEvery { memberService.setMemberRole(chatId, 789L, MemberRole.MODERATOR) } returns ResultContainer.success(
-            targetMember.copy(role = MemberRole.MODERATOR)
+            targetMemberChat.copy(role = MemberRole.MODERATOR)
         )
 
         val result = groupController.grantRole(chatId, userId, listOf("@bob", "moderator"))
@@ -382,12 +386,14 @@ class GroupControllerTest {
 
     @Test
     fun `grantRole should grant role to multiple users`() = runTest {
-        val alice = Member(2L, chatId, 101L, "alice", "Alice", null, role = MemberRole.MEMBER)
-        val bob = Member(3L, chatId, 102L, "bob", "Bob", null, role = MemberRole.MEMBER)
+        val alice = Member(2L, 101L, "alice", "Alice")
+        val bob = Member(3L, 102L, "bob", "Bob")
+        val aliceChat = MemberChat(2L, chatId, MemberRole.MEMBER, null)
+        val bobChat = MemberChat(3L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(bob)
-        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) } returns ResultContainer.success(alice.copy(role = MemberRole.MODERATOR))
-        coEvery { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) } returns ResultContainer.success(bob.copy(role = MemberRole.MODERATOR))
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) } returns ResultContainer.success(aliceChat.copy(role = MemberRole.MODERATOR))
+        coEvery { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) } returns ResultContainer.success(bobChat.copy(role = MemberRole.MODERATOR))
 
         val result = groupController.grantRole(chatId, userId, listOf("@alice,@bob", "moderator"))
 
@@ -401,9 +407,10 @@ class GroupControllerTest {
 
     @Test
     fun `grantRole should report partial failure when some users not found`() = runTest {
-        val alice = Member(2L, chatId, 101L, "alice", "Alice", null, role = MemberRole.MEMBER)
+        val alice = Member(2L, 101L, "alice", "Alice")
+        val aliceChat = MemberChat(2L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
-        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.ADMIN) } returns ResultContainer.success(alice.copy(role = MemberRole.ADMIN))
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.ADMIN) } returns ResultContainer.success(aliceChat.copy(role = MemberRole.ADMIN))
         coEvery { memberService.getMemberByUsername("unknown") } returns ResultContainer.failure(
             ResourceNotFoundException("Member", "unknown")
         )

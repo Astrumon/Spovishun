@@ -5,6 +5,7 @@ import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.GroupWithMembers
@@ -28,13 +29,14 @@ class PingControllerTest {
 
     private val chatId = 123L
     private val userId = 456L
-    private val member = Member(1L, chatId, userId, "alice", "Alice", null)
+    private val member = Member(1L, userId, "alice", "Alice")
+    private val memberWithChat = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
         pingController = PingController(memberService, groupService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(member)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
     }
 
     // --- pingAll ---
@@ -42,10 +44,10 @@ class PingControllerTest {
     @Test
     fun `pingAll should return Success with mentions for all members`() = runTest {
         val members = listOf(
-            Member(1L, chatId, 456L, "alice", "Alice", null),
-            Member(2L, chatId, 789L, "bob", "Bob", null)
+            MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.MEMBER, null),
+            MemberWithChat(2L, 789L, "bob", "Bob", MemberRole.MEMBER, null)
         )
-        coEvery { memberService.getAllMembers() } returns ResultContainer.success(members)
+        coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(members)
 
         val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList())
 
@@ -56,8 +58,8 @@ class PingControllerTest {
 
     @Test
     fun `pingAll should include extra text in header`() = runTest {
-        coEvery { memberService.getAllMembers() } returns ResultContainer.success(
-            listOf(Member(1L, chatId, 456L, "alice", "Alice", null))
+        coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(
+            listOf(MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.MEMBER, null))
         )
 
         val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("standup", "time"))
@@ -68,7 +70,7 @@ class PingControllerTest {
 
     @Test
     fun `pingAll should return Success with empty message when no members`() = runTest {
-        coEvery { memberService.getAllMembers() } returns ResultContainer.success(emptyList())
+        coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(emptyList())
 
         val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList())
 
@@ -78,7 +80,7 @@ class PingControllerTest {
 
     @Test
     fun `pingAll should return Error on service failure`() = runTest {
-        coEvery { memberService.getAllMembers() } returns ResultContainer.failure(DatabaseException("error"))
+        coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.failure(DatabaseException("error"))
 
         val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList())
 
@@ -93,7 +95,7 @@ class PingControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(member)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(
-            Member(2L, chatId, 789L, "bob", "Bob", null)
+            Member(2L, 789L, "bob", "Bob")
         )
 
         val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))

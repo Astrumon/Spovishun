@@ -1,11 +1,9 @@
 package data.repository
 
-import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
 import com.ua.astrumon.data.db.table.Members
 import data.db.TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.BeforeTest
@@ -26,39 +24,31 @@ class MemberRepositoryImplTest {
     }
 
     @Test
-    fun `save should create member and return it`() = runTest {
-        val result = repository.save(100L, 1L, "alice", "Alice", Clock.System.now())
+    fun `saveOrUpdate should create member and return it`() = runTest {
+        val result = repository.saveOrUpdate(1L, "alice", "Alice")
 
         assertTrue(result.isSuccess)
         val member = result.getOrThrow()
-        assertEquals(100L, member.chatId)
         assertEquals(1L, member.userId)
         assertEquals("alice", member.username)
         assertEquals("Alice", member.firstName)
-        assertNotNull(member.joinedAt)
     }
 
     @Test
-    fun `save should create member with null joinedAt`() = runTest {
-        val result = repository.save(100L, 1L, "alice", "Alice", null)
+    fun `saveOrUpdate should update username and firstName when called again with same userId`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+
+        val result = repository.saveOrUpdate(1L, "alice_new", "Alice New")
 
         assertTrue(result.isSuccess)
-        assertNull(result.getOrThrow().joinedAt)
-    }
-
-    @Test
-    fun `save should return failure when username already exists`() = runTest {
-        repository.save(100L, 1L, "alice", "Alice", null)
-
-        val result = repository.save(100L, 2L, "alice", "Alice2", null)
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is DuplicateResourceException)
+        val member = result.getOrThrow()
+        assertEquals("alice_new", member.username)
+        assertEquals("Alice New", member.firstName)
     }
 
     @Test
     fun `findByUsername should return member when exists`() = runTest {
-        repository.save(100L, 1L, "alice", "Alice", null)
+        repository.saveOrUpdate(1L, "alice", "Alice")
 
         val result = repository.findByUsername("alice")
 
@@ -79,7 +69,7 @@ class MemberRepositoryImplTest {
 
     @Test
     fun `findByUserId should return member when exists`() = runTest {
-        repository.save(100L, 42L, "alice", "Alice", null)
+        repository.saveOrUpdate(42L, "alice", "Alice")
 
         val result = repository.findByUserId(42L)
 
@@ -99,34 +89,23 @@ class MemberRepositoryImplTest {
     }
 
     @Test
-    fun `findAll should return empty list when no members`() = runTest {
-        val result = repository.findAll()
+    fun `findById should return member when exists`() = runTest {
+        val saved = repository.saveOrUpdate(1L, "alice", "Alice").getOrThrow()
+
+        val result = repository.findById(saved.id)
 
         assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow().isEmpty())
+        val member = result.getOrThrow()
+        assertNotNull(member)
+        assertEquals(saved.id, member.id)
+        assertEquals("alice", member.username)
     }
 
     @Test
-    fun `findAll should return all saved members`() = runTest {
-        repository.save(100L, 1L, "alice", "Alice", null)
-        repository.save(100L, 2L, "bob", "Bob", null)
-        repository.save(100L, 3L, "charlie", "Charlie", null)
-
-        val result = repository.findAll()
+    fun `findById should return null when not exists`() = runTest {
+        val result = repository.findById(99999L)
 
         assertTrue(result.isSuccess)
-        val members = result.getOrThrow()
-        assertEquals(3, members.size)
-        assertEquals(setOf("alice", "bob", "charlie"), members.map { it.username }.toSet())
-    }
-
-    @Test
-    fun `save should reject duplicate username even across chats`() = runTest {
-        repository.save(100L, 1L, "alice", "Alice", null)
-
-        val result = repository.save(200L, 2L, "alice", "Alice", null)
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is DuplicateResourceException)
+        assertNull(result.getOrThrow())
     }
 }

@@ -38,7 +38,7 @@ class GroupController(
                     groups.forEach { group ->
                         val names = if (group.members.isNotEmpty()) {
                             group.members.map { username ->
-                                val badge = memberService.getMemberByUsername(username)
+                                val badge = memberService.getMemberWithChatByUsername(chatId, username)
                                     .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
                                 "@$username$badge"
                             }

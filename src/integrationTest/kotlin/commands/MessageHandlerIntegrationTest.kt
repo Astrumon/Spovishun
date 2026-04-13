@@ -21,18 +21,17 @@ class MessageHandlerIntegrationTest : BaseIntegrationTest() {
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
-        assertTrue(member.chatId == testChatId)
     }
 
     @Test
     fun `text message from already registered user should not create duplicate`() = runTest {
         registerMember()
-        val allBefore = memberService.getAllMembers().getOrThrow()
+        val allBefore = memberService.getAllMembersInChat(testChatId).getOrThrow()
         val update = buildUpdate("Hello again")
 
         messageHandler.handleIncomingMessage(bot, update)
 
-        val allAfter = memberService.getAllMembers().getOrThrow()
+        val allAfter = memberService.getAllMembersInChat(testChatId).getOrThrow()
         assertEquals(allBefore.size, allAfter.size)
     }
 
