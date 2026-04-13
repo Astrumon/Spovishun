@@ -1,10 +1,16 @@
 package infrastructure
 
+import io.github.cdimascio.dotenv.dotenv
+
 object E2EConfig {
-    val mainBotToken: String? = System.getenv("TEST_BOT_TOKEN")?.takeIf { it.isNotBlank() }
-    val helperBotToken: String? = System.getenv("TEST_HELPER_BOT_TOKEN")?.takeIf { it.isNotBlank() }
-    val testChatId: Long? = System.getenv("TEST_CHAT_ID")?.takeIf { it.isNotBlank() }?.toLongOrNull()
-    val testAdmins: Set<Long> = System.getenv("TEST_ADMINS")
+    private val env = dotenv { ignoreIfMissing = true }
+
+    private fun get(key: String): String? = env[key]?.takeIf { it.isNotBlank() }
+
+    val mainBotToken: String? = get("TEST_BOT_TOKEN")
+    val helperBotToken: String? = get("TEST_HELPER_BOT_TOKEN")
+    val testChatId: Long? = get("TEST_CHAT_ID")?.toLongOrNull()
+    val testAdmins: Set<Long> = get("TEST_ADMINS")
         ?.split(",")
         ?.mapNotNull { it.trim().toLongOrNull() }
         ?.toSet()

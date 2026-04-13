@@ -4,6 +4,7 @@ import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.data.db.table.Chats
 import com.ua.astrumon.data.db.table.GroupMembers
 import com.ua.astrumon.data.db.table.Groups
+import com.ua.astrumon.data.db.table.MemberChats
 import com.ua.astrumon.data.db.table.Members
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -24,7 +25,7 @@ object TestDatabaseFactory {
             logger.info("Initializing test database connection...")
 
             val hikariConfig = HikariConfig().apply {
-                jdbcUrl = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL"
+                jdbcUrl = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
                 driverClassName = "org.h2.Driver"
                 username = "sa"
                 password = ""
@@ -36,7 +37,7 @@ object TestDatabaseFactory {
             Database.connect(dataSource)
 
             transaction {
-                SchemaUtils.create(Chats, Members, Groups, GroupMembers)
+                SchemaUtils.create(Chats, Members, MemberChats, Groups, GroupMembers)
             }
 
             initialized = true

@@ -8,9 +8,10 @@ import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.data.memory.repository.ChatRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.GroupMemberRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.GroupRepositoryMockImpl
+import com.ua.astrumon.data.memory.repository.MemberChatRepositoryMockImpl
 import com.ua.astrumon.data.memory.repository.MemberRepositoryMockImpl
-import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.GroupService
@@ -69,6 +70,7 @@ abstract class BaseE2ETest {
 
     // In-memory repos (fresh per test, shared with command handlers)
     protected lateinit var memberRepo: MemberRepositoryMockImpl
+    protected lateinit var memberChatRepo: MemberChatRepositoryMockImpl
     protected lateinit var chatRepo: ChatRepositoryMockImpl
     protected lateinit var groupRepo: GroupRepositoryMockImpl
     protected lateinit var groupMemberRepo: GroupMemberRepositoryMockImpl
@@ -95,11 +97,12 @@ abstract class BaseE2ETest {
         }
 
         memberRepo = MemberRepositoryMockImpl()
+        memberChatRepo = MemberChatRepositoryMockImpl()
         chatRepo = ChatRepositoryMockImpl()
         groupRepo = GroupRepositoryMockImpl()
         groupMemberRepo = GroupMemberRepositoryMockImpl()
 
-        memberService = MemberService(memberRepo)
+        memberService = MemberService(memberRepo, memberChatRepo)
         chatService = ChatService(chatRepo)
         groupService = GroupService(groupRepo, groupMemberRepo)
         autoRegisterService = AutoRegisterService(memberService, chatService)
@@ -196,12 +199,12 @@ abstract class BaseE2ETest {
         username: String,
         firstName: String,
         role: MemberRole = MemberRole.MEMBER
-    ): Member = runBlocking {
+    ): MemberWithChat = runBlocking {
         memberService.createMember(testChatId, userId, username, firstName, role).getOrThrow()
     }
 
     /** Convenience: get all members from the in-memory repo. */
-    protected fun allMembers() = runBlocking { memberService.getAllMembers().getOrThrow() }
+    protected fun allMembers() = runBlocking { memberService.getAllMembersInChat(testChatId).getOrThrow() }
 
     /** Convenience: get all groups from the in-memory repo. */
     protected fun allGroups() = runBlocking { groupService.getAllGroupsWithMembers(testChatId).getOrThrow() }

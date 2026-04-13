@@ -7,7 +7,7 @@ import com.ua.astrumon.domain.service.MemberService
 import org.koin.dsl.module
 
 val serviceModule = module {
-    single { MemberService(get()) }
+    single { MemberService(get(), get()) }
     single { GroupService(get(), get()) }
     single { ChatService(get()) }
     single { AutoRegisterService(get(), get()) }

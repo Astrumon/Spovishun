@@ -24,7 +24,7 @@ class PingController(
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
-        val membersResult = memberService.getAllMembers()
+        val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
             logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.message)
             return CommandResponse.Error("Failed to load members")

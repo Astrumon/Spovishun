@@ -39,7 +39,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
 
         grantRoleCommand.execute(bot, update)
 
-        val alice = memberService.getMemberByUsername("alice").getOrThrow()
+        val alice = memberService.getMemberWithChatByUsername(testChatId, "alice").getOrThrow()
         assertEquals(MemberRole.MODERATOR, alice.role)
         verify {
             bot.sendMessage(
@@ -83,8 +83,8 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
 
         grantRoleCommand.execute(bot, update)
 
-        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("alice").getOrThrow().role)
-        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("bob").getOrThrow().role)
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberWithChatByUsername(testChatId, "alice").getOrThrow().role)
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberWithChatByUsername(testChatId, "bob").getOrThrow().role)
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
@@ -106,7 +106,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
 
         grantRoleCommand.execute(bot, update)
 
-        assertEquals(MemberRole.MODERATOR, memberService.getMemberByUsername("alice").getOrThrow().role)
+        assertEquals(MemberRole.MODERATOR, memberService.getMemberWithChatByUsername(testChatId, "alice").getOrThrow().role)
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),

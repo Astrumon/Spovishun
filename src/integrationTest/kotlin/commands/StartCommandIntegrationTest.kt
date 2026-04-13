@@ -35,7 +35,6 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
-        assertTrue(member.chatId == testChatId)
     }
 
     @Test

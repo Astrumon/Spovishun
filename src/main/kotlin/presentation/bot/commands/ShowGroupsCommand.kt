@@ -25,11 +25,9 @@ class ShowGroupsCommand(
 
         val member = Member(
             id = 0,
-            chatId = chatId,
             userId = user.id,
             username = user.username ?: "user_${user.id}",
             firstName = user.firstName ?: "Unknown",
-            joinedAt = null,
         )
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 

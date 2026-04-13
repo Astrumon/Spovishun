@@ -7,8 +7,8 @@ import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.presentation.util.BotAdminUtils
-import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import io.mockk.clearAllMocks
@@ -50,7 +50,7 @@ class MessageHandlerTest {
     fun `handleIncomingMessage should auto-register user`() = runTest {
         // Given
         val update = createUpdate()
-        val member = Member(1L, chatId, userId, "alice", "Alice", null)
+        val member = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
         coEvery {
             autoRegisterService.ensureUserRegistered(
                 chatId,
@@ -85,7 +85,7 @@ class MessageHandlerTest {
         // Given
         val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
         val update = createUpdate(fromUser = user)
-        val member = Member(1L, chatId, userId, "user_$userId", "Alice", null)
+        val member = MemberWithChat(1L, userId, "user_$userId", "Alice", MemberRole.MEMBER, null)
         coEvery {
             autoRegisterService.ensureUserRegistered(
                 chatId,

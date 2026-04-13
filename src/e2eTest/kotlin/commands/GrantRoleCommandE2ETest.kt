@@ -18,14 +18,14 @@ class GrantRoleCommandE2ETest : BaseE2ETest() {
     @Test
     fun `grantrole command grants moderator role to target user`() {
         dispatch("/grantrole @roletarget moderator")
-        val updated = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 995L).getOrThrow() }
+        val updated = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
         assertEquals(MemberRole.MODERATOR, updated.role, "Expected roletarget to have MODERATOR role")
     }
 
     @Test
     fun `grantrole command grants admin role to target user`() {
         dispatch("/grantrole @roletarget admin")
-        val updated = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 995L).getOrThrow() }
+        val updated = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
         assertEquals(MemberRole.ADMIN, updated.role, "Expected roletarget to have ADMIN role")
     }
 
@@ -34,7 +34,7 @@ class GrantRoleCommandE2ETest : BaseE2ETest() {
         runBlocking { memberService.setMemberRole(testChatId, helperBotId, MemberRole.MEMBER) }
         dispatch("/grantrole @roletarget moderator")
         // Role should remain MEMBER — the command must have been rejected
-        val target = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 995L).getOrThrow() }
+        val target = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
         assertEquals(MemberRole.MEMBER, target.role, "Role should not be changed when caller lacks admin access")
     }
 
@@ -49,8 +49,8 @@ class GrantRoleCommandE2ETest : BaseE2ETest() {
     fun `grantrole command grants role to multiple comma-separated users`() {
         registerMember(userId = 996L, username = "roletarget2", firstName = "RoleTarget2", role = MemberRole.MEMBER)
         dispatch("/grantrole @roletarget,@roletarget2 moderator")
-        val target1 = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 995L).getOrThrow() }
-        val target2 = runBlocking { memberService.getMemberByChatAndUserId(testChatId, 996L).getOrThrow() }
+        val target1 = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
+        val target2 = runBlocking { memberService.getMemberChatByUserId(testChatId, 996L).getOrThrow() }
         assertEquals(MemberRole.MODERATOR, target1.role, "Expected roletarget to have MODERATOR role")
         assertEquals(MemberRole.MODERATOR, target2.role, "Expected roletarget2 to have MODERATOR role")
     }

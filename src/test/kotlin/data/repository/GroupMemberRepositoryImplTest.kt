@@ -11,7 +11,6 @@ import com.ua.astrumon.data.db.table.Groups
 import com.ua.astrumon.data.db.table.Members
 import data.db.TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -42,14 +41,11 @@ class GroupMemberRepositoryImplTest {
     }
 
     private fun insertMember(username: String, userId: Long = username.hashCode().toLong()) {
-        val cid = chatId
         transaction {
             Members.insert {
-                it[Members.chatId] = cid
                 it[Members.userId] = userId
                 it[Members.username] = username
                 it[Members.firstname] = username.replaceFirstChar { c -> c.uppercase() }
-                it[Members.joinedAt] = Clock.System.now()
             }
         }
     }

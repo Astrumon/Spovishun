@@ -3,8 +3,8 @@ package com.ua.astrumon.domain.service
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.model.MemberWithChat
 import org.slf4j.LoggerFactory
 
 class AutoRegisterService(
@@ -21,31 +21,28 @@ class AutoRegisterService(
         userRole: MemberRole,
         chatTitle: String? = null,
         chatType: String? = null
-    ): ResultContainer<Member> {
+    ): ResultContainer<MemberWithChat> {
         chatService.ensureChat(chatId, chatTitle, chatType)
             .onFailure { error ->
                 logger.error("Failed to ensure chat registration for chatId: $chatId", error)
             }
 
-        // Validate userId
         if (userId == -1L) {
             logger.warn("Attempted to register user with invalid userId: -1, username: $username")
             return ResultContainer.failure(ValidationException("Cannot register user with invalid userId: -1"))
         }
 
-        return memberService.getMemberByUsername(username)
+        return memberService.getMemberWithChatByUsername(chatId, username)
             .fold(
-                onSuccess = { member ->
-                    logger.debug("User $username already exists with ID: ${member.id}")
-                    ResultContainer.success(member)
+                onSuccess = { memberWithChat ->
+                    logger.debug("User $username already registered in chat $chatId")
+                    ResultContainer.success(memberWithChat)
                 },
                 onFailure = { error ->
                     if (error is ResourceNotFoundException) {
-                        logger.info("Auto-registering new user: $username (ID: $userId)")
+                        logger.info("Auto-registering user: $username (ID: $userId) in chat: $chatId")
                         memberService.createMember(chatId, userId, username, firstName, role = userRole)
-                            .onSuccess { member ->
-                                logger.info("Successfully auto-registered user: $username with ID: ${member.id}")
-                            }
+                            .onSuccess { logger.info("Auto-registered user: $username") }
                             .onFailure { createError ->
                                 logger.error("Failed to auto-register user: $username", createError)
                             }
@@ -57,7 +54,7 @@ class AutoRegisterService(
             )
     }
 
-    suspend fun isUserRegistered(username: String): Boolean {
-        return memberService.getMemberByUsername(username).isSuccess
+    suspend fun isUserRegistered(chatId: Long, username: String): Boolean {
+        return memberService.getMemberWithChatByUsername(chatId, username).isSuccess
     }
 }
