@@ -203,13 +203,44 @@ class MemberServiceTest {
         coVerify { memberRepository.saveOrUpdate(userId, newUsername, firstName) }
     }
 
+    // ── getMemberWithChatByUsername ───────────────────────────────────────────
+
+    @Test
+    fun `getMemberWithChatByUsername should return memberWithChat when found`() = runTest {
+        coEvery { memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
+
+        val result = memberService.getMemberWithChatByUsername(chatId, username)
+
+        assertTrue(result.isSuccess)
+        assertEquals(memberWithChat, result.getOrThrow())
+    }
+
+    @Test
+    fun `getMemberWithChatByUsername should return failure when not found`() = runTest {
+        coEvery { memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username) } returns ResultContainer.success(null)
+
+        val result = memberService.getMemberWithChatByUsername(chatId, username)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `getMemberWithChatByUsername should propagate repository error`() = runTest {
+        val error = DatabaseException("DB error")
+        coEvery { memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username) } returns ResultContainer.failure(error)
+
+        val result = memberService.getMemberWithChatByUsername(chatId, username)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DatabaseException)
+    }
+
     // ── getAllMembersInChat ────────────────────────────────────────────────────
 
     @Test
-    fun `getAllMembersInChat should return combined list`() = runTest {
-        val memberChats = listOf(memberChat)
-        coEvery { memberChatRepository.findAllByChatId(chatId) } returns ResultContainer.success(memberChats)
-        coEvery { memberRepository.findById(memberId) } returns ResultContainer.success(member)
+    fun `getAllMembersInChat should return list via single JOIN query`() = runTest {
+        coEvery { memberRepository.findAllMembersWithChatByChatId(chatId) } returns ResultContainer.success(listOf(memberWithChat))
 
         val result = memberService.getAllMembersInChat(chatId)
 
@@ -217,11 +248,12 @@ class MemberServiceTest {
         assertEquals(1, result.getOrThrow().size)
         assertEquals(username, result.getOrThrow().first().username)
         assertEquals(MemberRole.MEMBER, result.getOrThrow().first().role)
+        coVerify(exactly = 0) { memberChatRepository.findAllByChatId(any()) }
     }
 
     @Test
     fun `getAllMembersInChat should return empty list when no members`() = runTest {
-        coEvery { memberChatRepository.findAllByChatId(chatId) } returns ResultContainer.success(emptyList())
+        coEvery { memberRepository.findAllMembersWithChatByChatId(chatId) } returns ResultContainer.success(emptyList())
 
         val result = memberService.getAllMembersInChat(chatId)
 

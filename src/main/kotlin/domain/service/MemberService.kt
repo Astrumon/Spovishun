@@ -47,13 +47,10 @@ class MemberService(
     }
 
     suspend fun getMemberWithChatByUsername(chatId: Long, username: String): ResultContainer<MemberWithChat> {
-        return getMemberByUsername(username)
-            .flatMap { member ->
-                memberChatRepository.findByMemberIdAndChatId(member.id, chatId)
-                    .flatMap { memberChat ->
-                        if (memberChat != null) ResultContainer.success(member.toMemberWithChat(memberChat))
-                        else ResultContainer.failure(ResourceNotFoundException("Member", username))
-                    }
+        return memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username)
+            .flatMap { memberWithChat ->
+                if (memberWithChat != null) ResultContainer.success(memberWithChat)
+                else ResultContainer.failure(ResourceNotFoundException("Member", username))
             }
     }
 
@@ -90,16 +87,7 @@ class MemberService(
     }
 
     suspend fun getAllMembersInChat(chatId: Long): ResultContainer<List<MemberWithChat>> {
-        return memberChatRepository.findAllByChatId(chatId)
-            .flatMap { memberChats ->
-                val results = memberChats.mapNotNull { memberChat ->
-                    memberRepository.findById(memberChat.memberId).fold(
-                        onSuccess = { member -> member?.toMemberWithChat(memberChat) },
-                        onFailure = { null }
-                    )
-                }
-                ResultContainer.success(results)
-            }
+        return memberRepository.findAllMembersWithChatByChatId(chatId)
     }
 
     suspend fun hasModeratorAccess(chatId: Long, userId: Long): Boolean {

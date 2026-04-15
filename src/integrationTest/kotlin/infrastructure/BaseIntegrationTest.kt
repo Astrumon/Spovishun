@@ -90,9 +90,9 @@ abstract class BaseIntegrationTest {
     fun setUpBase() {
         clearAllMocks()
 
-        // Fresh repos each test
-        memberRepo = MemberRepositoryMockImpl()
+        // Fresh repos each test — memberChatRepo must be initialized before memberRepo
         memberChatRepo = MemberChatRepositoryMockImpl()
+        memberRepo = MemberRepositoryMockImpl(memberChatRepo)
         chatRepo = ChatRepositoryMockImpl()
         groupRepo = GroupRepositoryMockImpl()
         groupMemberRepo = GroupMemberRepositoryMockImpl()

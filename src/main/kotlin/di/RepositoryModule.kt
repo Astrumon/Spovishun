@@ -13,8 +13,8 @@ import com.ua.astrumon.domain.repository.MemberRepository
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single<MemberRepository> { MemberRepositoryImpl() }
     single<MemberChatRepository> { MemberChatRepositoryImpl() }
+    single<MemberRepository> { MemberRepositoryImpl() }
     single<GroupRepository> { GroupRepositoryImpl() }
     single<GroupMemberRepository> { GroupMemberRepositoryImpl() }
     single<ChatRepository> { ChatRepositoryImpl() }
