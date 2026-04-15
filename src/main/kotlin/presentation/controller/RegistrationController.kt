@@ -3,11 +3,9 @@ package com.ua.astrumon.presentation.controller
 import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.service.AutoRegisterService
-import com.ua.astrumon.domain.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 
 class RegistrationController(
-    private val memberService: MemberService,
     private val autoRegisterService: AutoRegisterService,
 ) {
     /**
@@ -42,19 +40,18 @@ class RegistrationController(
      * Handles /register: registers a single user and returns response.
      */
     suspend fun register(chatId: Long, userId: Long, username: String, firstName: String, userRole: MemberRole): CommandResponse {
-        val result = memberService.createMember(
-            chatId = chatId,
-            userId = userId,
-            username = username,
-            firstName = firstName,
-            role = userRole
-        )
+        val alreadyRegistered = autoRegisterService.isUserRegistered(chatId, username)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        if (result.isFailure) {
+            return CommandResponse.Error("$firstName, не вдалося зареєструватися. Спробуйте пізніше.")
+        }
 
         val roleText = if (userRole == MemberRole.ADMIN) " як адміністратор \uD83D\uDD10" else ""
-        return if (result.isSuccess) {
-            CommandResponse.Success("$firstName, ви успішно зареєстровані в системі$roleText!")
-        } else {
+        return if (alreadyRegistered) {
             CommandResponse.Success("$firstName, ви вже зареєстровані в системі.")
+        } else {
+            CommandResponse.Success("$firstName, ви успішно зареєстровані в системі$roleText!")
         }
     }
 

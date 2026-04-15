@@ -116,7 +116,7 @@ abstract class BaseIntegrationTest {
         // Real controllers
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)
-        registrationController = RegistrationController(memberService, autoRegisterService)
+        registrationController = RegistrationController(autoRegisterService)
         pingController = PingController(memberService, groupService, autoRegisterService)
 
         // Real commands
