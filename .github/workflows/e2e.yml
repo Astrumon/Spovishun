@@ -30,6 +30,9 @@ jobs:
           TEST_HELPER_BOT_TOKEN: ${{ secrets.TEST_HELPER_BOT_TOKEN }}
           TEST_CHAT_ID: ${{ secrets.TEST_CHAT_ID }}
           TEST_ADMINS: ${{ secrets.TEST_ADMINS }}
+          E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          E2E_DATABASE_USERNAME: ${{ secrets.E2E_DATABASE_USERNAME }}
+          E2E_DATABASE_PASSWORD: ${{ secrets.E2E_DATABASE_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew e2eTest
