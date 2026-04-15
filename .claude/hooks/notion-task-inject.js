@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 /**
- * UserPromptSubmit hook — injects active Notion task context into the prompt.
+ * Dual-mode hook:
  *
- * Caches context in .dev-context/{branch}_prd/ — the Notion API is called
- * once per branch lifetime. Between sessions on the same branch,
- * context is read from file (no network requests).
+ * 1. UserPromptSubmit — injects active Notion task context into the prompt.
+ *    Caches context in .dev-context/{branch}_prd/ — Notion API called once per
+ *    branch lifetime; subsequent sessions read from file (no network requests).
+ *
+ * 2. PostToolUse (ExitPlanMode) — auto-saves the approved plan.
+ *    Invoked as: node notion-task-inject.js --post-exit-plan
+ *    Reads plan from tool_input.plan and writes to .dev-context/{branch}_prd/plan.md.
+ *    Plan is then injected automatically on every new session for that branch.
  *
  * Files in the task folder:
  *   branch.txt    — exact branch name
  *   context.md    — cached task text from Notion
- *   plan.md       — approved development plan (kept for history)
+ *   plan.md       — approved plan, auto-saved after ExitPlanMode
  *   session.lock  — "{ppid}:{timestamp}" of the current session (dedup injections)
  *
  * Requires: NOTION_SKILLS_TOKEN (or NOTION_TOKEN) in env or .env file.
@@ -192,6 +197,40 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+
+// ─── PostToolUse: ExitPlanMode — auto-save plan ──────────────────────────────
+
+async function runPostExitPlan() {
+  let raw = '';
+  process.stdin.setEncoding('utf8');
+  for await (const chunk of process.stdin) raw += chunk;
+
+  let data;
+  try { data = JSON.parse(raw); } catch { process.exit(0); }
+
+  const planContent = data?.tool_input?.plan;
+  if (!planContent) {
+    process.stderr.write('[notion-task-inject] post-exit-plan: no plan in tool_input\n');
+    process.exit(0);
+  }
+
+  const branch = getCurrentBranch();
+  if (!branch || branch === 'develop' || branch === 'main') {
+    process.stderr.write('[notion-task-inject] post-exit-plan: not on a feature branch\n');
+    process.exit(0);
+  }
+
+  const ctxDir = getContextDir(branch);
+  ensureDir(ctxDir);
+  fs.writeFileSync(path.join(ctxDir, 'plan.md'), planContent, 'utf8');
+  // Invalidate session lock so the next UserPromptSubmit in this session
+  // re-injects context + plan instead of skipping via isCurrentSession().
+  const lockFile = path.join(ctxDir, 'session.lock');
+  if (fs.existsSync(lockFile)) fs.unlinkSync(lockFile);
+  process.stderr.write(`[notion-task-inject] plan saved → .dev-context/${branchToFolderName(branch)}/plan.md\n`);
+  process.exit(0);
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -203,6 +242,7 @@ async function main() {
   try { data = JSON.parse(raw); } catch { process.exit(0); }
 
   const prompt = (data.prompt || '').toLowerCase();
+
   const isStartTask = START_TASK_TRIGGERS.some(t => prompt.includes(t));
   const isRefresh = REFRESH_TRIGGERS.some(t => prompt.includes(t));
   const hasTrigger = isStartTask || isRefresh || TRIGGER_WORDS.some(word => prompt.includes(word));
@@ -360,11 +400,17 @@ function buildSystemPrompt(context, plan, branchNote, isStartTask) {
   if (plan) parts.push(`\n---\n## 📋 Approved Plan\n${plan}`);
   if (branchNote) parts.push(branchNote);
   parts.push('\n---');
-  parts.push(
-    isStartTask
-      ? '⚠️ IMPORTANT: You MUST call the EnterPlanMode tool immediately before doing anything else. Build a detailed implementation plan based on the task above. Do NOT write any code until the plan is approved.'
-      : '*Work within the scope of this task. Do not go beyond what is described.*'
-  );
+
+  let instruction;
+  if (isStartTask && plan) {
+    instruction = '✅ Plan already approved. Proceed directly with implementation — do NOT enter plan mode again.';
+  } else if (isStartTask) {
+    instruction = '⚠️ IMPORTANT: You MUST call the EnterPlanMode tool immediately before doing anything else. Build a detailed implementation plan based on the task above. Do NOT write any code until the plan is approved.';
+  } else {
+    instruction = '*Work within the scope of this task. Do not go beyond what is described.*';
+  }
+
+  parts.push(instruction);
   return parts.join('\n');
 }
 
@@ -377,4 +423,8 @@ function output(systemPrompt) {
   }));
 }
 
-main();
+if (process.argv[2] === '--post-exit-plan') {
+  runPostExitPlan();
+} else {
+  main();
+}

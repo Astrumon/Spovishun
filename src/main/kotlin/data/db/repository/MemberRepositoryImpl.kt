@@ -3,11 +3,15 @@ package com.ua.astrumon.data.db.repository
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.db.safeDbQuery
+import com.ua.astrumon.data.db.table.MemberChats
 import com.ua.astrumon.data.db.table.Members
 import com.ua.astrumon.data.mapper.toMember
+import com.ua.astrumon.data.mapper.toMemberWithChat
 import com.ua.astrumon.domain.model.Member
+import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.repository.MemberRepository
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.upsert
 
@@ -44,5 +48,21 @@ class MemberRepositoryImpl : MemberRepository {
                 .where { Members.userId eq userId }
                 .singleOrNull()?.toMember()
                 ?: throw ResourceNotFoundException("Member", userId.toString())
+        }
+
+    override suspend fun findMemberWithChatByChatIdAndUsername(chatId: Long, username: String): ResultContainer<MemberWithChat?> =
+        safeDbQuery {
+            Members.innerJoin(MemberChats)
+                .selectAll()
+                .where { (Members.username eq username) and (MemberChats.chatId eq chatId) }
+                .singleOrNull()?.toMemberWithChat()
+        }
+
+    override suspend fun findAllMembersWithChatByChatId(chatId: Long): ResultContainer<List<MemberWithChat>> =
+        safeDbQuery {
+            Members.innerJoin(MemberChats)
+                .selectAll()
+                .where { MemberChats.chatId eq chatId }
+                .map { it.toMemberWithChat() }
         }
 }

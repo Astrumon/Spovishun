@@ -41,6 +41,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/notion-task-inject.js --post-exit-plan",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

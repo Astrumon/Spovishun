@@ -8,6 +8,8 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.Chat
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
+import com.ua.astrumon.domain.cache.ChatCache
+import com.ua.astrumon.domain.cache.UserCache
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.MemberService
@@ -27,6 +29,8 @@ class AutoRegisterServiceTest {
 
     private val memberService: MemberService = mockk()
     private val chatService: ChatService = mockk()
+    private lateinit var userCache: UserCache
+    private lateinit var chatCache: ChatCache
     private lateinit var autoRegisterService: AutoRegisterService
 
     private val chatId = 123L
@@ -43,7 +47,9 @@ class AutoRegisterServiceTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        autoRegisterService = AutoRegisterService(memberService, chatService)
+        userCache = UserCache()
+        chatCache = ChatCache()
+        autoRegisterService = AutoRegisterService(memberService, chatService, userCache, chatCache)
         coEvery { chatService.ensureChat(any(), any(), any()) } returns ResultContainer.success(
             Chat(chatId, null, null, Clock.System.now())
         )
@@ -146,5 +152,51 @@ class AutoRegisterServiceTest {
         )
 
         assertFalse(autoRegisterService.isUserRegistered(chatId, username))
+    }
+
+    // --- cache ---
+
+    @Test
+    fun `ensureUserRegistered should return cached member without DB call on second invocation`() = runTest {
+        coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
+
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        // DB should be queried only once; second call is a cache hit
+        coVerify(exactly = 1) { memberService.getMemberWithChatByUsername(chatId, username) }
+    }
+
+    @Test
+    fun `ensureUserRegistered should populate cache after creating a new member`() = runTest {
+        val notFoundError = ResourceNotFoundException("Member", username)
+        coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(notFoundError)
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns ResultContainer.success(memberWithChat)
+
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        // getMemberWithChatByUsername called once; second call served from cache
+        coVerify(exactly = 1) { memberService.getMemberWithChatByUsername(chatId, username) }
+        coVerify(exactly = 1) { memberService.createMember(chatId, userId, username, firstName, role = userRole) }
+    }
+
+    @Test
+    fun `ensureUserRegistered should skip ensureChat when chat is already cached`() = runTest {
+        coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
+
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        // ensureChat called only on first invocation
+        coVerify(exactly = 1) { chatService.ensureChat(chatId, any(), any()) }
+    }
+
+    @Test
+    fun `isUserRegistered should return true from cache without DB call`() = runTest {
+        userCache.put(chatId, username, memberWithChat)
+
+        assertTrue(autoRegisterService.isUserRegistered(chatId, username))
+        coVerify(exactly = 0) { memberService.getMemberWithChatByUsername(any(), any()) }
     }
 }
