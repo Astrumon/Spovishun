@@ -5,11 +5,11 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
-import com.ua.astrumon.data.memory.repository.ChatRepositoryMockImpl
-import com.ua.astrumon.data.memory.repository.GroupMemberRepositoryMockImpl
-import com.ua.astrumon.data.memory.repository.GroupRepositoryMockImpl
-import com.ua.astrumon.data.memory.repository.MemberChatRepositoryMockImpl
-import com.ua.astrumon.data.memory.repository.MemberRepositoryMockImpl
+import com.ua.astrumon.data.db.repository.ChatRepositoryImpl
+import com.ua.astrumon.data.db.repository.GroupMemberRepositoryImpl
+import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
+import com.ua.astrumon.data.db.repository.MemberChatRepositoryImpl
+import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
@@ -38,6 +38,7 @@ import com.ua.astrumon.presentation.util.BotAdminUtils
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -50,9 +51,9 @@ import kotlin.test.BeforeTest
  * - The real [com.github.kotlintelegrambot.Bot] instance makes real Telegram API calls:
  *   bot.sendMessage() → actual delivery to the test group
  *   bot.getChatMember() → real admin detection via BotAdminUtils
- * - Verification is done via in-memory repository state (not getUpdates, which
- *   is blocked for bot-to-bot communication by Telegram).
- * - Tests confirm: real API connectivity, auth, admin detection, command logic.
+ * - Uses real [*RepositoryImpl] classes backed by the dev DB (requires E2E_DATABASE_* env vars).
+ * - [TestDatabaseCleaner] deletes all entities scoped to [testChatId] after each test,
+ *   even on failure (JUnit guarantees [@AfterTest] execution).
  * - Chat cleanup runs once after all tests in the class complete (@AfterAll).
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -68,12 +69,12 @@ abstract class BaseE2ETest {
     // Accumulates message ID ranges across all tests; deleted once in @AfterAll
     private val messagesToCleanup = mutableListOf<LongRange>()
 
-    // In-memory repos (fresh per test, shared with command handlers)
-    protected lateinit var memberRepo: MemberRepositoryMockImpl
-    protected lateinit var memberChatRepo: MemberChatRepositoryMockImpl
-    protected lateinit var chatRepo: ChatRepositoryMockImpl
-    protected lateinit var groupRepo: GroupRepositoryMockImpl
-    protected lateinit var groupMemberRepo: GroupMemberRepositoryMockImpl
+    // Real DB-backed repositories (stateless — safe to reuse across tests)
+    private val memberRepo = MemberRepositoryImpl()
+    private val memberChatRepo = MemberChatRepositoryImpl()
+    private val chatRepo = ChatRepositoryImpl()
+    private val groupRepo = GroupRepositoryImpl()
+    private val groupMemberRepo = GroupMemberRepositoryImpl()
 
     // Real services
     protected lateinit var memberService: MemberService
@@ -85,22 +86,26 @@ abstract class BaseE2ETest {
     private lateinit var commandRegistry: CommandRegistry
     private lateinit var messageHandler: MessageHandler
 
+    protected lateinit var cleaner: TestDatabaseCleaner
+
     protected val testChatId: Long get() = E2EConfig.testChatId!!
+
+    @BeforeAll
+    fun initDatabase() {
+        assumeTrue(E2EConfig.isConfigured && E2EDbConfig.isConfigured, "E2E env vars not set — skipping e2e tests")
+        TestDatabaseFactory.initialize(E2EDbConfig)
+        cleaner = TestDatabaseCleaner(E2EDbConfig.databaseUrl!!)
+    }
 
     @BeforeTest
     fun setUpE2E() {
-        assumeTrue(E2EConfig.isConfigured, "E2E env vars not set — skipping e2e tests")
+        assumeTrue(E2EConfig.isConfigured && E2EDbConfig.isConfigured, "E2E env vars not set — skipping e2e tests")
 
         runBlocking {
-            helperBot = TelegramHelperBot(E2EConfig.helperBotToken!!, testChatId)
-            helperBotId = helperBot.getBotId(E2EConfig.helperBotToken!!)
+            val helperBotToken = E2EConfig.helperBotToken!!
+            helperBot = TelegramHelperBot(helperBotToken, testChatId)
+            helperBotId = helperBot.getBotId(helperBotToken)
         }
-
-        memberRepo = MemberRepositoryMockImpl()
-        memberChatRepo = MemberChatRepositoryMockImpl()
-        chatRepo = ChatRepositoryMockImpl()
-        groupRepo = GroupRepositoryMockImpl()
-        groupMemberRepo = GroupMemberRepositoryMockImpl()
 
         memberService = MemberService(memberRepo, memberChatRepo)
         chatService = ChatService(chatRepo)
@@ -111,7 +116,7 @@ abstract class BaseE2ETest {
 
         val groupController = GroupController(groupService, memberService, autoRegisterService)
         val membersController = MembersController(memberService, autoRegisterService)
-        val registrationController = RegistrationController(memberService, autoRegisterService)
+        val registrationController = RegistrationController(autoRegisterService)
         val pingController = PingController(memberService, groupService, autoRegisterService)
 
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
@@ -146,7 +151,9 @@ abstract class BaseE2ETest {
 
     @AfterTest
     fun tearDownE2E() {
-        if (E2EConfig.isConfigured) helperBot.close()
+        if (!E2EConfig.isConfigured || !E2EDbConfig.isConfigured) return
+        runBlocking { cleaner.cleanupByChatId(testChatId) }
+        helperBot.close()
     }
 
     @AfterAll
@@ -158,6 +165,7 @@ abstract class BaseE2ETest {
             }
         }
         messagesToCleanup.clear()
+        TestDatabaseFactory.shutdown()
     }
 
     /**
@@ -200,12 +208,12 @@ abstract class BaseE2ETest {
         firstName: String,
         role: MemberRole = MemberRole.MEMBER
     ): MemberWithChat = runBlocking {
-        memberService.createMember(testChatId, userId, username, firstName, role).getOrThrow()
+        autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
     }
 
-    /** Convenience: get all members from the in-memory repo. */
+    /** Convenience: get all members from the DB. */
     protected fun allMembers() = runBlocking { memberService.getAllMembersInChat(testChatId).getOrThrow() }
 
-    /** Convenience: get all groups from the in-memory repo. */
+    /** Convenience: get all groups from the DB. */
     protected fun allGroups() = runBlocking { groupService.getAllGroupsWithMembers(testChatId).getOrThrow() }
 }

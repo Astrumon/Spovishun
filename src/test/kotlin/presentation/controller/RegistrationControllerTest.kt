@@ -1,11 +1,10 @@
 package presentation.controller
 
-import com.ua.astrumon.common.exception.DuplicateResourceException
+import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
-import com.ua.astrumon.domain.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.RegistrationController
 import io.mockk.clearAllMocks
@@ -19,7 +18,6 @@ import kotlin.test.assertTrue
 
 class RegistrationControllerTest {
 
-    private val memberService: MemberService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var registrationController: RegistrationController
 
@@ -30,7 +28,7 @@ class RegistrationControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        registrationController = RegistrationController(memberService, autoRegisterService)
+        registrationController = RegistrationController(autoRegisterService)
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
     }
 
@@ -71,33 +69,45 @@ class RegistrationControllerTest {
 
     @Test
     fun `register should return Success when registration succeeds`() = runTest {
-        coEvery { memberService.createMember(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns ResultContainer.success(memberWithChat)
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("зареєстровані"))
+        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
     }
 
     @Test
     fun `register should return Success with already registered message when duplicate`() = runTest {
-        coEvery { memberService.createMember(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.failure(DuplicateResourceException("Member", "alice"))
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns true
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("вже зареєстровані"))
+        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
     }
 
     @Test
     fun `register should include admin role text for admin users`() = runTest {
-        val adminMemberWithChat = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.ADMIN, null)
-        coEvery { memberService.createMember(chatId, userId, "alice", "Alice", MemberRole.ADMIN) } returns ResultContainer.success(adminMemberWithChat)
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.ADMIN)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("адміністратор"))
+        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.ADMIN) }
+    }
+
+    @Test
+    fun `register should return Error when ensureUserRegistered fails`() = runTest {
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.failure(DatabaseException("connection timeout"))
+
+        val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(result is CommandResponse.Error)
     }
 }

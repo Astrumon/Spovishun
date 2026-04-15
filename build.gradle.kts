@@ -117,4 +117,7 @@ tasks.register<Test>("e2eTest") {
     System.getenv("TEST_HELPER_BOT_TOKEN")?.let { environment("TEST_HELPER_BOT_TOKEN", it) }
     System.getenv("TEST_CHAT_ID")?.let { environment("TEST_CHAT_ID", it) }
     System.getenv("TEST_ADMINS")?.let { environment("TEST_ADMINS", it) }
+    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
+    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
+    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
 }

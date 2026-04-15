@@ -27,7 +27,7 @@ val presentationModule = module {
     // Controllers
     single { GroupController(get(), get(), get()) }
     single { MembersController(get(), get()) }
-    single { RegistrationController(get(), get()) }
+    single { RegistrationController(get()) }
     single { PingController(get(), get(), get()) }
 
     // Commands
