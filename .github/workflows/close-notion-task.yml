@@ -1,0 +1,36 @@
+name: Close Notion task on merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+jobs:
+  close-task:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Extract task number
+        id: extract
+        shell: bash
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" =~ ^feature/spovishun-([0-9]+)- ]]; then
+            echo "task_n=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No task number in branch: $BRANCH"
+          fi
+
+      - name: Update Notion task status to Done
+        if: steps.extract.outputs.task_n != ''
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_ID: 3193462f68a980d69ec9c7ccc6329b88
+          TASK_N: ${{ steps.extract.outputs.task_n }}
+        run: node .github/scripts/close-notion-task.js
