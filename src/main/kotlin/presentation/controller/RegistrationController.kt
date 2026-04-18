@@ -8,10 +8,6 @@ import com.ua.astrumon.presentation.CommandResponse
 class RegistrationController(
     private val autoRegisterService: AutoRegisterService,
 ) {
-    /**
-     * Registers the trigger user and returns the welcome message.
-     * Admin sync and invitation sending are handled by StartCommand before this is called.
-     */
     suspend fun start(chatId: Long, userId: Long, username: String, firstName: String, userRole: MemberRole): CommandResponse {
         autoRegisterService.ensureUserRegistered(
             chatId = chatId,
@@ -56,24 +52,24 @@ class RegistrationController(
     }
 
     private fun buildWelcomeMessage(): String = """
-        👋 <b>Spovishun активний!</b> ${VersionInfo.getFullVersion()}
+        👋 <b>Spovishun на місці!</b> ${VersionInfo.getFullVersion()}
 
         📋 <b>Реєстрація:</b>
         • /register — зареєструватися в системі
         • Або просто напишіть будь-яке повідомлення
 
         Команди:
-        • /all — пінгнути всіх
-        • /ping &lt;група&gt; [текст] — пінгнути групу
+        • /all — сповістити всіх
+        • /ping &lt;група&gt; [текст] — сповістити групу
         • /groups — список груп
         • /members — список учасників
 
         🔐 <b>Адмін:</b>
-        • /newgroup &lt;ключ&gt; &lt;назва&gt; — створити групу
-        • /delgroup &lt;ключ&gt; — видалити групу
-        • /addtogroup &lt;ключ&gt; @user — додати до групи
-        • /removefromgroup &lt;ключ&gt; @user — видалити з групи
-        • /grantrole @user1,@user2 member|moderator|admin — призначити роль одному або кільком учасникам
+        • /newgroup &lt;назва&gt; — створити групу
+        • /delgroup &lt;назва&gt; — видалити групу
+        • /addtogroup &lt;назва&gt; @user1, @user2 — додати до групи
+        • /removefromgroup &lt;назва&gt; @user1, @user2 — видалити з групи
+        • /grantrole @user1, @user2 member|moderator|admin — призначити роль одному або кільком учасникам
           └ member: базовий доступ · moderator 🛡: керує групами · admin 🔐: повний доступ
     """.trimIndent()
 }

@@ -1,6 +1,6 @@
 # domain/
 
-Contains: `model/`, `repository/` (interfaces only), `service/`.
+Contains: `model/`, `repository/` (interfaces only), `service/`, `cache/`.
 
 ## Forbidden imports
 - Telegram SDK (`com.github.kotlintelegrambot.*`)

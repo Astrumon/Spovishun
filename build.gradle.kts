@@ -91,6 +91,9 @@ tasks.register<Test>("integrationTest") {
     classpath = integrationTestSourceSet.runtimeClasspath
     useJUnitPlatform()
     shouldRunAfter(tasks.test)
+    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
+    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
+    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
 }
 
 val e2eTestSourceSet = sourceSets.create("e2eTest") {

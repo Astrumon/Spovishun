@@ -9,7 +9,7 @@ import com.ua.astrumon.data.db.table.Chats
 import com.ua.astrumon.data.db.table.GroupMembers
 import com.ua.astrumon.data.db.table.Groups
 import com.ua.astrumon.data.db.table.Members
-import data.db.TestDatabaseFactory
+import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
@@ -27,7 +27,7 @@ class GroupMemberRepositoryImplTest {
 
     @BeforeTest
     fun setup() {
-        TestDatabaseFactory.initialize()
+        H2TestDatabaseFactory.initialize()
         transaction {
             GroupMembers.deleteAll()
             Groups.deleteAll()
@@ -78,7 +78,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.addMemberToGroup(chatId, "nonexistent", "alice")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -89,7 +89,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.addMemberToGroup(chatId, "devs", "nonexistent")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -102,7 +102,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.addMemberToGroup(chatId, "devs", "alice")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is DuplicateResourceException)
+        assertTrue(result.exceptionOrNull() is DuplicateResourceException)
     }
 
     @Test
@@ -138,7 +138,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.getGroupMembers(chatId, "nonexistent")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -163,7 +163,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.removeMemberFromGroup(chatId, "nonexistent", "alice")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -174,7 +174,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.removeMemberFromGroup(chatId, "devs", "nonexistent")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -186,7 +186,7 @@ class GroupMemberRepositoryImplTest {
         val result = repository.removeMemberFromGroup(chatId, "devs", "alice")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is BusinessException)
+        assertTrue(result.exceptionOrNull() is BusinessException)
     }
 
     @Test

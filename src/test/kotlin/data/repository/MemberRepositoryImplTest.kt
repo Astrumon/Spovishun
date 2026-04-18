@@ -2,7 +2,7 @@ package data.repository
 
 import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
 import com.ua.astrumon.data.db.table.Members
-import data.db.TestDatabaseFactory
+import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -19,7 +19,7 @@ class MemberRepositoryImplTest {
 
     @BeforeTest
     fun setup() {
-        TestDatabaseFactory.initialize()
+        H2TestDatabaseFactory.initialize()
         transaction { Members.deleteAll() }
     }
 

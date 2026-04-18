@@ -39,7 +39,7 @@ class RegistrationControllerTest {
         val result = registrationController.start(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
         assertTrue(result is CommandResponse.Success)
-        assertTrue(result.message.contains("Spovishun активний"))
+        assertTrue(result.message.contains("Spovishun на місці"))
     }
 
     @Test

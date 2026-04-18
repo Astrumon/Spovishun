@@ -21,7 +21,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
-                match { it.contains("Spovishun активний") },
+                match { it.contains("Spovishun на місці") },
                 ParseMode.HTML
             )
         }

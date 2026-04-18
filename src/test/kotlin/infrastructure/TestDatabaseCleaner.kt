@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 
 /**
- * Deletes all test data scoped to a specific [chatId] after each e2e test.
+ * Deletes all test data scoped to a specific [chatId] after each test.
  *
  * Deletion order respects FK constraints:
  *   GroupMembers → Groups → MemberChats → Members → Chats
@@ -34,7 +34,6 @@ class TestDatabaseCleaner(private val databaseUrl: String) {
 
     suspend fun cleanupByChatId(chatId: Long) {
         dbQuery {
-            // 1. Delete GroupMembers that belong to groups in this chat
             val groupIds = Groups.selectAll()
                 .where { Groups.chatId eq chatId }
                 .map { it[Groups.id] }
@@ -42,18 +41,14 @@ class TestDatabaseCleaner(private val databaseUrl: String) {
                 GroupMembers.deleteWhere { group inList groupIds }
             }
 
-            // 2. Delete Groups in this chat
             Groups.deleteWhere { Groups.chatId eq chatId }
 
-            // 3. Collect member IDs before removing their chat membership
             val memberIds = MemberChats.selectAll()
                 .where { MemberChats.chatId eq chatId }
                 .map { it[MemberChats.memberId] }
 
-            // 4. Delete MemberChats for this chat
             MemberChats.deleteWhere { MemberChats.chatId eq chatId }
 
-            // 5. Delete Members that have no remaining chat memberships after step 4
             if (memberIds.isNotEmpty()) {
                 val membersWithOtherChats = MemberChats.selectAll()
                     .where { MemberChats.memberId inList memberIds }
@@ -65,7 +60,6 @@ class TestDatabaseCleaner(private val databaseUrl: String) {
                 }
             }
 
-            // 6. Delete the Chat itself
             Chats.deleteWhere { Chats.chatId eq chatId }
         }
     }

@@ -19,9 +19,9 @@ src/main/kotlin/
   Application.kt        — starts Koin + long-polling; initializeKoin() usable in tests
   common/               — pure Kotlin: ResultContainer, exceptions, extensions, logging
   config/               — AppConfig (env var bindings via dotenv)
-  domain/               — model/, repository/ (interfaces), service/
+  domain/               — model/, repository/ (interfaces), service/, cache/
   data/                 — db/ (Exposed impls + tables), memory/ (MockImpl repos), mapper/
-  di/                   — Koin modules; selects Dev/Prod repos via PROFILE env var
+  di/                   — Koin modules; selects DB connection string via PROFILE env var
   presentation/         — bot/ (TelegramBot, MessageHandler, commands/), controller/, util/
   tools/                — MigrationGenerator (dev tool, not part of the bot)
 ```
@@ -47,20 +47,20 @@ Never call a `Service` directly from a `Command`.
 **Role checks** — `MemberService.hasAdminAccess()` / `hasModeratorAccess()` query the DB.
 `BotAdminUtils` (`presentation/util/`) queries Telegram API only to derive initial role on first registration.
 
-**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 4 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (SQLite for dev, cloud PostgreSQL for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
+**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 5 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, Neon PostgreSQL for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
   Use `runTest {}`, `coEvery`/`coVerify`, `clearAllMocks()` in `@BeforeTest`.
 - **Integration** — extend `BaseIntegrationTest`: real MockImpl repos + real services/commands;
   only `Bot` and `BotAdminUtils` are mocked.
-- **e2e** — real Telegram API; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`.
+- **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`, `E2E_DATABASE_URL`.
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
 ## Agent Workflow
-- `kotlin-specialist` — after implementing a feature (reviews Kotlin code quality, architecture, patterns, coroutines)
-- `postgresql-exposed-orm` — after adding a table or migration (reviews DB schema and Exposed usage)
-- `technical-documentation-writer` — after architectural changes (updates Notion documentation)
+- `kotlin-reviewer` — after implementing a feature (reviews Kotlin code quality, architecture, patterns, coroutines)
+- `database-reviewer` — after adding a table or migration (reviews DB schema and Exposed usage)
+- `doc-updater` — after architectural changes (updates Notion documentation)
 - `skill-security-auditor` — before adding a new skill (quality gate: frontmatter, triggers, scope, error handling)
 - `code-reviewer` — for PR review with Kotlin-specific checks and verdict section
 

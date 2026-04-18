@@ -7,16 +7,28 @@ import org.jetbrains.exposed.sql.Database
 
 object TestDatabaseFactory {
     private var dataSource: HikariDataSource? = null
+    private var initializedUrl: String? = null
 
-    fun initialize(config: E2EDbConfig) {
-        if (dataSource != null) return
+    fun initialize(
+        url: String,
+        driver: String = "org.postgresql.Driver",
+        username: String = "postgres",
+        password: String = "",
+        poolSize: Int = 2,
+    ) {
+        if (dataSource != null) {
+            check(initializedUrl == url) {
+                "TestDatabaseFactory already initialized with '$initializedUrl' — cannot reinitialize with '$url'. Call shutdown() first."
+            }
+            return
+        }
 
         val hikariConfig = DataSourceFactory.create(
-            url = config.databaseUrl!!,
-            driver = config.databaseDriver,
-            username = config.databaseUsername,
-            password = config.databasePassword,
-            poolSize = config.databasePoolSize
+            url = url,
+            driver = driver,
+            username = username,
+            password = password,
+            poolSize = poolSize,
         )
         val ds = HikariDataSource(hikariConfig)
         Database.connect(ds)
@@ -29,11 +41,13 @@ object TestDatabaseFactory {
             .load()
             .migrate()
 
+        initializedUrl = url
         dataSource = ds
     }
 
     fun shutdown() {
         dataSource?.close()
         dataSource = null
+        initializedUrl = null
     }
 }
