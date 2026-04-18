@@ -15,14 +15,14 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 
-object TestDatabaseFactory {
-    private val logger = LoggerFactory.getLogger(TestDatabaseFactory::class.java)
+object H2TestDatabaseFactory {
+    private val logger = LoggerFactory.getLogger(H2TestDatabaseFactory::class.java)
     private var initialized = false
 
     fun initialize() {
         if (initialized) return
         try {
-            logger.info("Initializing test database connection...")
+            logger.info("Initializing H2 test database...")
 
             val hikariConfig = HikariConfig().apply {
                 jdbcUrl = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
@@ -41,19 +41,19 @@ object TestDatabaseFactory {
             }
 
             initialized = true
-            logger.info("Test database connection established successfully")
+            logger.info("H2 test database initialized successfully")
         } catch (e: Exception) {
-            logger.error("Failed to initialize test database", e)
-            throw DatabaseException("Test database initialization failed", e)
+            logger.error("Failed to initialize H2 test database", e)
+            throw DatabaseException("H2 test database initialization failed", e)
         }
     }
 }
 
-suspend fun <T> testDbQuery(block: () -> T): T =
-    withContext(Dispatchers.IO) { 
+suspend fun <T> h2DbQuery(block: () -> T): T =
+    withContext(Dispatchers.IO) {
         try {
             transaction { block() }
         } catch (e: Exception) {
-            throw DatabaseException("Test database query failed", e)
+            throw DatabaseException("H2 test database query failed", e)
         }
     }

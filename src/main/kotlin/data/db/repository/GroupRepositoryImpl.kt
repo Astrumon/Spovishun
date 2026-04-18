@@ -28,10 +28,13 @@ class GroupRepositoryImpl : GroupRepository {
 
     override suspend fun findGroupByKey(chatId: Long, key: String): ResultContainer<Group> = safeDbQuery {
         logger.info("findGroupByKey called with chatId=$chatId, key='$key'")
+        logger.debug("Executing SQL query for groups table")
         val result = Groups.selectAll()
             .where { (Groups.chatId eq chatId) and (Groups.name eq key) }
             .singleOrNull()
+        logger.debug("SQL query executed, result: ${result != null}")
         result?.let { row ->
+            logger.debug("Group found with id=${row[Groups.id].value}")
             Group(
                 id = row[Groups.id].value,
                 chatId = row[Groups.chatId],

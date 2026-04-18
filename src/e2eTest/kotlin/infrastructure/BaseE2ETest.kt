@@ -93,7 +93,13 @@ abstract class BaseE2ETest {
     @BeforeAll
     fun initDatabase() {
         assumeTrue(E2EConfig.isConfigured && E2EDbConfig.isConfigured, "E2E env vars not set — skipping e2e tests")
-        TestDatabaseFactory.initialize(E2EDbConfig)
+        TestDatabaseFactory.initialize(
+            url = E2EDbConfig.databaseUrl!!,
+            driver = E2EDbConfig.databaseDriver,
+            username = E2EDbConfig.databaseUsername,
+            password = E2EDbConfig.databasePassword,
+            poolSize = E2EDbConfig.databasePoolSize,
+        )
         cleaner = TestDatabaseCleaner(E2EDbConfig.databaseUrl!!)
     }
 
@@ -168,9 +174,6 @@ abstract class BaseE2ETest {
         TestDatabaseFactory.shutdown()
     }
 
-    /**
-     * Build a synthetic Update as if [helperBotId] sent [text] in the test group.
-     */
     protected fun buildUpdate(
         text: String,
         userId: Long = helperBotId,
@@ -185,11 +188,6 @@ abstract class BaseE2ETest {
         return Update(updateId = 1L, message = message)
     }
 
-    /**
-     * Dispatch [command] directly into the main bot's handler.
-     * The bot makes real Telegram API calls (sendMessage, getChatMember, etc.).
-     * Returns without error if the command was processed successfully.
-     */
     protected fun dispatch(command: String) {
         runBlocking { dispatchCommand(command, buildUpdate(text = command)) }
     }
@@ -201,7 +199,6 @@ abstract class BaseE2ETest {
         else messageHandler.handleIncomingMessage(mainBot, update)
     }
 
-    /** Pre-register a member directly via service (bypasses Telegram). */
     protected fun registerMember(
         userId: Long,
         username: String,
@@ -211,9 +208,7 @@ abstract class BaseE2ETest {
         autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
     }
 
-    /** Convenience: get all members from the DB. */
     protected fun allMembers() = runBlocking { memberService.getAllMembersInChat(testChatId).getOrThrow() }
 
-    /** Convenience: get all groups from the DB. */
     protected fun allGroups() = runBlocking { groupService.getAllGroupsWithMembers(testChatId).getOrThrow() }
 }

@@ -7,7 +7,7 @@ import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
 import com.ua.astrumon.data.db.table.Chats
 import com.ua.astrumon.data.db.table.GroupMembers
 import com.ua.astrumon.data.db.table.Groups
-import data.db.TestDatabaseFactory
+import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -23,7 +23,7 @@ class GroupRepositoryImplTest {
 
     @BeforeTest
     fun setup() {
-        TestDatabaseFactory.initialize()
+        H2TestDatabaseFactory.initialize()
         transaction {
             GroupMembers.deleteAll()
             Groups.deleteAll()
@@ -55,7 +55,7 @@ class GroupRepositoryImplTest {
         val result = repository.createGroup(100L, "devs")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is DuplicateResourceException)
+        assertTrue(result.exceptionOrNull() is DuplicateResourceException)
     }
 
     @Test
@@ -87,7 +87,7 @@ class GroupRepositoryImplTest {
         val result = repository.findGroupByKey(100L, "nonexistent")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -98,7 +98,7 @@ class GroupRepositoryImplTest {
         val result = repository.findGroupByKey(200L, "devs")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
@@ -142,7 +142,7 @@ class GroupRepositoryImplTest {
         val result = repository.deleteGroup(100L, "nonexistent")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.cause is ResourceNotFoundException)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test

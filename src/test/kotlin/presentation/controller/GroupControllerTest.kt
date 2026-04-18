@@ -229,7 +229,7 @@ class GroupControllerTest {
     }
 
     @Test
-    fun `addUserToGroup should return error when user invalid`() = runTest {
+    fun `addUserToGroup should report not registered user in success message`() = runTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", emptyList())
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
@@ -238,8 +238,9 @@ class GroupControllerTest {
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob"))
 
-        assertTrue(result is CommandResponse.Error)
-        assertTrue(result.message.contains("Неможливо додати"))
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Не додано"))
+        assertTrue(result.message.contains("не зареєстровано"))
     }
 
     @Test
@@ -255,7 +256,7 @@ class GroupControllerTest {
     }
 
     @Test
-    fun `addUserToGroup should return error when user already in group`() = runTest {
+    fun `addUserToGroup should report already in group user in success message`() = runTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", listOf("bob"))
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
@@ -264,8 +265,26 @@ class GroupControllerTest {
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob"))
 
-        assertTrue(result is CommandResponse.Error)
+        assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("вже в групі"))
+    }
+
+    @Test
+    fun `addUserToGroup should handle multiple users with partial success`() = runTest {
+        val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", emptyList())
+        coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
+        coEvery { groupService.addMemberToGroup(chatId, "devs", "alice") } returns ResultContainer.success(Unit)
+        coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
+            ValidationException("Not registered")
+        )
+
+        val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@alice", "@bob"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("@alice"))
+        assertTrue(result.message.contains("додано"))
+        assertTrue(result.message.contains("Не додано"))
+        assertTrue(result.message.contains("@bob"))
     }
 
     // --- removeUserFromGroup tests ---
@@ -312,7 +331,7 @@ class GroupControllerTest {
     }
 
     @Test
-    fun `removeUserFromGroup should return error when user not in group`() = runTest {
+    fun `removeUserFromGroup should report not in group user in success message`() = runTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", emptyList())
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.removeMemberFromGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
@@ -321,8 +340,27 @@ class GroupControllerTest {
 
         val result = groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob"))
 
-        assertTrue(result is CommandResponse.Error)
-        assertTrue(result.message.contains("не знайдено в групі"))
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Не знайдено в групі"))
+        assertTrue(result.message.contains("@bob"))
+    }
+
+    @Test
+    fun `removeUserFromGroup should handle multiple users with partial success`() = runTest {
+        val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice"))
+        coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
+        coEvery { groupService.removeMemberFromGroup(chatId, "devs", "alice") } returns ResultContainer.success(Unit)
+        coEvery { groupService.removeMemberFromGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
+            BusinessException("Member not in group")
+        )
+
+        val result = groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@alice", "@bob"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("@alice"))
+        assertTrue(result.message.contains("видалено"))
+        assertTrue(result.message.contains("Не знайдено в групі"))
+        assertTrue(result.message.contains("@bob"))
     }
 
     // --- grantRole tests ---

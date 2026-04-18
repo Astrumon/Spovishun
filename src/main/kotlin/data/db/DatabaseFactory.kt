@@ -1,7 +1,10 @@
 package com.ua.astrumon.data.db
 
+import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DatabaseException
+import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.config.AppConfig
+import com.ua.astrumon.data.db.DatabaseFactory.logger
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,7 +14,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 
 object DatabaseFactory {
-    private val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)
+    val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)
 
     fun initialize(config: AppConfig) {
         try {
@@ -53,13 +56,22 @@ suspend fun <T> dbQuery(block: () -> T): T =
     withContext(Dispatchers.IO) {
         try {
             transaction { block() }
+        } catch (e: BaseException) {
+            throw e
         } catch (e: Exception) {
             throw DatabaseException("Database query failed", e)
         }
     }
 
-suspend fun <T> safeDbQuery(block: () -> T): com.ua.astrumon.common.result.ResultContainer<T> =
-    com.ua.astrumon.common.result.ResultContainer.catching { dbQuery { block() } }
+suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> =
+    ResultContainer.catching {
+        logger.debug("safeDbQuery: starting execution")
+        val result = dbQuery { block() }
+        logger.debug("safeDbQuery: execution completed successfully")
+        result
+    }.onFailure { exception ->
+        logger.error("safeDbQuery: execution failed", exception)
+    }
 
-suspend fun <T> safeDbTransaction(block: () -> T): com.ua.astrumon.common.result.ResultContainer<T> =
-    com.ua.astrumon.common.result.ResultContainer.catching { transaction { block() } }
+suspend fun <T> safeDbTransaction(block: () -> T): ResultContainer<T> =
+    ResultContainer.catching { transaction { block() } }
