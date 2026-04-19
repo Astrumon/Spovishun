@@ -1,0 +1,12 @@
+{
+  "name": "spovishun-notion",
+  "version": "1.0.0",
+  "description": "Shared Notion library for Claude Code tooling — scripts + hook",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
