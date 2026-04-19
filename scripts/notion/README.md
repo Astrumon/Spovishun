@@ -46,15 +46,162 @@ Either `NOTION_SKILLS_TOKEN` or `NOTION_TOKEN` is accepted. Token lookup order:
 
 ## Scripts
 
-_(To be added in task 62)_
+All scripts follow the same contract:
 
-## Testing
+| Exit code | Meaning |
+|---|---|
+| 0 | Success |
+| 1 | Validation error, missing argument, invalid stdin JSON, Notion API error |
+| 2 | `NOTION_TOKEN` / `NOTION_SKILLS_TOKEN` not set |
+
+stdout = result JSON (or plain text for `get-claude-md.js`). stderr = human-readable errors. No banners, no progress output.
+
+### `get-board.js`
+
+List tasks from the board as a JSON array.
 
 ```bash
-npm test
+node get-board.js [--status <name>] [--priority-tier]
+npm run board
+npm run board -- --priority-tier
+npm run board -- --status "In progress"
 ```
 
-Uses built-in `node --test`. Zero external test dependencies. One test file per lib module.
+Options:
+- `--status <name>` — filter by status (default: `To do`). Valid values: `Not started`, `To do`, `In progress`, `Done`.
+- `--priority-tier` — use the High→Medium→Low cascade from `lib/query-tasks.js` (up to 5 per tier).
+
+Sample output:
+```json
+[
+  {
+    "id": "3453462f-68a9-811e-bbd9-c6d7b7847c67",
+    "title": "feature/spovishun-62: Notion CLI scripts + integration tests",
+    "status": "In progress",
+    "branch": "feature/spovishun-62-notion-cli",
+    "priority": "High"
+  }
+]
+```
+
+### `get-task.js`
+
+Fetch a single task by page ID or task number.
+
+```bash
+node get-task.js <pageId | spovishun-N>
+npm run task -- spovishun-62
+npm run task -- 3453462f68a9811ebbd9c6d7b7847c67
+```
+
+Sample output:
+```json
+{
+  "id": "3453462f-68a9-811e-bbd9-c6d7b7847c67",
+  "title": "feature/spovishun-62: Notion CLI scripts + integration tests",
+  "status": "In progress",
+  "branch": "feature/spovishun-62-notion-cli-scripts",
+  "priority": "High",
+  "content": "**Goal**\nBuild 5 CLI scripts..."
+}
+```
+
+### `create-task.js`
+
+Create a new task by reading JSON from stdin.
+
+```bash
+echo '{"title":"My task","priority":"High","content":"Details here","icon":"🔨"}' | node create-task.js
+```
+
+Stdin schema:
+```json
+{
+  "title": "string (required)",
+  "priority": "High | Medium | Low (required)",
+  "content": "string (optional)",
+  "icon": "single emoji string (optional)"
+}
+```
+
+Sample output:
+```json
+{
+  "id": "abc123...",
+  "url": "https://www.notion.so/abc123..."
+}
+```
+
+### `update-status.js`
+
+Change the Status property of a task.
+
+```bash
+node update-status.js <task-id> <new-status>
+node update-status.js 3453462f68a9811ebbd9c6d7b7847c67 "Done"
+```
+
+Valid statuses: `Not started`, `To do`, `In progress`, `Done`.
+
+Sample output:
+```json
+{
+  "id": "3453462f-68a9-811e-bbd9-c6d7b7847c67",
+  "status": "Done"
+}
+```
+
+### `get-claude-md.js`
+
+Fetch the CLAUDE.md page content with a 1-hour file cache.
+
+```bash
+node get-claude-md.js
+npm run claude-md
+```
+
+Output: plain text (not JSON). Cache file: `~/.spovishun-cache/claude-md.json`.
+
+Override cache directory via `SPOVISHUN_CACHE_DIR` env var:
+```bash
+SPOVISHUN_CACHE_DIR=/tmp/my-cache node get-claude-md.js
+```
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `NOTION_SKILLS_TOKEN` | One of these two | Notion integration token (checked first) |
+| `NOTION_TOKEN` | One of these two | Notion integration token (fallback) |
+| `SPOVISHUN_CACHE_DIR` | No | Override default cache directory (`~/.spovishun-cache`) |
+
+## Running tests
+
+Uses built-in `node --test`. Zero external test dependencies.
+
+```bash
+# All three suites
+npm test
+
+# Unit tests only (no token required)
+npm run test:unit
+
+# Integration tests (requires NOTION_TOKEN or NOTION_SKILLS_TOKEN)
+npm run test:integration
+
+# Fallback tests (no token required — test error paths)
+npm run test:fallback
+```
+
+### Integration test behavior
+
+Integration tests skip cleanly when no token is set — they will not fail in CI if the token is absent. When a token is present, they exercise the real Notion API and clean up any created data in `after()` hooks (even if tests fail).
+
+Test tasks use the `[TEST-62]` title prefix for easy identification. If cleanup fails unexpectedly, search Notion for `[TEST-62]` to find and manually archive leftover pages.
+
+### Fallback test behavior
+
+Fallback tests spawn scripts with no token / bogus token and verify error paths. They always run, require no credentials, and are safe to include in CI.
 
 ## Zero runtime dependencies
 
