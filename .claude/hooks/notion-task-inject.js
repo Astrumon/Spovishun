@@ -391,23 +391,44 @@ async function runPicker(token, currentBranch, isForce) {
     ({ candidates, tier } = await queryByPriorityTier(token, 'Not started', selectedPageIds));
   }
 
-  if (candidates.length === 0) {
+  // 3b. Check for orphaned "In progress" tasks (in Notion but missing from selected-tasks.json)
+  const inProgressResult = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
+    filter: { property: 'Status', status: { equals: 'In progress' } },
+    page_size: PICKER_TIER_LIMIT
+  });
+  const orphanedInProgress = (inProgressResult?.results || []).filter(
+    p => !selectedPageIds.has(p.id.replace(/-/g, ''))
+  );
+
+  if (candidates.length === 0 && orphanedInProgress.length === 0) {
     output(buildSystemPrompt(
-      '## 🪝 No Tasks Available\n\nNo "To do" or "Not started" tasks found in Notion.',
+      '## 🪝 No Tasks Available\n\nNo "To do", "Not started", or untracked "In progress" tasks found in Notion.',
       null, null, false
     ));
     return;
   }
 
   // 4. Build option metadata (candidates are already the correct priority tier, ordered by created_time)
-  const options = candidates.map(page => {
+  const orphanedOptions = orphanedInProgress.map(page => {
+    const name = (page.properties?.Name?.title || []).map(t => t.plain_text).join('') || 'Unknown';
+    const taskNum = extractTaskNumber(name) || '?';
+    const priority = page.properties?.Priority?.select?.name || 'Normal';
+    const pageId = page.id.replace(/-/g, '');
+    const displayName = name.replace(/^feature\/spovishun-\d+:\s*/i, '').trim();
+    return { taskNum, name, displayName, priority, pageId, orphaned: true };
+  });
+
+  const todoOptions = candidates.map(page => {
     const name = (page.properties?.Name?.title || []).map(t => t.plain_text).join('') || 'Unknown';
     const taskNum = extractTaskNumber(name) || '?';
     const priority = tier || page.properties?.Priority?.select?.name || 'Normal';
     const pageId = page.id.replace(/-/g, '');
     const displayName = name.replace(/^feature\/spovishun-\d+:\s*/i, '').trim();
-    return { taskNum, name, displayName, priority, pageId };
+    return { taskNum, name, displayName, priority, pageId, orphaned: false };
   });
+
+  // Orphaned In progress tasks listed first (resume takes priority)
+  const options = [...orphanedOptions, ...todoOptions];
 
   // 5. Format picker directive for Claude
   const parallelNote = selectedTasks.length > 0
@@ -424,18 +445,47 @@ async function runPicker(token, currentBranch, isForce) {
   ].filter(Boolean).join(' ');
   const applyFlagsSuffix = applyFlags ? ` ${applyFlags}` : '';
 
-  const optionLines = options.map((o, i) =>
-    `${i + 1}. **spovishun-${o.taskNum}** — ${o.displayName} *(Priority: ${o.priority})*\n   pageId: \`${o.pageId}\``
-  ).join('\n');
+  const optionLines = options.map((o, i) => {
+    const tag = o.orphaned ? ' *(↩ In progress — untracked)*' : ` *(Priority: ${o.priority})*`;
+    return `${i + 1}. **spovishun-${o.taskNum}** — ${o.displayName}${tag}\n   pageId: \`${o.pageId}\``;
+  }).join('\n');
 
-  const aqOptions = options.map(o =>
-    `     {label: "spovishun-${o.taskNum} — ${o.displayName}", value: "${o.pageId}"}`
-  ).join(',\n');
+  const orphanedNote = orphanedOptions.length > 0
+    ? '\n> ⚠️ Untracked "In progress" tasks found in Notion — listed first for recovery.'
+    : '';
+
+  // Single task — skip AskUserQuestion, apply automatically
+  if (options.length === 1) {
+    const o = options[0];
+    const directive = `## 🪝 Task Picker
+${parallelNote}${sourceNote}${orphanedNote}
+
+**Available tasks**:
+${optionLines}
+
+---
+### REQUIRED NEXT ACTIONS (execute in order):
+1. Only one task available — apply automatically without asking the user.
+2. Run Bash: \`node .claude/hooks/notion-task-inject.js --apply-pick ${o.pageId}${applyFlagsSuffix}\`
+   If stderr starts with \`CONFLICT:\` → show user the conflicting files, ask: retry with \`--force\` or skip?
+3. Run \`git checkout <branch>\` if not already there.
+4. Briefly confirm: task name and branch.
+5. Immediately invoke the \`notion-task-to-code\` skill with pageId \`${o.pageId}\` to load task context and enter Plan Mode. Do not wait for user input.`;
+    output(directive);
+    return;
+  }
+
+  const aqOptions = options.map(o => {
+    const label = o.orphaned
+      ? `spovishun-${o.taskNum} — ${o.displayName} (↩ resume)`
+      : `spovishun-${o.taskNum} — ${o.displayName}`;
+    return `     {label: "${label}", value: "${o.pageId}"}`;
+  }).join(',\n');
 
   const directive = `## 🪝 Task Picker
-${parallelNote}${sourceNote}
+${parallelNote}${sourceNote}${orphanedNote}
 
-**Available tasks** (${source === 'notStarted' ? 'Not started' : 'To do'}):
+**Available tasks**:
 ${optionLines}
 
 ---
