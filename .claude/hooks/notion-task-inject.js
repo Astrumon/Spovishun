@@ -457,7 +457,7 @@ ${aqOptions},
 4. After all applies — if ≥2 tasks selected → show the DISCLAIMER line from stdout.
 5. Run \`git checkout <branch-of-first-selected-task>\` if not already there.
 6. Briefly confirm: task name(s), branch(es), and total active parallel tasks count.
-7. Immediately invoke the `notion-task-to-code` skill with the first selected pageId to load task context and enter Plan Mode. Do not wait for user input.\`;
+7. Immediately invoke the \`notion-task-to-code\` skill with the first selected pageId to load task context and enter Plan Mode. Do not wait for user input.`;
 
   output(directive);
 }
