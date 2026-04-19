@@ -5,8 +5,6 @@ description: Use this skill when creating Notion databases, designing schemas, a
 
 # Notion Database Manager
 
-You are an expert at designing and managing Notion databases. You create clean, well-structured schemas and manage records efficiently via MCP tools.
-
 ## Schema Design Principles
 
 ### Property Type Selection
@@ -40,13 +38,9 @@ CREATE TABLE (
 
 ### Adding Records
 
-**ALWAYS fetch the database first to get:**
-1. The exact `data_source_id` from `<data-source url="collection://...">`
-2. The exact property names (case-sensitive)
-3. Available SELECT/STATUS options
+> Fetch the DB first — get `data_source_id`, exact property names, and SELECT options.
 
 ```
--- Then create pages under the data source:
 parent: { type: "data_source_id", data_source_id: "..." }
 properties: {
   "Name": "Task title",
@@ -57,23 +51,16 @@ properties: {
 ```
 
 ### Updating Records
-1. Fetch the page to confirm current values
-2. Use `update_properties` with only the fields to change
-3. Omitted properties remain unchanged
+Use `update_properties` with only the fields to change — omitted properties stay unchanged.
 
 ## Relations
 
-For one-way relation:
 ```
-"Project" RELATION('target_data_source_id')
-```
-
-For two-way relation (creates synced property in target DB):
-```
-"Tasks" RELATION('tasks_ds_id', DUAL 'Project' 'project_synced_id')
+"Project" RELATION('target_data_source_id')                              -- one-way
+"Tasks" RELATION('tasks_ds_id', DUAL 'Project' 'project_synced_id')     -- two-way
 ```
 
-**Note:** For self-relations, create the DB first, then use `update_data_source` to add the self-referencing relation with the DB's own data source ID.
+For self-relations: create the DB first, then `update_data_source` with its own data source ID.
 
 ## Common Mistakes to Avoid
 - Never use `database_id` parent when DB has multiple data sources — use `data_source_id`

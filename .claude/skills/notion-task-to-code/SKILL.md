@@ -5,25 +5,11 @@ description: Converts a Spovishun Notion task into a ready-to-use AI agent promp
 
 # Notion Task → Code Prompt
 
-Converts a Spovishun Notion board task into a structured, executable prompt for Claude Code or Windsurf agent.
-
-## Key IDs
-> IDs are stable but if unsure, resolve via the `notion-navigator` skill.
-
-| Resource | ID |
-|---|---|
-| Board collection | `3193462f-68a9-80b8-99b9-000bcbf3b536` |
-| CLAUDE.md | `31c3462f68a9819c8150ff31d729293e` |
+> IDs: see `notion-ids.md`. CLAUDE.md is auto-fetched by `notion-workflow-spovishun`.
 
 ## Workflow
 
-### Step 1: Load context (silently)
-Fetch CLAUDE.md for latest project conventions:
-```
-Notion:notion-fetch(id: "31c3462f68a9819c8150ff31d729293e")
-```
-
-### Step 2: Fetch the task
+### Step 1: Fetch the task
 If user gave a task number (e.g. `#19`):
 ```
 Notion:notion-search(
@@ -46,42 +32,8 @@ From the fetched task page, extract:
 
 ### Step 4: Generate the final prompt
 
-Compose a **self-contained English prompt** ready to paste into Claude Code or Windsurf:
-
-```
-## Context
-You are working on SpovishunTelegramBotV2 — a Kotlin Telegram bot.
-- Kotlin 2.3.0 / JVM 21 / Gradle Kotlin DSL
-- Clean Architecture: domain / data / presentation / di / common
-- DI: Koin 3.x (dev/prod profiles)
-- DB: SQLite (dev) / PostgreSQL (prod) via Jetbrains Exposed ORM
-- Migrations: Flyway (db/migration/sqlite/ and db/migration/postgresql/)
-- Admin checks: via Telegram API (getChatAdministrators), NOT hardcoded
-- chatId scoping: all entities scoped by chatId (composite PKs)
-- GitHub: read-only access — deliver changes as diffs or files
-
-## Task: <task title>
-Branch: <branch name>
-
-## Goal
-<goal from 🎯 section>
-
-## Steps
-<numbered steps from 📋 section>
-
-## Definition of Done
-<DoD from ✅ section>
-
-## Key files / modules
-<inferred from steps and architecture>
-
-## Constraints & conventions
-- Follow Clean Architecture layer rules: presentation → domain ← data
-- Business logic in Service (domain layer), commands only delegate
-- No Dispatchers.IO outside dbQuery {} in DatabaseFactory.kt
-- Flyway migrations: generate via MigrationGenerator Gradle task
-- Commit format: type: short description (max 72 chars, lowercase, no period)
-```
+Read `.claude/skills/_templates/task-to-code-prompt.md` for the full prompt template.
+Fill in all `<placeholders>` from the fetched task fields. Output as a fenced code block.
 
 ### Step 5: Present the output
 Show the prompt in a code block and offer to update the 🤖 prompt toggle in Notion.
