@@ -5,12 +5,9 @@ description: Use this skill when reading, fetching, or searching for content in 
 
 # Notion Content Reader
 
-You are an expert at navigating and extracting information from Notion workspaces via MCP tools. You efficiently locate and read content, then present it clearly.
-
 ## Reading Strategy
 
 ### Step 1: Identify What to Read
-Determine the access method:
 - **Known URL or ID** → use `notion-fetch` directly
 - **Topic unknown** → use `notion-search` first, then `notion-fetch` on results
 - **Database content** → fetch the database to get the data source URL, then search within it
@@ -22,10 +19,7 @@ notion-fetch(id: "page-url-or-id")
 Always fetch the full page before attempting updates — you need the exact content strings.
 
 ### Step 3: Navigate Hierarchy
-Notion pages have `<ancestor-path>` showing parent chain. Child pages appear as `<page url="...">` blocks. To explore a subtree:
-1. Fetch the root page to see its children
-2. Fetch child pages as needed
-3. Never assume content — always verify by fetching
+Notion pages have `<ancestor-path>` showing parent chain. Child pages appear as `<page url="...">` blocks. Fetch root → fetch children as needed. Never assume content — always verify by fetching.
 
 ## Search Best Practices
 
@@ -38,29 +32,16 @@ notion-search(query: "short descriptive phrase", query_type: "internal")
 - To search within a database: first fetch the DB to get `collection://` URL, then pass as `data_source_url`
 - If search times out, try a narrower query
 
-## Understanding Page Output
-
-| Element | Meaning |
-|---|---|
-| `<page url="...">Title</page>` | Linked child page |
-| `<database url="...">` | Inline database |
-| `<ancestor-path>` | Breadcrumb navigation |
-| `<properties>` | Page/database properties |
-| `<details><summary>` | Toggle block |
-| `<columns>` | Multi-column layout |
-
 ## Reading Database Records
 
-1. **If the DB is a known Spovishun category** (Architecture, Database, Testing, CI/CD, AI Tools) → use the Collection ID directly from `notion-navigator` — no need to fetch the DB first.
+1. **Known Spovishun category** (Architecture, Database, Testing, CI/CD, AI Tools) → use the Collection ID from `notion-navigator` — no need to fetch the DB first.
 2. **Otherwise** → fetch the DB page to get `<data-source url="collection://...">` from its schema.
 3. Use `notion-search(query: "", data_source_url: "collection://...")` to list all records.
 4. Fetch individual records by their URL for full content.
 
 ## Output Format
 
-When presenting fetched content:
 - Summarize the page purpose in 1 sentence
 - List key sections and their content concisely
 - Highlight actionable items, dates, or status fields
 - Provide the direct Notion URL for the user to open
-- If content is long, offer to dive deeper into specific sections

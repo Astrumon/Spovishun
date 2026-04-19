@@ -142,14 +142,6 @@ New documentation articles are created as **records in the category's inline dat
 
 ---
 
-## Related Skills
-- `notion-page-builder` — creates/updates pages using IDs from this map
-- `notion-spovishun-task-manager` — uses the Board collection ID for task CRUD
-- `technical-documentation-writer` — writes documentation pages placed using IDs from this map
-- `task-decomposer` — uses Board collection ID to determine next task number
-
----
-
 ## When to Refresh
 
 Refresh this map when:
