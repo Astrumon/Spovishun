@@ -28,19 +28,22 @@
  * Requires: NOTION_SKILLS_TOKEN (or NOTION_TOKEN) in env or .env file.
  */
 
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { loadToken } = require('../../scripts/notion/lib/load-token');
+const notionHttp = require('../../scripts/notion/lib/notion-http');
+const { request: notionRequest } = notionHttp;
+const { queryByPriorityTier, PRIORITY_TIERS, PICKER_TIER_LIMIT } = require('../../scripts/notion/lib/query-tasks');
+const { richText, extractBlocks } = require('../../scripts/notion/lib/format-task');
+const { extractBranchFromBlocks, extractTaskNumber, deriveBranchFromName } = require('../../scripts/notion/lib/extract-branch');
+const { DATABASE_ID } = require('../../scripts/notion/lib/constants');
+const { toDashed } = require('../../scripts/notion/lib/page-id');
 
-const DATABASE_ID = '3193462f68a980d69ec9c7ccc6329b88';
-const NOTION_VERSION = '2022-06-28';
 const DEV_CONTEXT_DIR = '.dev-context';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const SELECTED_TASKS_FILE = '.dev-context/selected-tasks.json';
 const SELECTED_TASKS_VERSION = 1;
-const PICKER_TIER_LIMIT = 5;
-const PRIORITY_TIERS = ['High', 'Medium', 'Low'];
 
 const TRIGGER_WORDS = [
   // English
@@ -52,150 +55,6 @@ const TRIGGER_WORDS = [
 const START_TASK_TRIGGERS = ['start new task', 'почати нову задачу', 'беру нову задачу'];
 
 const REFRESH_TRIGGERS = ['reread task', 'update task context', 'оновити контекст задачі', 'перечитати задачу'];
-
-// ─── Token + Notion request ───────────────────────────────────────────────────
-
-function loadToken() {
-  if (process.env.NOTION_SKILLS_TOKEN) return process.env.NOTION_SKILLS_TOKEN;
-  if (process.env.NOTION_TOKEN) return process.env.NOTION_TOKEN;
-
-  const envPath = path.join(process.cwd(), '.env');
-  try {
-    const content = fs.readFileSync(envPath, 'utf8');
-    const tokenMatch = content.match(/^NOTION_TOKEN=(.+)$/m);
-    if (tokenMatch) return tokenMatch[1].trim();
-    const skillsMatch = content.match(/^NOTION_SKILLS_TOKEN=(.+)$/m);
-    if (skillsMatch) return skillsMatch[1].trim();
-  } catch {
-    process.stderr.write(`[notion-task-inject] .env not found at ${envPath}\n`);
-  }
-  return null;
-}
-
-function notionRequest(token, method, apiPath, body) {
-  return new Promise((resolve, reject) => {
-    const bodyStr = body ? JSON.stringify(body) : null;
-    const options = {
-      hostname: 'api.notion.com',
-      path: apiPath,
-      method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Notion-Version': NOTION_VERSION,
-        'Content-Type': 'application/json',
-        ...(bodyStr && { 'Content-Length': Buffer.byteLength(bodyStr) })
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch { resolve(null); }
-      });
-    });
-
-    req.on('error', reject);
-    if (bodyStr) req.write(bodyStr);
-    req.end();
-  });
-}
-
-// Returns { candidates, tier } for the highest priority tier with results.
-// Cascades High → Medium → Low via separate API calls — avoids fetching all tasks.
-async function queryByPriorityTier(token, statusFilter, excludePageIds) {
-  for (const tier of PRIORITY_TIERS) {
-    const result = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
-      filter: {
-        and: [
-          { property: 'Status', status: { equals: statusFilter } },
-          { property: 'Priority', select: { equals: tier } }
-        ]
-      },
-      sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
-      page_size: PICKER_TIER_LIMIT
-    });
-    if (result?.object === 'error') continue;
-    const candidates = (result?.results || []).filter(p => !excludePageIds.has(p.id.replace(/-/g, '')));
-    if (candidates.length > 0) return { candidates, tier };
-  }
-  // Fallback: no priority filter
-  const result = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
-    filter: { property: 'Status', status: { equals: statusFilter } },
-    page_size: PICKER_TIER_LIMIT
-  });
-  const candidates = (result?.results || []).filter(p => !excludePageIds.has(p.id.replace(/-/g, '')));
-  return { candidates, tier: null };
-}
-
-// ─── Block / branch extraction ────────────────────────────────────────────────
-
-function richText(blocks) {
-  return (blocks || []).map(rt => rt.plain_text).join('').trim();
-}
-
-function extractBlocks(blocks) {
-  const lines = [];
-  for (const block of blocks) {
-    const type = block.type;
-    const content = block[type];
-    if (!content) continue;
-    const text = (content.rich_text || []).map(rt => rt.plain_text).join('');
-    if (type.startsWith('heading_')) {
-      if (text) lines.push(`\n**${text}**`);
-    } else if (type === 'paragraph') {
-      if (text) lines.push(text);
-    } else if (type === 'bulleted_list_item' || type === 'numbered_list_item') {
-      if (text) lines.push(`- ${text}`);
-    } else if (type === 'quote') {
-      if (text) lines.push(`> ${text}`);
-    }
-  }
-  return lines.join('\n').trim();
-}
-
-function extractBranchFromBlocks(blocks) {
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    const type = block.type;
-    if (!type) continue;
-    const content = block[type];
-    if (!content) continue;
-    const text = richText(content.rich_text);
-    if (text.includes('Branch name') || text.includes('🌿')) {
-      for (let j = i + 1; j < blocks.length && j <= i + 3; j++) {
-        const next = blocks[j];
-        if (!next || !next.type) continue;
-        const nextContent = next[next.type];
-        if (!nextContent) continue;
-        const nextText = richText(nextContent.rich_text);
-        if (nextText && nextText.startsWith('feature/')) return nextText.trim();
-      }
-    }
-    if (text.startsWith('feature/spovishun-')) return text.trim();
-  }
-  return null;
-}
-
-function extractTaskNumber(name) {
-  const m = name.match(/spovishun-(\d+)/i);
-  return m ? parseInt(m[1], 10) : null;
-}
-
-function deriveBranchFromName(name) {
-  const numMatch = name.match(/spovishun-(\d+)/i);
-  if (!numMatch) return null;
-  const taskNum = numMatch[1];
-  const slug = name
-    .replace(/^feature\/spovishun-\d+:\s*/i, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .split('-').slice(0, 3).join('-');
-  return `feature/spovishun-${taskNum}-${slug}`;
-}
 
 // ─── Git helpers ──────────────────────────────────────────────────────────────
 
@@ -384,11 +243,11 @@ async function runPicker(token, currentBranch, isForce) {
   const selectedPageIds = new Set(selectedTasks.map(t => t.pageId));
 
   let source = 'toDo';
-  let { candidates, tier } = await queryByPriorityTier(token, 'To do', selectedPageIds);
+  let { candidates, tier } = await queryByPriorityTier(notionHttp, token, 'To do', selectedPageIds);
 
   if (candidates.length === 0) {
     source = 'notStarted';
-    ({ candidates, tier } = await queryByPriorityTier(token, 'Not started', selectedPageIds));
+    ({ candidates, tier } = await queryByPriorityTier(notionHttp, token, 'Not started', selectedPageIds));
   }
 
   // 3b. Check for orphaned "In progress" tasks (in Notion but missing from selected-tasks.json)
@@ -515,10 +374,7 @@ ${aqOptions},
 // ─── Apply Pick ───────────────────────────────────────────────────────────────
 
 async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch }) {
-  // Normalize pageId: compact (no dashes) → UUID with dashes for Notion API
-  const notionPageId = pageId.length === 32
-    ? `${pageId.slice(0, 8)}-${pageId.slice(8, 12)}-${pageId.slice(12, 16)}-${pageId.slice(16, 20)}-${pageId.slice(20)}`
-    : pageId;
+  const notionPageId = toDashed(pageId);
 
   // 1. Fetch page
   const page = await notionRequest(token, 'GET', `/v1/pages/${notionPageId}`, null);

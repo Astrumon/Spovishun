@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "test-session-fixture-001",
+  "transcript_path": "/dev/null",
+  "prompt": "hello"
+}

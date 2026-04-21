@@ -10,16 +10,14 @@ description: Converts a Spovishun Notion task into a ready-to-use AI agent promp
 ## Workflow
 
 ### Step 1: Fetch the task
-If user gave a task number (e.g. `#19`):
 ```
-Notion:notion-search(
-  query: "spovishun-19",
-  data_source_url: "collection://3193462f-68a9-80b8-99b9-000bcbf3b536"
-)
+Run: node scripts/notion/get-task.js <N-or-pageId>
 ```
-Then fetch the full page by its ID:
+Accepts `spovishun-19`, bare `19`, or a 32-char compact pageId.
+
+### Step 2: Fetch CLAUDE.md
 ```
-Notion:notion-fetch(id: "<task-page-id>")
+Run: node scripts/notion/get-claude-md.js
 ```
 
 ### Step 3: Extract task fields

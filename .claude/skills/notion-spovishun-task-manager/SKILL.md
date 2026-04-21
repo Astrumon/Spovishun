@@ -7,6 +7,8 @@ description: Use this skill for ALL task management operations in the Spovishun 
 
 > Key IDs: see `notion-ids.md`. CLAUDE.md is auto-fetched by `notion-workflow-spovishun`.
 
+**I/O rule:** Reads go through `scripts/notion/` CLI scripts. Writes (create/update page) use MCP (`notion-create-pages`, `notion-update-page`) or `scripts/notion/create-task.js` / `scripts/notion/update-status.js` interchangeably.
+
 ---
 
 ## Project Conventions
@@ -26,13 +28,10 @@ description: Use this skill for ALL task management operations in the Spovishun 
 ## Reading the Board
 
 ```
-Notion:notion-search(
-  query: "feature/spovishun",
-  data_source_url: "collection://3193462f-68a9-80b8-99b9-000bcbf3b536"
-)
+Run: node scripts/notion/get-board.js
 ```
 
-> `notion-search` returns titles only — fetch each page individually to get Status. Display: 🔵 In progress / 📋 Not started / ✅ Done (last 3).
+Display statuses: 🔵 In progress / 📋 Not started / ✅ Done (last 3).
 
 ---
 

@@ -31,4 +31,4 @@ async function queryByPriorityTier(http, token, statusFilter, excludePageIds) {
   return { candidates, tier: null };
 }
 
-module.exports = { queryByPriorityTier };
+module.exports = { queryByPriorityTier, PRIORITY_TIERS, PICKER_TIER_LIMIT };

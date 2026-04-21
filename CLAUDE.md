@@ -67,6 +67,17 @@ Never call a `Service` directly from a `Command`.
 ## Documentation Sync
 - `update-doc-full` — range-based Notion doc audit; invoke via `/update-doc-full [range]` (e.g. `1m`); default range `2w`; delegates to `doc-updater` agent, batch-confirms via plannotator, applies via Notion MCP.
 
+## When to use scripts vs MCP (Notion)
+
+| Use case | Preferred tool |
+|---|---|
+| Board overview | `node scripts/notion/get-board.js` |
+| Task by number or pageId | `node scripts/notion/get-task.js <N-or-pageId>` |
+| CLAUDE.md page | `node scripts/notion/get-claude-md.js` |
+| Create task | `node scripts/notion/create-task.js` or MCP `notion-create-pages` |
+| Update status | `node scripts/notion/update-status.js` or MCP `notion-update-page` |
+| Semantic search across arbitrary Notion content | MCP `notion-search` (not replicable via scripts) |
+
 ## Idea Planning Pipeline
 Use these skills to go from a raw idea to implementable tasks:
 - `idea-brainstormer` — structures a raw idea into a problem brief (problem statement, scope, risks, feasibility)
