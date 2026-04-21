@@ -5,6 +5,13 @@ description: Use this skill when reading, fetching, or searching for content in 
 
 # Notion Content Reader
 
+> **Prefer scripts for these common reads** (faster, no MCP round-trip):
+> - Board overview → `node scripts/notion/get-board.js`
+> - Task by number or pageId → `node scripts/notion/get-task.js <N-or-pageId>`
+> - CLAUDE.md page → `node scripts/notion/get-claude-md.js`
+>
+> Use MCP (`notion-search`, `notion-fetch`) for everything else — semantic search across arbitrary content, unfamiliar pages, or content not covered by the scripts above.
+
 ## Reading Strategy
 
 ### Step 1: Identify What to Read

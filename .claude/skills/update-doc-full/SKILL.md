@@ -87,6 +87,9 @@ Scan the file list from Step 2 against these patterns and record which categorie
 | `.claude/rules/**/*.md` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
 | `.claude/skills/**/*.md` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
 | `.claude/settings.json` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
+| `scripts/notion/**/*.js` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
+| `scripts/notion/**/*.md` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
+| `scripts/notion/.env.example` | aitools | `d061b5d0abda4c6f82b3bf27b7b4eec7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
 
 Store: **affected_categories** — deduplicated set of matched category names, their DB IDs, and Collection IDs.
 
