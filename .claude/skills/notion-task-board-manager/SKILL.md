@@ -16,9 +16,7 @@ Before any board operation, fetch the board to get:
 Notion:notion-fetch(id: "<board-page-url>")
 ```
 
-Never assume property names — always verify.
-
----
+Never assume property names - always verify.
 
 ## Reading the Board
 
@@ -29,45 +27,9 @@ Notion:notion-search(
 )
 ```
 
-> `notion-search` returns **titles only** — Status not included. Fetch each page individually for Status: `Notion:notion-fetch(id: "<page-id>")`
+Note: `notion-search` returns titles only - Status not included. Fetch each page individually for Status.
 
-Status values: `Not started` / `Backlog` — `In progress` — `Done`
-
----
-
-## Creating a Task
-
-Pass `icon` directly in `notion-create-pages` — no separate `API-patch-page` needed:
-
-```
-Notion:notion-create-pages(
-  parent: { type: "data_source_id", data_source_id: "<id>" },
-  pages: [{
-    properties: {
-      "Title": "Task title",
-      "Status": "Not started"
-    },
-    icon: "✨",
-    content: "<structured content>"
-  }]
-)
-```
-
-Every task page must include:
-
-```
-## 🎯 Goal
-What this task achieves and why it matters.
-
-## 📋 Steps
-1. First step
-2. Second step
-
-## ✅ Definition of Done
-> Clear condition — when is this task considered complete.
-```
-
----
+Status values: `Not started` / `Backlog` - `In progress` - `Done`
 
 ## Updating a Task
 
@@ -78,11 +40,46 @@ Notion:notion-update-page(
 )
 ```
 
-Status flow: `Not started → In progress → Done`
+Status flow: `Not started -> In progress -> Done`
 
----
+<details>
+<summary>Extended: creating a task (full template), critical rules</summary>
+
+## Creating a Task
+
+Pass `icon` directly in `notion-create-pages` - no separate `API-patch-page` needed:
+
+```
+Notion:notion-create-pages(
+  parent: { type: "data_source_id", data_source_id: "<id>" },
+  pages: [{
+    properties: {
+      "Title": "Task title",
+      "Status": "Not started"
+    },
+    icon: "...",
+    content: "<structured content>"
+  }]
+)
+```
+
+Every task page must include:
+
+```
+## Goal
+What this task achieves and why it matters.
+
+## Steps
+1. First step
+2. Second step
+
+## Definition of Done
+Clear condition - when is this task considered complete.
+```
 
 ## Critical Rules
-- Use `data_source_id` parent — never `database_id`
-- Never emoji in task title — use `icon` field
-- Always fetch schema first — property names are case-sensitive
+- Use `data_source_id` parent - never `database_id`
+- Never emoji in task title - use `icon` field
+- Always fetch schema first - property names are case-sensitive
+
+</details>

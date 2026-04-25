@@ -5,44 +5,28 @@ description: Project-specific Notion workflow for the Spovishun project. Always 
 
 # Notion Workflow — Spovishun Project
 
-This skill handles project-specific Notion setup for SpovishunTelegramBotV2.
-
----
-
 ## Auto-initialization: Load CLAUDE.md
 
-Whenever the conversation involves the Spovishun project and any Notion work,
-silently fetch the project's CLAUDE.md page before responding:
+Fetch the project CLAUDE.md silently before responding — no need to announce it:
 
 ```
-URL: https://www.notion.so/31c3462f68a9819c8150ff31d729293e
-Tool: Notion:notion-fetch
+node scripts/notion/get-claude-md.js --section commands       # architecture / commands
+node scripts/notion/get-claude-md.js --section testing        # testing conventions
+node scripts/notion/get-claude-md.js --section architecture   # source structure / layers
+node scripts/notion/get-claude-md.js                          # full read — only when overview needed
 ```
 
-Do this as the first step — no need to announce it. The page contains project
-conventions, architecture notes, and rules that must guide all work on this project.
+Use targeted `--section` reads to load only the relevant part and save tokens.
 
----
+## Skill Routing
 
-## For all Notion page operations
-
-Refer to the **notion-page-builder** skill for:
-- Creating pages and setting icons
-- Page naming conventions
-- Content structure (Tips / Links / Notes / Code / Diagrams)
-- `replace_content` limitations
-- Migrating external content into Notion
-
-Refer to the **notion-spovishun-task-manager** skill for:
-- ALL task CRUD operations on the Spovishun board (create, update status, read)
-- Setting Status, Priority, Labels on tasks
-
-Refer to the **notion-task-board-manager** skill for:
-- Generic Kanban board operations across any Notion board
-
-Refer to the **notion-database-manager** skill for:
-- Creating and querying databases
-- Schema design and property types
-
-Refer to the **notion-content-reader** skill for:
-- Searching and reading existing Notion content
+| Operation | Skill |
+|---|---|
+| Task CRUD on Spovishun board | `notion-spovishun-task-manager` |
+| Generic Kanban board ops | `notion-task-board-manager` |
+| Create / update Notion pages | `notion-page-builder` |
+| Search / read existing content | `notion-content-reader` |
+| Create / query databases | `notion-database-manager` |
+| Migrate external content | `notion-data-migrator` |
+| Workspace structure / moves | `notion-workspace-organizer` |
+| Workspace ID / Collection IDs | `notion-navigator` |

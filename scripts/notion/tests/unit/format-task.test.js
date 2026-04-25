@@ -25,9 +25,19 @@ test('richText: handles null/undefined gracefully', () => {
 
 // ─── extractBlocks ────────────────────────────────────────────────────────────
 
-test('extractBlocks: heading → **bold**', () => {
+test('extractBlocks: heading_1 → # text', () => {
+  const blocks = [{ type: 'heading_1', heading_1: { rich_text: [{ plain_text: 'Top' }] } }];
+  assert.match(extractBlocks(blocks), /^# Top/);
+});
+
+test('extractBlocks: heading_2 → ## text', () => {
   const blocks = [{ type: 'heading_2', heading_2: { rich_text: [{ plain_text: 'My Heading' }] } }];
-  assert.match(extractBlocks(blocks), /\*\*My Heading\*\*/);
+  assert.match(extractBlocks(blocks), /^## My Heading/);
+});
+
+test('extractBlocks: heading_3 → ### text', () => {
+  const blocks = [{ type: 'heading_3', heading_3: { rich_text: [{ plain_text: 'Sub' }] } }];
+  assert.match(extractBlocks(blocks), /^### Sub/);
 });
 
 test('extractBlocks: paragraph → plain text', () => {

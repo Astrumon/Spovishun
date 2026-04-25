@@ -8,15 +8,19 @@ const { richText } = require('./lib/format-task');
 const { deriveBranchFromName } = require('./lib/extract-branch');
 
 const VALID_STATUSES = ['Not started', 'To do', 'In progress', 'Done'];
+const VALID_FORMATS = ['json', 'md', 'text'];
 
 function parseArgs(argv) {
   let priorityTier = false;
   let status = 'To do';
+  let format = 'json';
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--priority-tier') { priorityTier = true; }
     else if (argv[i] === '--status' && argv[i + 1]) { status = argv[++i]; }
+    else if (argv[i].startsWith('--format=')) { format = argv[i].slice(9); }
+    else if (argv[i] === '--format' && argv[i + 1]) { format = argv[++i]; }
   }
-  return { priorityTier, status };
+  return { priorityTier, status, format };
 }
 
 function mapPage(page) {
@@ -31,6 +35,26 @@ function mapPage(page) {
   };
 }
 
+function renderMd(tasks) {
+  if (tasks.length === 0) return '*(no tasks)*';
+  const rows = tasks.map(t => `| ${t.title} | ${t.status ?? ''} | ${t.priority ?? ''} |`);
+  return ['| Title | Status | Priority |', '|-------|--------|----------|', ...rows].join('\n');
+}
+
+function renderText(tasks) {
+  if (tasks.length === 0) return '(no tasks)';
+  const pad = (s, n) => (s ?? '').padEnd(n);
+  const maxTitle = Math.max(5, ...tasks.map(t => t.title.length));
+  const maxStatus = Math.max(6, ...tasks.map(t => (t.status ?? '').length));
+  const maxPriority = Math.max(8, ...tasks.map(t => (t.priority ?? '').length));
+  const header = `${pad('Title', maxTitle)}  ${pad('Status', maxStatus)}  Priority`;
+  const sep = `${'-'.repeat(maxTitle)}  ${'-'.repeat(maxStatus)}  --------`;
+  const rows = tasks.map(t =>
+    `${pad(t.title, maxTitle)}  ${pad(t.status ?? '', maxStatus)}  ${t.priority ?? ''}`
+  );
+  return [header, sep, ...rows].join('\n');
+}
+
 async function main() {
   const token = loadToken();
   if (!token) {
@@ -38,10 +62,15 @@ async function main() {
     process.exit(2);
   }
 
-  const { priorityTier, status } = parseArgs(process.argv.slice(2));
+  const { priorityTier, status, format } = parseArgs(process.argv.slice(2));
 
   if (!VALID_STATUSES.includes(status)) {
     process.stderr.write(`Error: invalid status "${status}". Valid: ${VALID_STATUSES.join(', ')}\n`);
+    process.exit(1);
+  }
+
+  if (!VALID_FORMATS.includes(format)) {
+    process.stderr.write(`Error: invalid format "${format}". Valid: ${VALID_FORMATS.join(', ')}\n`);
     process.exit(1);
   }
 
@@ -62,7 +91,15 @@ async function main() {
     pages = result?.results || [];
   }
 
-  process.stdout.write(JSON.stringify(pages.map(mapPage)) + '\n');
+  const tasks = pages.map(mapPage);
+
+  if (format === 'md') {
+    process.stdout.write(renderMd(tasks) + '\n');
+  } else if (format === 'text') {
+    process.stdout.write(renderText(tasks) + '\n');
+  } else {
+    process.stdout.write(JSON.stringify(tasks) + '\n');
+  }
 }
 
 main().catch(err => {

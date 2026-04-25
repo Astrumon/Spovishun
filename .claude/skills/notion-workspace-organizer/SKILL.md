@@ -5,7 +5,30 @@ description: Use this skill when reorganizing a Notion workspace, moving pages b
 
 # Notion Workspace Organizer
 
-## Workspace Audit Workflow
+## Workspace Audit
+
+1. Map current structure → fetch root pages, identify orphans and naming issues
+2. Propose before/after plan → always get confirmation before moving anything
+3. Execute moves (up to 100 pages per call)
+
+## Naming Conventions
+
+| Rule | Good | Bad |
+|---|---|---|
+| Sentence case | `Architecture & Patterns` | `architecture & patterns` |
+| No emoji in title | `Documentation` | `📝 Documentation` |
+| Descriptive | `Learning Materials` | `stuff` |
+
+## Database vs. Page Hierarchy
+
+**Database** — repeated/structured content (tasks, links, books), needs filtering/sorting, items have properties beyond title.
+
+**Page hierarchy** — unique/freeform content (docs, notes, architecture). Max **3 levels deep** — deeper means restructure or use a database.
+
+<details>
+<summary>Extended: full audit workflow, move command, structure example</summary>
+
+## Step-by-Step Audit Workflow
 
 ### Step 1: Map the Current Structure
 1. Fetch the root/top-level pages to understand existing structure
@@ -37,18 +60,4 @@ notion-move-pages(
 - Moving to workspace level makes pages private — avoid unless intentional
 - Data sources (collection://) cannot be moved individually
 
-## Naming Conventions
-
-| Rule | Good | Bad |
-|---|---|---|
-| Sentence case | `Architecture & Patterns` | `architecture & patterns` |
-| No emoji in title | `Documentation` | `📝 Documentation` |
-| Descriptive, not vague | `Learning Materials` | `stuff` |
-
-## When to Use Database vs. Page Hierarchy
-
-Use a **database** when content is repeated/structured (tasks, links, books), needs filtering/sorting, or items have properties beyond title + content.
-
-Use a **page hierarchy** when content is unique/freeform (docs, notes, architecture) — structure is more like a book than a spreadsheet.
-
-Max hierarchy depth: **3 levels**. Anything deeper — consider flattening or using databases instead.
+</details>

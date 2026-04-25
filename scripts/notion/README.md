@@ -58,20 +58,22 @@ stdout = result JSON (or plain text for `get-claude-md.js`). stderr = human-read
 
 ### `get-board.js`
 
-List tasks from the board as a JSON array.
+List tasks from the board.
 
 ```bash
-node get-board.js [--status <name>] [--priority-tier]
+node get-board.js [--status <name>] [--priority-tier] [--format <fmt>]
 npm run board
 npm run board -- --priority-tier
 npm run board -- --status "In progress"
+npm run board -- --format md       # markdown table (human-readable)
 ```
 
 Options:
 - `--status <name>` — filter by status (default: `To do`). Valid values: `Not started`, `To do`, `In progress`, `Done`.
 - `--priority-tier` — use the High→Medium→Low cascade from `lib/query-tasks.js` (up to 5 per tier).
+- `--format <fmt>` — output format: `json` (default), `md` (markdown table), `text` (plain list).
 
-Sample output:
+Sample output (`--format json`, default):
 ```json
 [
   {
@@ -84,17 +86,28 @@ Sample output:
 ]
 ```
 
+Sample output (`--format md`):
+```
+| # | Title | Status | Priority |
+|---|---|---|---|
+| 62 | Notion CLI scripts + integration tests | In progress | High |
+```
+
 ### `get-task.js`
 
 Fetch a single task by page ID or task number.
 
 ```bash
-node get-task.js <pageId | spovishun-N>
+node get-task.js <pageId | spovishun-N> [--format <fmt>]
 npm run task -- spovishun-62
 npm run task -- 3453462f68a9811ebbd9c6d7b7847c67
+npm run task -- 62 --format text   # human-readable summary
 ```
 
-Sample output:
+Options:
+- `--format <fmt>` — output format: `json` (default), `md` (markdown card), `text` (plain summary).
+
+Sample output (`--format json`, default):
 ```json
 {
   "id": "3453462f-68a9-811e-bbd9-c6d7b7847c67",
@@ -156,16 +169,25 @@ Sample output:
 Fetch the CLAUDE.md page content with a 1-hour file cache.
 
 ```bash
-node get-claude-md.js
+node get-claude-md.js [--section <query>] [--format <fmt>]
 npm run claude-md
+npm run claude-md -- --section commands        # extract just the Commands section
+npm run claude-md -- --section testing         # extract just the Testing section
+npm run claude-md -- --section architecture    # extract Source Structure + Layer Rules
 ```
 
-Output: plain text (not JSON). Cache file: `~/.spovishun-cache/claude-md.json`.
+Options:
+- `--section <query>` — case-insensitive substring match against heading names. Returns the matched section only. If multiple headings match, all are returned with a warning on stderr. Exits 1 if no heading matches.
+- `--format <fmt>` — output format: `text` (default), `md` (markdown with frontmatter), `json` (structured object with `content` and `sections` index).
+
+Output: plain text (not JSON) by default. Cache file: `~/.spovishun-cache/claude-md.json`.
 
 Override cache directory via `SPOVISHUN_CACHE_DIR` env var:
 ```bash
 SPOVISHUN_CACHE_DIR=/tmp/my-cache node get-claude-md.js
 ```
+
+**When to use `--section`:** prefer targeted section reads when you only need one part of CLAUDE.md (e.g., just commands or just testing rules). This avoids loading the full document into context.
 
 ## Environment variables
 

@@ -11,8 +11,12 @@ function extractBlocks(blocks) {
     const content = block[type];
     if (!content) continue;
     const text = (content.rich_text || []).map(rt => rt.plain_text).join('');
-    if (type.startsWith('heading_')) {
-      if (text) lines.push(`\n**${text}**`);
+    if (type === 'heading_1') {
+      if (text) lines.push(`\n# ${text}`);
+    } else if (type === 'heading_2') {
+      if (text) lines.push(`\n## ${text}`);
+    } else if (type === 'heading_3') {
+      if (text) lines.push(`\n### ${text}`);
     } else if (type === 'paragraph') {
       if (text) lines.push(text);
     } else if (type === 'bulleted_list_item' || type === 'numbered_list_item') {
