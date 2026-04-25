@@ -1,86 +1,62 @@
 ---
 name: postgresql-exposed-orm
-description: Use this skill when working with Kotlin Exposed ORM and PostgreSQL. Triggers on questions about database schema design, Exposed tables, transactions, migrations (Flyway/Liquibase), or SQL queries in Kotlin projects.
+description: Use this skill when working with Kotlin Exposed ORM and PostgreSQL. Triggers on questions about database schema design, Exposed tables, transactions, migrations (Flyway), N+1 problems, or SQL queries in Kotlin projects. Ukrainian triggers: "таблиця Exposed", "міграція Flyway", "запит до бази", "HikariCP пул".
 ---
 
 # PostgreSQL with Kotlin Exposed ORM
 
-You are an expert in database design and Kotlin Exposed ORM. You help design efficient schemas, write type-safe queries, and implement migrations.
+## Workflow
 
-## Table Definition Best Practices
-```kotlin
-object Users : LongIdTable("users") {
-    val username  = varchar("username", 50).uniqueIndex()
-    val telegramId = long("telegram_id").uniqueIndex()
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val isActive  = bool("is_active").default(true)
-}
+1. Identify the task area from the user's request.
+2. Match it to the **Decision Table** below.
+3. Read `references/<chosen>.md` (use the `Read` tool with the full path `.claude/skills/postgresql-exposed-orm/references/<file>`).
+4. Apply patterns from that reference, combined with the Always-Active Rules below.
 
-object Groups : LongIdTable("groups") {
-    val name   = varchar("name", 100)
-    val chatId = long("chat_id").index()
-}
-```
+## Decision Table
 
-## DSL vs DAO
-- **DSL**: Use for complex queries, reporting, bulk operations
-- **DAO**: Use for CRUD on individual entities with ORM-style access
-- Prefer DSL for read-heavy operations — more explicit and efficient
+| If the task involves… | Read first |
+|---|---|
+| Table design, column types, indexes, composite keys, foreign keys | `references/table-definitions.md` |
+| SELECT, JOIN, WHERE, GROUP BY, batchInsert, DSL vs DAO, N+1 | `references/query-patterns.md` |
+| `transaction{}`, `newSuspendedTransaction`, rollback, retry on deadlock | `references/transactions.md` |
+| Flyway SQL migrations, naming convention, `generateMigration` task | `references/migrations-flyway.md` |
+| HikariCP pool sizing, timeouts, Neon/cloud config | `references/hikaricp-config.md` |
 
-## Transaction Rules
-- All DB operations must be wrapped in `transaction { }` or `newSuspendedTransaction { }`
-- Use `newSuspendedTransaction(Dispatchers.IO)` for coroutine contexts
-- Keep transactions short — avoid long-running business logic inside
-- Use `repetitionAttempts` for retry on deadlock
+## Always-Active Rules (Spovishun-specific)
 
-## Query Patterns
-```kotlin
-// Find with condition
-fun findByTelegramId(telegramId: Long): User? = transaction {
-    User.find { Users.telegramId eq telegramId }.firstOrNull()
-}
-
-// Batch insert
-fun insertMembers(members: List<String>) = transaction {
-    Members.batchInsert(members) { username ->
-        this[Members.username] = username
-    }
-}
-
-// Update with where
-fun deactivateUser(id: Long) = transaction {
-    Users.update({ Users.id eq id }) {
-        it[isActive] = false
-    }
-}
-```
-
-## Migrations with Flyway
-- Store SQL migrations in `resources/db/migration/`
-- Naming: `V{version}__{description}.sql` (e.g., `V1__create_users.sql`)
-- Never modify existing migration files
-- Run `Flyway.configure().dataSource(...).load().migrate()` on startup
-
-## Connection Pool (HikariCP)
-```kotlin
-val config = HikariConfig().apply {
-    jdbcUrl         = "jdbc:postgresql://localhost:5432/mydb"
-    driverClassName = "org.postgresql.Driver"
-    maximumPoolSize = 10
-    minimumIdle     = 2
-    connectionTimeout = 30_000
-}
-Database.connect(HikariDataSource(config))
-```
-
-## Spovishun-Specific Rules
-- Always use `safeDbQuery { }` — never bare `transaction { }` or manual `ResultContainer.catching { dbQuery { } }`
-- `safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`
-- Only `DatabaseFactory.kt` may use `Dispatchers.IO`
+- **Always use `safeDbQuery { }`** — never bare `transaction { }` or manual `ResultContainer.catching { dbQuery { } }`.
+- `safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`.
+- **Only `DatabaseFactory.kt` may use `Dispatchers.IO`.**
+- DDL changes require a Flyway migration via `./gradlew generateMigration` — never hand-edit applied files.
 
 ## Output Format
+
 When reviewing or designing DB code:
 1. **Schema assessment** — table structure, index coverage, constraint correctness
 2. **Query analysis** — N+1 risks, missing indexes, transaction boundaries
 3. **Migration note** — if DDL changes are needed, generate via `./gradlew generateMigration`
-4. **Code issues** — violations of `safeDbQuery` rule or layer boundary (data → domain)
+4. **Code issues** — violations of `safeDbQuery` rule or layer boundary (`data → domain`)
+
+## Do NOT
+
+- Do NOT load all reference files at once — pick exactly one per the Decision Table.
+- Do NOT bypass `safeDbQuery` by wrapping `dbQuery {}` in `ResultContainer.catching {}` manually.
+- Do NOT use bare `transaction {}` directly in repository `data/` layer code.
+- Do NOT edit a Flyway migration file that has already been applied to any database.
+- Do NOT use `Dispatchers.IO` outside of `DatabaseFactory.kt`.
+
+## Error Handling
+
+- If the task type does not match any Decision Table row, ask the user to clarify before proceeding.
+- If a reference file is missing, STOP and report the expected path.
+
+## Related Skills
+
+- `database-reviewer` — reviews Exposed table definitions and Flyway migrations before merge
+- `kotlin-specialist` — Kotlin coroutines and dispatcher rules that apply in DB context
+- `unit-testing-kotlin` — how to test repositories with MockImpl (no live DB in unit tests)
+
+## Example Invocation
+
+- User: "Add a unique index to the Members table" → load `references/table-definitions.md`, apply the index pattern.
+- User: "Why is my query slow?" → load `references/query-patterns.md`, check N+1 and missing indexes.

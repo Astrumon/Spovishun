@@ -1,143 +1,59 @@
 ---
 name: kotlin-specialist
-description: Use this skill for Kotlin development tasks including coroutines, Flow, Gradle Kotlin DSL, and idiomatic Kotlin patterns. Triggers on Kotlin-specific architecture questions, language feature usage, coroutine/async questions ("coroutine", "suspend", "Flow", "launch", "withContext"), or when implementing complex async logic.
-version: "1.2.0"
+description: Use this skill for Kotlin development tasks including coroutines, Flow, Gradle Kotlin DSL, and idiomatic Kotlin patterns. Triggers on Kotlin-specific architecture questions, language feature usage, coroutine/async questions ("coroutine", "suspend", "Flow", "launch", "withContext"), or when implementing complex async logic. Ukrainian triggers: "корутина", "flow", "сілд клас", "нульова безпека", "Gradle DSL".
+version: "2.0.0"
 ---
 
 # Kotlin Specialist
 
-You are a senior Kotlin engineer with deep expertise in modern Kotlin development. You write idiomatic, type-safe, and performant Kotlin code following best practices.
+## Workflow
 
-## Workflow (6-step cycle)
+1. **Analyze** — Understand platform, coroutine strategy, and module structure.
+2. **Design** — Model state with sealed classes and data structures.
+3. **Implement** — Apply null safety, extension functions, coroutines, and the reference patterns below.
+4. **Validate** — Run `detekt` and `ktlint`; verify coroutine cancellation on teardown.
+5. **Optimize** — Consider inline classes, sequences, and compile-time optimizations.
+6. **Test** — Use `runTest` and Turbine for Flow assertions.
 
-1. **Analyze** — Understand architecture: platforms, coroutine strategy, module structure
-2. **Design** — Model using sealed classes and data structures
-3. **Implement** — Use null safety, extension functions, coroutines
-4. **Validate** — Run `detekt` and `ktlint`; verify coroutine cancellation on teardown
-5. **Optimize** — Inline classes, sequences, compilation optimizations
-6. **Test** — Use `runTest` and Turbine for Flow assertions
+## Decision Table
 
-## Core Patterns
+| If the task is about… | Read first |
+|---|---|
+| Structured concurrency, scope ownership, `SupervisorJob`, suspend functions | `references/coroutines.md` |
+| `withTimeout`, `TimeoutCancellationException`, cancellation propagation | `references/cancellation-timeouts.md` |
+| Cold/hot Flow, `StateFlow`, `SharedFlow`, collect and transform | `references/flow.md` |
+| `sealed interface`, exhaustive `when`, state/response modeling | `references/sealed-classes.md` |
+| Null safety, extension functions, `data class`, Kotlin idioms | `references/kotlin-idioms.md` |
+| `libs.versions.toml`, `build.gradle.kts`, version catalog | `references/gradle-dsl.md` |
 
-### Sealed Classes for State
-```kotlin
-sealed interface UiState<out T> {
-    data object Loading : UiState<Nothing>
-    data class Success<T>(val data: T) : UiState<T>
-    data class Error(val message: String) : UiState<Nothing>
-}
+## Always-Active Rules
 
-// Exhaustive when — compiler enforces all branches
-fun handle(state: UiState<User>) = when (state) {
-    is UiState.Loading  -> showSpinner()
-    is UiState.Success  -> render(state.data)
-    is UiState.Error    -> showError(state.message)
-}
-```
+- Only `data/db/DatabaseFactory.kt` may use `Dispatchers.IO` — inject `CoroutineDispatcher` via Koin everywhere else.
+- Never use `runBlocking` in production coroutine context — causes deadlock.
+- Never use `GlobalScope.launch` — breaks structured concurrency and causes memory leaks.
+- Never swallow `CancellationException` — always rethrow or propagate it.
+- `TelegramBot` scope uses `SupervisorJob` — one failing handler must never kill the bot.
 
-### Coroutines & Structured Concurrency
-```kotlin
-// Correct: bounded scope with SupervisorJob for isolation
-class BotService(private val scope: CoroutineScope) {
-    fun start() = scope.launch { processUpdates() }
-}
+## Do NOT
 
-// Wrong: memory leak
-GlobalScope.launch { processUpdates() }  // NEVER in production
+- Do NOT load all references at once — pick exactly one based on the Decision Table.
+- Do NOT use `!!` without a documented invariant that guarantees non-null at that point.
+- Do NOT use `runBlocking`, `GlobalScope`, or undocumented `!!` — project-level hard bans.
+- Do NOT hardcode `Dispatchers.IO` outside `DatabaseFactory.kt`.
 
-// Parallel with failure isolation
-supervisorScope {
-    val a = async { fetchA() }
-    val b = async { fetchB() }
-    Pair(a.await(), b.await())
-}
-```
+## Error Handling
 
-### Null Safety
-```kotlin
-val name: String = user?.name ?: "Anonymous"         // safe call + elvis
-val id = checkNotNull(user.id) { "User must have ID" } // contract-enforced
-// Use !! ONLY when the contract is guaranteed and documented
-```
+- If no Decision Table row matches, ask the user to clarify before proceeding.
+- If a reference file is missing, stop and report the exact path.
+- Coroutine errors: set `CoroutineExceptionHandler` at scope level, not inside `launch {}`.
 
-### Extension Functions
-```kotlin
-fun String.toSlug() = lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
-fun Long.toChatId(): String = this.toString()
-```
+## Related Skills
 
-### Flow
-```kotlin
-// Cold flow
-fun userUpdates(): Flow<User> = flow {
-    while (true) {
-        emit(fetchUser())
-        delay(5_000)
-    }
-}
+- `telegram-bot-development` — coroutine scope wiring for bot handlers
+- `postgresql-exposed-orm` — `safeDbQuery` / `safeDbTransaction` patterns built on coroutines
+- `unit-testing-kotlin` — `runTest`, `StandardTestDispatcher`, Turbine for Flow assertions
 
-// Hot shared state
-private val _state = MutableStateFlow(UiState.Loading)
-val state: StateFlow<UiState<User>> = _state.asStateFlow()
-```
+## Example Invocation
 
-## Critical Constraints
-
-**MUST DO:**
-- Use `?.` and `?:` for null safety; document any `!!` usage
-- Use `sealed class` / `sealed interface` for exhaustive state hierarchies
-- Prefer `suspend fun` and `Flow` over callbacks
-- Run `detekt` and `ktlint` on every PR
-- Handle coroutine cancellation — verify parent scope is cancelled on teardown
-- Use `data class` for value objects, `object` for singletons
-
-**MUST NOT DO:**
-- Use `runBlocking` in production coroutine context — causes deadlock
-- Use `GlobalScope.launch` — causes memory leaks
-- Ignore `CancellationException` — always rethrow or propagate
-- Use undocumented `!!` operators
-
-## Gradle Kotlin DSL
-```kotlin
-// libs.versions.toml
-[versions]
-kotlin = "2.3.0"
-coroutines = "1.9.0"
-
-[libraries]
-kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
-
-// build.gradle.kts
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
-}
-```
-
-## Cancellation & Timeouts
-```kotlin
-// withTimeout throws TimeoutCancellationException (subclass of CancellationException)
-try {
-    val result = withTimeout(5_000L) { fetchData() }
-} catch (e: TimeoutCancellationException) {
-    logger.warn("Fetch timed out")
-    // Don't rethrow — handle gracefully
-}
-
-// isActive check in long loops
-while (isActive) {
-    processNext()
-}
-```
-
-**Rules:**
-- Never catch and swallow `CancellationException` — always rethrow or propagate
-- Verify parent scope is cancelled on teardown
-- Use `isActive` checks in long-running loops
-
-## Dispatcher Rules (Spovishun-specific)
-- Only `data/db/DatabaseFactory.kt` may use `Dispatchers.IO`
-- All DB/I/O functions are `suspend fun` — never use `runBlocking` inside a coroutine
-- `TelegramBot` runs `CoroutineScope(SupervisorJob())` — one failing command never kills the bot
-- Inject `CoroutineDispatcher` via Koin — never hardcode `Dispatchers.IO` inside a class
-
-## Targets: Kotlin 2.x, JVM 21, structured concurrency
+- User: "How do I run two fetches concurrently in a service?" → load `references/coroutines.md`, apply `supervisorScope` + `async` pattern.
+- User: "Model bot command results with sealed classes" → load `references/sealed-classes.md`, apply sealed interface + exhaustive `when`.
