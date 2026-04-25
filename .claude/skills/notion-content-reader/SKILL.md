@@ -6,45 +6,53 @@ description: Use this skill when reading, fetching, or searching for content in 
 # Notion Content Reader
 
 > **Prefer scripts for these common reads** (faster, no MCP round-trip):
-> - Board overview → `node scripts/notion/get-board.js`
-> - Task by number or pageId → `node scripts/notion/get-task.js <N-or-pageId>`
-> - CLAUDE.md page → `node scripts/notion/get-claude-md.js`
+> - Board overview `node scripts/notion/get-board.js`
+> - Task by number or pageId `node scripts/notion/get-task.js <N-or-pageId>`
+> - CLAUDE.md page `node scripts/notion/get-claude-md.js`
 >
-> Use MCP (`notion-search`, `notion-fetch`) for everything else — semantic search across arbitrary content, unfamiliar pages, or content not covered by the scripts above.
+> Use MCP (notion-search, notion-fetch) for everything else.
 
 ## Reading Strategy
 
 ### Step 1: Identify What to Read
-- **Known URL or ID** → use `notion-fetch` directly
-- **Topic unknown** → use `notion-search` first, then `notion-fetch` on results
-- **Database content** → fetch the database to get the data source URL, then search within it
+- **Known URL or ID** use `notion-fetch` directly
+- **Topic unknown** use `notion-search` first, then `notion-fetch` on results
+- **Database content** fetch the database to get the data source URL, then search within it
+
+## Search
+
+- Use 2-5 word queries - shorter is often better
+- `notion-search(query: "short phrase", query_type: "internal")`
+- To search within a database: pass `data_source_url: "collection://..."` from the DB schema
+
+<details>
+<summary>Extended: fetch steps, hierarchy navigation, database records, output format</summary>
 
 ### Step 2: Fetch Efficiently
+
 ```
 notion-fetch(id: "page-url-or-id")
 ```
-Always fetch the full page before attempting updates — you need the exact content strings.
+
+Always fetch the full page before attempting updates - you need the exact content strings.
 
 ### Step 3: Navigate Hierarchy
-Notion pages have `<ancestor-path>` showing parent chain. Child pages appear as `<page url="...">` blocks. Fetch root → fetch children as needed. Never assume content — always verify by fetching.
+
+Notion pages have ancestor-path showing parent chain. Child pages appear as page url blocks.
+Fetch root, then fetch children as needed. Never assume content - always verify by fetching.
 
 ## Search Best Practices
 
-```
-notion-search(query: "short descriptive phrase", query_type: "internal")
-```
-
-- Use 2–5 word queries — shorter is often better
 - Try multiple angles: topic name, page title, key term
-- To search within a database: first fetch the DB to get `collection://` URL, then pass as `data_source_url`
 - If search times out, try a narrower query
+- Known Spovishun categories (Architecture, Database, Testing, CI/CD, AI Tools): use the Collection ID from notion-navigator - no need to fetch the DB first
 
 ## Reading Database Records
 
-1. **Known Spovishun category** (Architecture, Database, Testing, CI/CD, AI Tools) → use the Collection ID from `notion-navigator` — no need to fetch the DB first.
-2. **Otherwise** → fetch the DB page to get `<data-source url="collection://...">` from its schema.
-3. Use `notion-search(query: "", data_source_url: "collection://...")` to list all records.
-4. Fetch individual records by their URL for full content.
+1. Known Spovishun category: use the Collection ID from notion-navigator
+2. Otherwise: fetch the DB page to get the data-source collection URL
+3. Use `notion-search(query: "", data_source_url: "collection://...")` to list all records
+4. Fetch individual records by their URL for full content
 
 ## Output Format
 
@@ -52,3 +60,5 @@ notion-search(query: "short descriptive phrase", query_type: "internal")
 - List key sections and their content concisely
 - Highlight actionable items, dates, or status fields
 - Provide the direct Notion URL for the user to open
+
+</details>
