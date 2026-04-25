@@ -203,7 +203,47 @@ docker compose restart bot
 
 ## Оновлення бота (деплой нової версії)
 
-Повний процес при кожному релізі:
+### Автоматичний деплой (CI/CD) — стандартний шлях
+
+Деплой відбувається автоматично при мерджі PR у `main` через GitHub Actions.
+
+Workflow: `.github/workflows/deploy.yml`
+
+**Що відбувається автоматично:**
+1. GitHub Actions збирає Docker образ (`./gradlew installDist` усередині Dockerfile)
+2. Пушить два теги: `latest` та `sha-<short-sha>` на `ghcr.io/astrumon/spovishun`
+3. SSHиться на Oracle VM і виконує `docker compose pull bot && docker compose up -d`
+
+**Необхідні секрети репозиторію** (GitHub → Settings → Secrets and variables → Actions):
+
+| Secret        | Значення                                  |
+|---------------|-------------------------------------------|
+| ORACLE_HOST   | Публічний IP VM (`141.147.4.30`)          |
+| ORACLE_USER   | SSH user (`ubuntu`)                       |
+| ORACLE_SSH_KEY| Вміст приватного SSH ключа (PEM формат)   |
+
+`GITHUB_TOKEN` надається автоматично — додаткових секретів для ghcr.io не потрібно.
+
+**Перевірка після деплою:**
+
+```bash
+# Подивитись прогрес у GitHub Actions tab
+# Або перевірити на сервері:
+ssh -i ~/.ssh/oracle_key ubuntu@141.147.4.30
+docker compose logs --tail=50 bot
+```
+
+Шукати рядки:
+- `Bot started successfully` — бот підключився
+- `Schema "public" is up to date` або `Applied X migration(s)` — Flyway відпрацював
+
+**Ручний запуск** (повторний деплой без нового PR): GitHub → Actions → Deploy → Run workflow.
+
+---
+
+### Ручний деплой (fallback / перше налаштування)
+
+Якщо GitHub Actions недоступний або потрібно задеплоїти вручну:
 
 #### Крок 1: Локально — зібрати та запушити новий образ
 
@@ -225,15 +265,14 @@ docker compose up -d
 `docker compose up -d` автоматично замінює контейнер на новий образ.
 Downtime: ~2-5 секунд.
 
-#### Перевірка після оновлення
+#### Відкат до попередньої версії
 
 ```bash
-docker compose logs --tail=50 bot
+# sha-<short-sha> доступний як тег у ghcr.io (кожен деплой зберігає sha-тег)
+docker pull ghcr.io/astrumon/spovishun:sha-<попередній-sha>
+docker tag ghcr.io/astrumon/spovishun:sha-<попередній-sha> ghcr.io/astrumon/spovishun:latest
+docker compose up -d
 ```
-
-Шукати рядки:
-- `Bot started successfully` — бот підключився
-- `Schema "public" is up to date` або `Applied X migration(s)` — Flyway відпрацював
 
 ---
 
