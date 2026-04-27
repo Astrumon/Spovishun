@@ -156,8 +156,10 @@ Type-specific anti-patterns live in each `references/type-*.md`.
 **Mono is for technical content.** Names are Geist sans. Page title is Instrument Serif. Italic Instrument Serif is reserved for annotation callouts. Never JetBrains Mono as a blanket "dev" font.
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
 ```
+
+> **HTML escaping rule:** `&` inside an HTML `href` attribute must be written as `&amp;`. Every separator in a multi-parameter Google Fonts URL must use `&amp;`, not bare `&`. Bare `&` causes a 400 or silently truncates params in some browsers.
 
 ---
 
