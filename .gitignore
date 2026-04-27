@@ -144,3 +144,4 @@ yarn-error.log*
 .dev-context/
 # Skill temp files
 .claude/tmp/
+/docs/

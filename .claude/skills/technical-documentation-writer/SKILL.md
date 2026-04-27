@@ -82,7 +82,7 @@ For AI assistant context files, include:
 ### Architecture Document
 - Use C4 model levels: Context → Container → Component
 - Include decision rationale (ADRs — Architecture Decision Records)
-- Document data flow with sequence diagrams in Mermaid
+- For any component diagram, layer stack, data flow, or sequence: use the `diagram-design` skill to produce an HTML file, then follow [`diagram-design/references/notion-upload.md`](./../diagram-design/references/notion-upload.md) to screenshot and publish to Notion. Mermaid is a fallback only when no Notion publishing is needed.
 - List external dependencies with versions
 
 For changelogs, follow [Keep a Changelog](https://keepachangelog.com) format — see `changelog-generator` skill.
