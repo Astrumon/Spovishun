@@ -80,6 +80,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `pingGroup with unknown group key should show available groups`() = runTest {
+        registerMember()
         groupService.createGroup(testChatId, "devs")
         val update = buildUpdate("/ping unknown")
 

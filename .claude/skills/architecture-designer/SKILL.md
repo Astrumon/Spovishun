@@ -77,17 +77,30 @@ presentation  →  domain  ←  data
 - `presentation/` — no Exposed/DB imports; no business logic in Commands
 - Only `DatabaseFactory.kt` may use `Dispatchers.IO`
 
-## Mermaid Diagram Template
+## Visual Diagrams
+
+For any architecture component diagram, layer stack, or flow — use the `diagram-design` skill instead of Mermaid. Mermaid is a fallback only when the user explicitly asks for it or when no Notion upload is needed.
+
+**When to produce a visual diagram:**
+- New architectural layer or module is introduced
+- Cross-layer dependency or data flow needs explaining
+- Decision involves more than 3 components
+
+**Workflow:**
+
+1. Identify the diagram type from the `diagram-design` selection guide (most common: `architecture`, `layer stack`, `flowchart`, `sequence`)
+2. Invoke the `diagram-design` skill — it produces a self-contained `.html` in `docs/diagrams/`
+3. If the result should go to Notion (default: yes), follow the screenshot + upload flow in [`diagram-design/references/notion-upload.md`](../diagram-design/references/notion-upload.md)
+
+**Spovishun layer stack reference (diagram-design type: `layers`):**
 ```
-graph TD
-    A[TelegramBot] --> B[MessageHandler]
-    B --> C[Command]
-    C --> D[Controller]
-    D --> E[Service]
-    E --> F[Repository Interface]
-    F --> G[RepositoryImpl]
-    G --> H[(PostgreSQL)]
+Presentation  →  Domain  ←  Data
+                   ↑
+                 Common (pure Kotlin)
+                   ↑
+                  DI (Koin, wires all)
 ```
+Arrow direction = dependency direction (inward only).
 
 ## Module Structure Evaluation
 

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.ua.astrumon"
-version = "1.0.0"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -91,6 +91,9 @@ tasks.register<Test>("integrationTest") {
     classpath = integrationTestSourceSet.runtimeClasspath
     useJUnitPlatform()
     shouldRunAfter(tasks.test)
+    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
+    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
+    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
 }
 
 val e2eTestSourceSet = sourceSets.create("e2eTest") {
@@ -111,8 +114,13 @@ tasks.register<Test>("e2eTest") {
     useJUnitPlatform()
     maxParallelForks = 1
     shouldRunAfter(tasks.named("integrationTest"))
-    environment("TEST_BOT_TOKEN", System.getenv("TEST_BOT_TOKEN") ?: "")
-    environment("TEST_HELPER_BOT_TOKEN", System.getenv("TEST_HELPER_BOT_TOKEN") ?: "")
-    environment("TEST_CHAT_ID", System.getenv("TEST_CHAT_ID") ?: "")
-    environment("TEST_ADMINS", System.getenv("TEST_ADMINS") ?: "")
+    // Env vars are read by E2EConfig via dotenv (falls back to .env file).
+    // Only forward when explicitly set to avoid overriding dotenv with empty strings.
+    System.getenv("TEST_BOT_TOKEN")?.let { environment("TEST_BOT_TOKEN", it) }
+    System.getenv("TEST_HELPER_BOT_TOKEN")?.let { environment("TEST_HELPER_BOT_TOKEN", it) }
+    System.getenv("TEST_CHAT_ID")?.let { environment("TEST_CHAT_ID", it) }
+    System.getenv("TEST_ADMINS")?.let { environment("TEST_ADMINS", it) }
+    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
+    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
+    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
 }

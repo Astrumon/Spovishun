@@ -21,7 +21,7 @@ class MembersController(
             userRole = userRole
         )
 
-        return memberService.getAllMembers().fold(
+        return memberService.getAllMembersInChat(chatId).fold(
             onSuccess = { members ->
                 if (members.isEmpty()) {
                     CommandResponse.Success("📋 <b>Немає зареєстрованих учасників</b>.\n\nНапиши будь-яке повідомлення, щоб зареєструватися!")

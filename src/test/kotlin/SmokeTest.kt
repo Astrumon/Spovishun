@@ -1,5 +1,5 @@
-import data.db.TestDatabaseFactory
-import data.db.testDbQuery
+import data.db.H2TestDatabaseFactory
+import data.db.h2DbQuery
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -15,14 +15,14 @@ class SmokeTest {
 
     @Test
     fun `database initialization should complete without errors`() {
-        TestDatabaseFactory.initialize()
+        H2TestDatabaseFactory.initialize()
         assertTrue(true)
     }
 
     @Test
     fun `basic database query should execute without errors`() = runTest {
-        TestDatabaseFactory.initialize()
-        testDbQuery { }
+        H2TestDatabaseFactory.initialize()
+        h2DbQuery { }
         assertTrue(true)
     }
 }

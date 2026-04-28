@@ -5,44 +5,59 @@ description: Project-specific Notion workflow for the Spovishun project. Always 
 
 # Notion Workflow — Spovishun Project
 
-This skill handles project-specific Notion setup for SpovishunTelegramBotV2.
+## Workflow
 
----
+1. Fetch the targeted section of CLAUDE.md for the current operation (see commands below).
+2. Identify the operation type and pick the matching row in the Decision Table.
+3. If IDs are needed, read `references/data-ids.md` — do not guess or recall IDs from memory.
+4. Invoke the routed skill to complete the operation.
 
-## Auto-initialization: Load CLAUDE.md
+## CLAUDE.md Fetch Commands
 
-Whenever the conversation involves the Spovishun project and any Notion work,
-silently fetch the project's CLAUDE.md page before responding:
+Fetch silently before responding — no need to announce it:
 
 ```
-URL: https://www.notion.so/31c3462f68a9819c8150ff31d729293e
-Tool: Notion:notion-fetch
+node scripts/notion/get-claude-md.js --section commands       # architecture / commands
+node scripts/notion/get-claude-md.js --section testing        # testing conventions
+node scripts/notion/get-claude-md.js --section architecture   # source structure / layers
+node scripts/notion/get-claude-md.js                          # full read — only when overview needed
 ```
 
-Do this as the first step — no need to announce it. The page contains project
-conventions, architecture notes, and rules that must guide all work on this project.
+Use targeted `--section` reads to load only the relevant part and save tokens.
 
----
+## Decision Table
 
-## For all Notion page operations
+| Operation | Skill |
+|---|---|
+| Task CRUD on Spovishun board | `notion-spovishun-task-manager` |
+| Generic Kanban board operations | `notion-task-board-manager` |
+| Create / update Notion pages | `notion-page-builder` |
+| Search / read existing content | `notion-content-reader` |
+| Create / query databases | `notion-database-manager` |
+| Migrate external content | `notion-data-migrator` |
+| Workspace structure / moves | `notion-workspace-organizer` |
+| Workspace / category / collection IDs | `notion-navigator` |
+| Board IDs, CLAUDE.md page ID, data source ID | `references/data-ids.md` |
 
-Refer to the **notion-page-builder** skill for:
-- Creating pages and setting icons
-- Page naming conventions
-- Content structure (Tips / Links / Notes / Code / Diagrams)
-- `replace_content` limitations
-- Migrating external content into Notion
+## Do NOT
 
-Refer to the **notion-spovishun-task-manager** skill for:
-- ALL task CRUD operations on the Spovishun board (create, update status, read)
-- Setting Status, Priority, Labels on tasks
+- Do NOT load `references/data-ids.md` unless an ID is actually needed — most operations go through `notion-navigator` or the dedicated skill.
+- Do NOT duplicate operations handled by a routed skill — delegate and do not re-implement.
+- Do NOT hardcode IDs from memory; always look them up from `references/data-ids.md` or `notion-navigator`.
 
-Refer to the **notion-task-board-manager** skill for:
-- Generic Kanban board operations across any Notion board
+## Error Handling
 
-Refer to the **notion-database-manager** skill for:
-- Creating and querying databases
-- Schema design and property types
+- If no row in the Decision Table matches, ask the user to clarify the operation type.
+- If a reference file is missing, stop and report the exact path.
+- If `node scripts/notion/get-claude-md.js` fails, check that `NOTION_API_TOKEN` is set in the environment.
 
-Refer to the **notion-content-reader** skill for:
-- Searching and reading existing Notion content
+## Related Skills
+
+- `notion-navigator` — full workspace map with all category page IDs and collection IDs
+- `notion-spovishun-task-manager` — task CRUD, status updates, board queries
+- `notion-page-builder` — creating and updating Notion page content via MCP
+
+## Example Invocation
+
+- User: "Read the current task" → fetch CLAUDE.md commands section, load `notion-spovishun-task-manager`.
+- User: "Update the Architecture doc page" → load `notion-navigator` for the correct parent ID, then `notion-page-builder`.

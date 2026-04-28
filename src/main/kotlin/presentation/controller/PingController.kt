@@ -24,7 +24,7 @@ class PingController(
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
-        val membersResult = memberService.getAllMembers()
+        val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
             logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.message)
             return CommandResponse.Error("Failed to load members")
@@ -73,7 +73,7 @@ class PingController(
                 if (memberResult.isSuccess) {
                     validMembers.add(memberUsername)
                 } else {
-                    logger.warn("Member '{}' from group '{}' not found in member database", memberUsername, groupKey)
+                    logger.warn("Member from group '{}' not found in member database", groupKey)
                 }
             }
         }

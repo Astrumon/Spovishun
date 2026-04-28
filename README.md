@@ -11,50 +11,61 @@ A Kotlin-based Telegram bot built with Clean Architecture, Koin DI, Exposed ORM,
 | DI | Koin 3.x |
 | ORM | Exposed 0.55.0 |
 | Migrations | Flyway 10.x |
-| Database (dev) | SQLite |
-| Database (prod) | PostgreSQL |
+| Database (dev) | PostgreSQL (local) |
+| Database (prod) | PostgreSQL (Neon) |
 | Config | dotenv-kotlin |
 | Logging | SLF4J + Logback |
 
 ## Project Structure
 ```
 src/main/kotlin/
-├── config/             # AppConfig — dotenv-based configuration
+├── Application.kt          # Koin init + bot startup
+├── config/                 # AppConfig — dotenv-based env var bindings
+├── common/                 # ResultContainer, exceptions, extensions, logging
+├── domain/
+│   ├── cache/              # In-memory cache strategies
+│   ├── model/              # Pure Kotlin data classes (Member, Group, MemberRole, MemberChat)
+│   ├── repository/         # Repository interfaces (5 total)
+│   └── service/            # Business logic (MemberService, GroupService, AutoRegisterService…)
 ├── data/
 │   ├── db/
-│   │   ├── table/      # Exposed Table objects
-│   │   ├── repository/ # Repository implementations
-│   │   ├── DatabaseFactory.kt    # DB init + Flyway migrations
-│   │   └── DataSourceFactory.kt  # HikariCP datasource factory
-│   ├── mapper/         # ResultRow → domain model mappers
-│   └── memory/         # In-memory repositories (dev)
-├── di/                 # Koin modules
-├── domain/
-│   ├── BotAdminUtils.kt        # Telegram API admin check (used during registration)
-│   ├── model/                  # Pure Kotlin data classes (Member, Group, MemberRole)
-│   ├── repository/             # Repository interfaces
-│   └── service/                # Business logic (MemberService, GroupService, AutoRegisterService)
-├── presentation/
-│   ├── bot/                    # Telegram bot + command handlers
-│   └── controller/             # Command business logic (GroupController, MembersController)
+│   │   ├── table/          # Exposed Table objects
+│   │   ├── repository/     # DB repository implementations
+│   │   ├── DatabaseFactory.kt   # DB init + Flyway migrations
+│   │   └── DataSourceFactory.kt # HikariCP datasource
+│   ├── mapper/             # ResultRow → domain model mappers
+│   └── memory/             # MockImpl repositories (integration tests only)
+├── di/                     # Koin modules
+└── presentation/
+    ├── CommandResponse.kt  # Sealed class: Success / AccessDenied / NotFound / Error
+    ├── bot/                # TelegramBot, MessageHandler, commands/
+    ├── controller/         # Command controllers (return CommandResponse)
+    └── util/               # BotAdminUtils (Telegram API admin check)
 src/main/resources/
-└── db/migration/
-    ├── V1__init_schema.sql       # PostgreSQL (prod)
-    └── sqlite/
-        └── V1__init_schema.sql  # SQLite (dev)
+└── db/migration/postgresql/
+    ├── V1__init_schema.sql
+    ├── ...
+    └── V8__normalize_members_chats.sql
 ```
 
 ## Running
 ```bash
 cp .env.example .env   # fill in your values
 
-./gradlew runDev    # dev profile — in-memory repositories
-./gradlew runProd   # prod profile — PostgreSQL + Flyway
+./gradlew runDev    # PROFILE=dev  — local PostgreSQL + Flyway
+./gradlew runProd   # PROFILE=prod — Neon PostgreSQL + Flyway
+```
+
+## Testing
+```bash
+./gradlew test              # unit tests
+./gradlew integrationTest   # integration tests (real MockImpl repos)
+./gradlew e2eTest           # e2e tests (real Telegram API, skips if env vars unset)
 ```
 
 ## Database Migrations
 
-Migrations run automatically on startup (prod only) via Flyway.
+Migrations run automatically on startup for both dev and prod via Flyway.
 
 ### Adding a migration
 
@@ -68,7 +79,7 @@ Migrations run automatically on startup (prod only) via Flyway.
 3. Review the generated file
 4. Commit the `Table` file and migration script together
 
-> ⚠️ Never edit a migration file after it has been applied to any database.
+> Never edit a migration file after it has been applied to any database.
 
 ## AI Development (Claude Code)
 
@@ -78,32 +89,35 @@ This project uses [Claude Code](https://claude.ai/code) as the primary AI develo
 claude   # launch Claude Code in the project directory
 ```
 
-The `CLAUDE.md` file in the root provides Claude with full context: architecture, layer rules, naming conventions, commit format, and common task checklists. No additional prompting is needed for standard development tasks.
+`CLAUDE.md` in the root provides full context: architecture, layer rules, naming conventions, commit format, and task checklists. `.claude/` contains hooks, skills, agents, and rules that automate Notion sync, code review, and task management.
 
 ## Bot Commands
 
-| Команда | Опис |
+| Command | Description |
 |---|---|
-| `/start` | Реєстрація та привітання |
-| `/register` | Ручна реєстрація |
-| `/all [текст]` | Тегнути всіх учасників |
-| `/ping <група> [текст]` | Тегнути всіх учасників групи |
-| `/groups` | Список усіх груп |
-| `/members` | Список усіх учасників |
-| `/newgroup <назва>` | Створити групу *(адмін)* |
-| `/delgroup <назва>` | Видалити групу *(адмін)* |
-| `/addtogroup <група> @user` | Додати до групи *(адмін)* |
-| `/removefromgroup <група> @user` | Видалити з групи *(адмін)* |
-| `/grantrole <роль> @user` | Призначити роль учаснику *(тільки ADMIN)* |
+| `/start` | Registration and welcome message |
+| `/register` | Manual registration |
+| `/all [text]` | Ping all members |
+| `/ping <group> [text]` | Ping all members of a group |
+| `/groups` | List all groups |
+| `/members` | List all members |
+| `/newgroup <name>` | Create a group *(admin)* |
+| `/delgroup <name>` | Delete a group *(admin)* |
+| `/addtogroup <group> @user` | Add user to group *(admin)* |
+| `/removefromgroup <group> @user` | Remove user from group *(admin)* |
+| `/grantrole <role> @user` | Assign role to member *(admin only)* |
 
 ## Environment Variables
 
 | Variable | Example |
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | `123456:ABC-DEF...` |
-| `ADMINS` | `123456789,987654321` |
-| `DATABASE_URL` | `jdbc:postgresql://localhost:5432/spovishun` |
-| `DATABASE_DRIVER` | `org.postgresql.Driver` |
-| `DATABASE_USERNAME` | `postgres` |
-| `DATABASE_PASSWORD` | `secret` |
-| `PROFILE` | `dev` або `prod` |
+| `PROFILE` | `dev` or `prod` |
+| `DEV_DATABASE_URL` | `jdbc:postgresql://localhost:5432/spovishun` |
+| `DEV_DATABASE_DRIVER` | `org.postgresql.Driver` |
+| `DEV_DATABASE_USERNAME` | `postgres` |
+| `DEV_DATABASE_PASSWORD` | `secret` |
+| `PROD_DATABASE_URL` | `jdbc:postgresql://...neon.tech/spovishun` |
+| `PROD_DATABASE_DRIVER` | `org.postgresql.Driver` |
+| `PROD_DATABASE_USERNAME` | `postgres` |
+| `PROD_DATABASE_PASSWORD` | `secret` |

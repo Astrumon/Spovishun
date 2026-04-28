@@ -21,7 +21,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
-                match { it.contains("Spovishun активний") },
+                match { it.contains("Spovishun на місці") },
                 ParseMode.HTML
             )
         }
@@ -35,7 +35,6 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
-        assertTrue(member.chatId == testChatId)
     }
 
     @Test

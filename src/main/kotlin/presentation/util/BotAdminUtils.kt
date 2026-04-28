@@ -15,11 +15,11 @@ class BotAdminUtils {
                 val chatMember = chatMemberResponse.get()
                 chatMember.status in listOf("creator", "administrator")
             } else {
-                logger.debug("Failed to get chat member status for userId: {} in chatId: {}", userId, chatId)
+                logger.debug("Failed to get chat member status")
                 false
             }
         } catch (e: Exception) {
-            logger.warn("Error checking admin status for userId: {} in chatId: {}", userId, chatId, e)
+            logger.warn("Error checking admin status", e)
             false
         }
     }

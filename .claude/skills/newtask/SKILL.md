@@ -70,7 +70,7 @@ Every new task page must include all five sections:
 
 ```
 ## 🎯 Goal
-{Restate the task goal in 1–3 sentences. What outcome is expected?}
+{Перетворіть мету задачі у 1-3 речення. Який результат очікується?}
 
 ## 🌿 Branch name
 feature/spovishun-{N}-{slug}
@@ -138,7 +138,7 @@ Report:
 - Do NOT report on or modify existing tasks
 - Do NOT branch from `main` — always from `develop`
 - Do NOT guess the task number — always fetch the board first
-- Do NOT skip any of the five page sections (Goal, Branch, Steps, DoD, prompt)
+- Do NOT skip any of the five page sections (Мета, Branch, Steps, DoD, prompt)
 
 ---
 
@@ -148,7 +148,7 @@ User: "нова задача: Add /ban command for admins"
 
 Expected outcome:
 - Task `feature/spovishun-{N}: Add /ban command for admins` created on the board with status `Not started`
-- Page contains Goal, Branch name, Steps, Definition of Done, and 🤖 prompt toggle
+- Page contains Мета, Branch name, Steps, Definition of Done, and 🤖 prompt toggle
 - Branch `feature/spovishun-{N}-add-ban-command` created from `develop` and checked out
 - User receives confirmation with task title and branch name
 

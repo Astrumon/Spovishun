@@ -1,0 +1,9 @@
+'use strict';
+
+module.exports = {
+  DATABASE_ID:      '3193462f68a980d69ec9c7ccc6329b88',
+  NOTION_VERSION:   '2022-06-28',
+  CLAUDE_MD_PAGE_ID: '31c3462f-68a9-819c-8150-ff31d729293e',
+  ROOT_PAGE_ID:     '3183462f-68a9-803a-a93a-e34eb81d2659',
+  DOCS_ROOT_ID:     '3193462f68a981b79936e2e45291df85',
+};

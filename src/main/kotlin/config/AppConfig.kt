@@ -6,7 +6,6 @@ class AppConfig {
     private val profile = System.getenv("PROFILE") ?: "dev"
     private val env = dotenv { ignoreIfMissing = true }
     val telegramBotToken: String = env["TELEGRAM_BOT_TOKEN"]
-    val telegramAdminIds: Set<Long> = env["ADMINS"].split(",").map { it.trim().toLong() }.toSet()
     
     // Database configuration (profile-specific prefix: DEV_ or PROD_)
     private val prefix = profile.uppercase()

@@ -21,7 +21,10 @@ class TelegramBot(
 
         dispatch {
             commandRegistry.commands.forEach { cmd ->
-                command(cmd.name) { cmd.execute(bot, update) }
+                command(cmd.name) {
+                    logger.info("Command '{}' invoked", cmd.name)
+                    cmd.execute(bot, update)
+                }
             }
 
             message(Filter.Text) {

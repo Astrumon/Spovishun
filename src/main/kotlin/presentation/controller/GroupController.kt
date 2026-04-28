@@ -1,9 +1,9 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.common.exception.BusinessException
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
+import com.ua.astrumon.common.util.UserListParser
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
@@ -11,14 +11,11 @@ import com.ua.astrumon.domain.model.badge
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
-import org.slf4j.LoggerFactory
-
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
     private val autoRegisterService: AutoRegisterService,
 ) : BaseController(memberService) {
-    private val logger = LoggerFactory.getLogger(GroupController::class.java)
 
     suspend fun getGroups(chatId: Long, member: Member, userRole: MemberRole): CommandResponse {
         autoRegisterService.ensureUserRegistered(
@@ -38,7 +35,7 @@ class GroupController(
                     groups.forEach { group ->
                         val names = if (group.members.isNotEmpty()) {
                             group.members.map { username ->
-                                val badge = memberService.getMemberByUsername(username)
+                                val badge = memberService.getMemberWithChatByUsername(chatId, username)
                                     .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
                                 "@$username$badge"
                             }
@@ -103,58 +100,89 @@ class GroupController(
     suspend fun addUserToGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
-        if (args.size < 2) {
+        if (args.isEmpty()) {
             return CommandResponse.Error("Використання: /addtogroup &lt;назва&gt; @username")
         }
 
         val key = args[0].lowercase()
-        val username = args[1].removePrefix("@")
-        logger.info("Processing addUserToGroup with key: '$key' and username: '$username'")
+        val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
 
-        return groupService.getGroupByKey(chatId, key).flatMap { group ->
-            groupService.addMemberToGroup(chatId, key, username).map { group }
-        }.fold(
-            onSuccess = { group ->
-                CommandResponse.Success("<b>$username</b> додано до <b>${group.name}</b>.")
-            },
+        if (usernames.isEmpty()) {
+            return CommandResponse.Error("Використання: /addtogroup &lt;назва&gt; @username")
+        }
+
+        val group = groupService.getGroupByKey(chatId, key).fold(
+            onSuccess = { it },
             onFailure = { exception ->
-                when (exception) {
-                    is ValidationException -> CommandResponse.Error("Неможливо додати @$username. Перевірте чи існує такий користувач")
-                    is ResourceNotFoundException -> {
-                        if (exception.resource == "Group") CommandResponse.NotFound("Група", key)
-                        else CommandResponse.NotFound("Користувач", username)
-                    }
-                    is DuplicateResourceException -> CommandResponse.Error("@$username вже в групі <b>$key</b>.")
+                return when (exception) {
+                    is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
                     else -> CommandResponse.Error(exception.userMessage)
                 }
             }
         )
+
+        val succeeded = mutableListOf<String>()
+        val failed = mutableListOf<Pair<String, String>>()
+
+        for (username in usernames) {
+            groupService.addMemberToGroup(chatId, key, username).fold(
+                onSuccess = { succeeded.add("@$username") },
+                onFailure = { exception ->
+                    val reason = when (exception) {
+                        is ValidationException -> "не зареєстровано"
+                        is DuplicateResourceException -> "вже в групі"
+                        is ResourceNotFoundException -> "не знайдено"
+                        else -> "помилка"
+                    }
+                    failed.add("@$username" to reason)
+                }
+            )
+        }
+
+        val lines = mutableListOf<String>()
+        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} додано до <b>${group.name}</b>.")
+        if (failed.isNotEmpty()) lines.add("Не додано: ${failed.joinToString(", ") { "${it.first} (${it.second})" }}.")
+        return CommandResponse.Success(lines.joinToString("\n"))
     }
 
     suspend fun removeUserFromGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
-        if (args.size < 2) {
+        if (args.isEmpty()) {
             return CommandResponse.Error("Використання: /removefromgroup &lt;назва&gt; @username")
         }
 
         val key = args[0].lowercase()
-        val username = args[1].removePrefix("@")
+        val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
 
-        return groupService.getGroupByKey(chatId, key).flatMap { group ->
-            groupService.removeMemberFromGroup(chatId, key, username).map { group }
-        }.fold(
-            onSuccess = { group ->
-                CommandResponse.Success("<b>$username</b> видалено з <b>${group.name}</b>.")
-            },
+        if (usernames.isEmpty()) {
+            return CommandResponse.Error("Використання: /removefromgroup &lt;назва&gt; @username")
+        }
+
+        val group = groupService.getGroupByKey(chatId, key).fold(
+            onSuccess = { it },
             onFailure = { exception ->
-                when (exception) {
+                return when (exception) {
                     is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
-                    is BusinessException -> CommandResponse.Error("$username не знайдено в групі.")
                     else -> CommandResponse.Error(exception.userMessage)
                 }
             }
         )
+
+        val succeeded = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+
+        for (username in usernames) {
+            groupService.removeMemberFromGroup(chatId, key, username).fold(
+                onSuccess = { succeeded.add("@$username") },
+                onFailure = { failed.add("@$username") }
+            )
+        }
+
+        val lines = mutableListOf<String>()
+        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} видалено з <b>${group.name}</b>.")
+        if (failed.isNotEmpty()) lines.add("Не знайдено в групі: ${failed.joinToString(", ")}.")
+        return CommandResponse.Success(lines.joinToString("\n"))
     }
 
     suspend fun grantRole(chatId: Long, userId: Long, args: List<String>): CommandResponse {
@@ -162,7 +190,7 @@ class GroupController(
 
         if (args.size < 2) return CommandResponse.Error("Використання: /grantrole @user1,@user2 moderator|admin|member")
 
-        val usernames = args[0].split(",").map { it.trim().removePrefix("@") }.filter { it.isNotEmpty() }
+        val usernames = UserListParser.parseUserList(args[0])
         val roleArg = args[1].uppercase()
 
         val role = runCatching { MemberRole.valueOf(roleArg) }.getOrNull()
