@@ -22,8 +22,6 @@ class StartCommand(
         val chatId = update.message?.chat?.id ?: return
         val user = update.message?.from ?: return
 
-        logger.info("Start command invoked - chatId: {}, userId: {}, username: {}", chatId, user.id, user.username)
-
         try {
             val chatResponse = bot.getChat(ChatId.fromId(chatId))
             if (chatResponse.isSuccess && chatResponse.getOrNull() != null) {
@@ -42,7 +40,7 @@ class StartCommand(
                                 )
                             }
                         } else {
-                            logger.warn("Failed to get chat administrators for chatId: {}", chatId)
+                            logger.warn("Failed to get chat administrators")
                         }
                         if (chat.type == "group") {
                             bot.reply(chatId, buildInvitationText())
@@ -51,7 +49,7 @@ class StartCommand(
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error processing chat info for chatId: {}", chatId, e)
+            logger.error("Error processing chat info", e)
         }
 
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)

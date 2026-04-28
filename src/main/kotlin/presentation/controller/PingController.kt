@@ -73,7 +73,7 @@ class PingController(
                 if (memberResult.isSuccess) {
                     validMembers.add(memberUsername)
                 } else {
-                    logger.warn("Member '{}' from group '{}' not found in member database", memberUsername, groupKey)
+                    logger.warn("Member from group '{}' not found in member database", groupKey)
                 }
             }
         }
