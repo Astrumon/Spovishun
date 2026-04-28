@@ -4,20 +4,14 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.toText
-import org.slf4j.LoggerFactory
-
 class NewGroupCommand(
     private val groupController: GroupController,
 ) : BotCommand {
 
     override val name = "newgroup"
 
-    private val logger = LoggerFactory.getLogger(NewGroupCommand::class.java)
-
     override suspend fun execute(bot: Bot, update: Update) {
         val (chatId, userId, args) = update.messageContext() ?: return
-
-        logger.info("NewGroup command invoked - chatId: {}, userId: {}, args: {}", chatId, userId, args)
 
         val text = groupController.createGroup(chatId = chatId, userId = userId, args = args).toText(
             successPrefix = "✅ ",

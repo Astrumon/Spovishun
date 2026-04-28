@@ -7,8 +7,6 @@ import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.util.BotAdminUtils
-import org.slf4j.LoggerFactory
-
 class MembersCommand(
     private val membersController: MembersController,
     private val botAdminUtils: BotAdminUtils,
@@ -16,13 +14,9 @@ class MembersCommand(
 
     override val name = "members"
 
-    private val logger = LoggerFactory.getLogger(MembersCommand::class.java)
-
     override suspend fun execute(bot: Bot, update: Update) {
         val user = update.message?.from ?: return
         val chatId = update.message?.chat?.id ?: return
-
-        logger.info("Members command invoked - chatId: {}, userId: {}, username: {}", chatId, user.id, user.username)
 
         val member = Member(
             id = 0,

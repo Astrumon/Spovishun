@@ -31,9 +31,9 @@ class MessageHandler(
             chatType = message.chat.type,
             userRole = userRole,
         ).onSuccess { member ->
-            logger.debug("User ${member.username} is registered (ID: ${member.id})")
+            logger.debug("Member auto-register succeeded")
         }.onFailure { error ->
-            logger.error("Failed to auto-register user ${username}", error)
+            logger.error("Failed to auto-register member", error)
         }
     }
 }
