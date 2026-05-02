@@ -1,6 +1,7 @@
 services:
   bot:
     build: .
+    image: ghcr.io/astrumon/spovishun:latest
     container_name: spovishun-bot
     env_file: .env
     environment:
