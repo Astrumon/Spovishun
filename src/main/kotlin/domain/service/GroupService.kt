@@ -4,13 +4,10 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupMemberRepository
 import com.ua.astrumon.domain.repository.GroupRepository
-import org.slf4j.LoggerFactory
-
 class GroupService(
     private val groupRepository: GroupRepository,
     private val groupMemberRepository: GroupMemberRepository
 ) {
-    private val logger = LoggerFactory.getLogger(GroupService::class.java)
 
     suspend fun getAllGroupsWithMembers(chatId: Long): ResultContainer<List<GroupWithMembers>> {
         return groupRepository.getAllGroups(chatId).flatMap { groups ->
@@ -48,7 +45,6 @@ class GroupService(
     }
 
     suspend fun getGroupByKey(chatId: Long, key: String): ResultContainer<GroupWithMembers> {
-        logger.info("getGroupByKey called with chatId=$chatId, key='$key'")
         return groupRepository.findGroupByKey(chatId, key).flatMap { group ->
             groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
                 GroupWithMembers(

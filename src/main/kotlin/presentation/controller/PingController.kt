@@ -26,7 +26,7 @@ class PingController(
 
         val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
-            logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.message)
+            logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.let { it::class.simpleName })
             return CommandResponse.Error("Failed to load members")
         }
 

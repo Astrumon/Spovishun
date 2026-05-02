@@ -24,6 +24,9 @@ object Application : KoinComponent {
         initializeDatabase()
 
         val bot = telegramBot.create(config.telegramBotToken)
+        if (!telegramBot.verifyIdentity(bot, config.expectedBotUsername)) {
+            throw IllegalStateException("Bot identity check failed — refusing to start")
+        }
         telegramBot.startPolling(bot)
     }
 

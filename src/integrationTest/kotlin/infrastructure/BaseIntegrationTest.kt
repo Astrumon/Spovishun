@@ -33,6 +33,7 @@ import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.config.AppConfig
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -140,7 +141,7 @@ abstract class BaseIntegrationTest {
         removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController)
         pingAllCommand = PingAllCommand(pingController, botAdminUtils)
         pingGroupCommand = PingGroupCommand(pingController, botAdminUtils)
-        messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
+        messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
     }
 
     @AfterTest

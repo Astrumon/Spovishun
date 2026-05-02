@@ -18,10 +18,7 @@ object DatabaseFactory {
 
     fun initialize(config: AppConfig) {
         try {
-            logger.info(
-                "Initializing DB: url={}, driver={}, poolSize={}",
-                config.databaseUrl, config.databaseDriver, config.databasePoolSize
-            )
+            logger.info("Initializing database")
 
             val hikariConfig = DataSourceFactory.create(
                 url = config.databaseUrl,
