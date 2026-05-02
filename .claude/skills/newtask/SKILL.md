@@ -35,18 +35,16 @@ If the user already supplied both in their message, use them directly — do NOT
 
 ## Step 2: Determine next task number
 
-Fetch the board to find the current highest N:
-```
-Notion:notion-search(
-  query: "",
-  data_source_url: "collection://3193462f-68a9-80b8-99b9-000bcbf3b536"
-)
+Query the 10 most recently created tasks (O(1), no pagination issues):
+```bash
+node scripts/notion/get-board.js --latest --format json
 ```
 
-Scan all task names for the pattern `feature/spovishun-{N}:`, find the maximum N.
-Next task number = max N + 1.
+Iterate through the returned array in order. Find the first `title` that matches the pattern
+`feature/spovishun-{N}:` and extract N. Next task number = N + 1.
 
-If the board is empty or unreadable — stop and inform the user. Do NOT guess or invent a number.
+If no task in the array matches the pattern — stop and inform the user. Do NOT guess or invent a number.
+If the array is empty (board has no tasks) — start from 1.
 
 ---
 
