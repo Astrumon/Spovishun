@@ -12,15 +12,17 @@ const VALID_FORMATS = ['json', 'md', 'text'];
 
 function parseArgs(argv) {
   let priorityTier = false;
+  let latest = false;
   let status = 'To do';
   let format = 'json';
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--priority-tier') { priorityTier = true; }
+    else if (argv[i] === '--latest') { latest = true; }
     else if (argv[i] === '--status' && argv[i + 1]) { status = argv[++i]; }
     else if (argv[i].startsWith('--format=')) { format = argv[i].slice(9); }
     else if (argv[i] === '--format' && argv[i + 1]) { format = argv[++i]; }
   }
-  return { priorityTier, status, format };
+  return { priorityTier, latest, status, format };
 }
 
 function mapPage(page) {
@@ -62,9 +64,9 @@ async function main() {
     process.exit(2);
   }
 
-  const { priorityTier, status, format } = parseArgs(process.argv.slice(2));
+  const { priorityTier, latest, status, format } = parseArgs(process.argv.slice(2));
 
-  if (!VALID_STATUSES.includes(status)) {
+  if (!latest && !VALID_STATUSES.includes(status)) {
     process.stderr.write(`Error: invalid status "${status}". Valid: ${VALID_STATUSES.join(', ')}\n`);
     process.exit(1);
   }
@@ -76,7 +78,17 @@ async function main() {
 
   let pages;
 
-  if (priorityTier) {
+  if (latest) {
+    const result = await http.post(token, `/v1/databases/${DATABASE_ID}/query`, {
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+      page_size: 10,
+    });
+    if (result?.object === 'error') {
+      process.stderr.write(`Notion API error: ${result.message || result.code}\n`);
+      process.exit(1);
+    }
+    pages = result?.results || [];
+  } else if (priorityTier) {
     const { candidates } = await queryByPriorityTier(http, token, status, new Set());
     pages = candidates;
   } else {
