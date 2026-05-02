@@ -30,40 +30,40 @@ class AutoRegisterService(
             chatService.ensureChat(chatId, chatTitle, chatType)
                 .fold(
                     onSuccess = { chatCache.markKnown(chatId) },
-                    onFailure = { error -> logger.error("Failed to ensure chat registration for chatId: $chatId", error) }
+                    onFailure = { error -> logger.error("Failed to ensure chat registration: ${error::class.simpleName}") }
                 )
         }
 
         if (userId == -1L) {
-            logger.warn("Attempted to register user with invalid userId: -1, username: $username")
+            logger.warn("Attempted to register user with invalid userId: -1")
             return ResultContainer.failure(ValidationException("Cannot register user with invalid userId: -1"))
         }
 
         userCache.get(chatId, username)?.let { cached ->
-            logger.debug("Cache hit for user $username in chat $chatId")
+            logger.debug("Cache hit for user")
             return ResultContainer.success(cached)
         }
 
         return memberService.getMemberWithChatByUsername(chatId, username)
             .fold(
                 onSuccess = { memberWithChat ->
-                    logger.debug("User $username already registered in chat $chatId")
+                    logger.debug("User already registered")
                     userCache.put(chatId, username, memberWithChat)
                     ResultContainer.success(memberWithChat)
                 },
                 onFailure = { error ->
                     if (error is ResourceNotFoundException) {
-                        logger.info("Auto-registering user: $username (ID: $userId) in chat: $chatId")
+                        logger.info("Auto-registering new user")
                         memberService.createMember(chatId, userId, username, firstName, role = userRole)
                             .onSuccess { created ->
-                                logger.info("Auto-registered user: $username")
+                                logger.info("Auto-registered user successfully")
                                 userCache.put(chatId, username, created)
                             }
                             .onFailure { createError ->
-                                logger.error("Failed to auto-register user: $username", createError)
+                                logger.error("Failed to auto-register user: ${createError::class.simpleName}")
                             }
                     } else {
-                        logger.error("Member lookup failed for user: $username", error)
+                        logger.error("Member lookup failed: ${error::class.simpleName}")
                         ResultContainer.failure(error)
                     }
                 }

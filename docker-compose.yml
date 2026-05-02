@@ -3,12 +3,16 @@ services:
     build: .
     image: ghcr.io/astrumon/spovishun:latest
     container_name: spovishun-bot
-    env_file: .env
     environment:
-      # Override DB host for Docker networking (service name 'postgres', not 'localhost')
+      PROFILE: ${PROFILE:-dev}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      EXPECTED_BOT_USERNAME: ${EXPECTED_BOT_USERNAME:-}
+      ALLOWED_CHAT_IDS: ${ALLOWED_CHAT_IDS:-}
+      # Dev DB — override host to Docker service name
       DEV_DATABASE_URL: jdbc:postgresql://postgres:5432/spovishun_dev
-      DEV_DATABASE_USERNAME: postgres
+      DEV_DATABASE_USERNAME: ${DEV_DATABASE_USERNAME:-postgres}
       DEV_DATABASE_PASSWORD: ${DEV_DATABASE_PASSWORD}
+      # Prod DB
       PROD_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-spovishun_prod}
       PROD_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
       PROD_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}

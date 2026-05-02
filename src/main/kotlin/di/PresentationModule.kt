@@ -45,7 +45,7 @@ val presentationModule = module {
 
     // Bot components
     single { CommandRegistry(getAll()) }
-    single { TelegramBot(get(), get()) }
-    single { MessageHandler(get(), get()) }
+    single { TelegramBot(get(), get(), get()) }
+    single { MessageHandler(get(), get(), get()) }
     single { BotAdminUtils() }
 }

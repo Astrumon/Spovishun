@@ -1,5 +1,6 @@
 package com.ua.astrumon.presentation.controller
 
+import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
@@ -29,9 +30,9 @@ class MembersController(
                     val lines = mutableListOf("📋 <b>Зареєстровані учасники:</b>")
                     members.forEach { m ->
                         val display = if (m.username.startsWith("user_")) {
-                            m.firstName
+                            m.firstName.escapeHtml()
                         } else {
-                            "@${m.username}${m.role.badge()}"
+                            "@${m.username.escapeHtml()}${m.role.badge()}"
                         }
                         lines.add("• $display")
                     }

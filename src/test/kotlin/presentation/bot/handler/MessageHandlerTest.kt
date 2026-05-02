@@ -6,6 +6,7 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
@@ -24,6 +25,7 @@ class MessageHandlerTest {
 
     private val autoRegisterService: AutoRegisterService = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
+    private val config: AppConfig = mockk(relaxed = true)
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var messageHandler: MessageHandler
 
@@ -33,7 +35,7 @@ class MessageHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
+        messageHandler = MessageHandler(autoRegisterService, botAdminUtils, config)
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 

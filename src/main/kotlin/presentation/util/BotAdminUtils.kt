@@ -19,7 +19,7 @@ class BotAdminUtils {
                 false
             }
         } catch (e: Exception) {
-            logger.warn("Error checking admin status", e)
+            logger.warn("Error checking admin status: ${e::class.simpleName}")
             false
         }
     }

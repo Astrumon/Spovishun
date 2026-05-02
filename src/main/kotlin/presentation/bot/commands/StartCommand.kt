@@ -3,9 +3,10 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Update
+import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.controller.RegistrationController
+import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import org.slf4j.LoggerFactory
 
@@ -49,7 +50,7 @@ class StartCommand(
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error processing chat info", e)
+            logger.error("Error processing chat info: ${e::class.simpleName}")
         }
 
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
@@ -59,12 +60,6 @@ class StartCommand(
         val text = response.toText()
 
         bot.reply(chatId, text)
-    }
-
-    private fun sanitizeUsername(username: String?, userId: Long): String {
-        if (username.isNullOrBlank()) return "user_$userId"
-        val sanitized = username.trim().replace(Regex("[^a-zA-Z0-9_]"), "_").take(32)
-        return sanitized.ifEmpty { "user_$userId" }
     }
 
     private fun buildInvitationText(): String = """

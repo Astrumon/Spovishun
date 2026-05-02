@@ -2,6 +2,8 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
+import com.ua.astrumon.common.util.escapeHtml
+import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -17,12 +19,12 @@ class PingGroupCommand(
         val user = update.message?.from ?: return
         val args = update.message?.text?.split(" ")?.drop(1) ?: emptyList()
 
-        val username = user.username ?: "user_${user.id}"
+        val username = sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
         val text = pingController.pingGroup(chatId, user.id, username, user.firstName, userRole, args).toText(
             onNotFound = {
-                val available = it.available.joinToString(", ").ifEmpty { "—" }
-                "Групу <b>${it.identifier}</b> не знайдено.\nДоступні: $available"
+                val available = it.available.joinToString(", ") { k -> k.escapeHtml() }.ifEmpty { "—" }
+                "Групу <b>${it.identifier.escapeHtml()}</b> не знайдено.\nДоступні: $available"
             },
         )
 

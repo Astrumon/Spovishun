@@ -4,13 +4,14 @@ import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.util.UserListParser
-import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.badge
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.presentation.CommandResponse
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
@@ -37,12 +38,12 @@ class GroupController(
                             group.members.map { username ->
                                 val badge = memberService.getMemberWithChatByUsername(chatId, username)
                                     .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
-                                "@$username$badge"
+                                "@${username.escapeHtml()}$badge"
                             }
                         } else {
                             listOf("—")
                         }
-                        lines.add("• <b>${group.name}</b> (/ping ${group.key}): ${names.joinToString(", ")}")
+                        lines.add("• <b>${group.name.escapeHtml()}</b> (/ping ${group.key.escapeHtml()}): ${names.joinToString(", ")}")
                     }
                     CommandResponse.Success(lines.joinToString("\n"))
                 }
@@ -62,11 +63,11 @@ class GroupController(
 
         return groupService.createGroup(chatId, name).fold(
             onSuccess = {
-                CommandResponse.Success("Група <b>$name</b> створена!\nВиклик: /ping $name")
+                CommandResponse.Success("Група <b>${name.escapeHtml()}</b> створена!\nВиклик: /ping ${name.escapeHtml()}")
             },
             onFailure = { exception ->
                 when (exception) {
-                    is DuplicateResourceException -> CommandResponse.Error("Група <b>$name</b> вже існує.")
+                    is DuplicateResourceException -> CommandResponse.Error("Група <b>${name.escapeHtml()}</b> вже існує.")
                     else -> CommandResponse.Error(exception.userMessage)
                 }
             }
@@ -86,7 +87,7 @@ class GroupController(
             groupService.deleteGroup(chatId, key).map { group.name }
         }.fold(
             onSuccess = { groupName ->
-                CommandResponse.Success("Група <b>$groupName</b> видалена.")
+                CommandResponse.Success("Група <b>${groupName.escapeHtml()}</b> видалена.")
             },
             onFailure = { exception ->
                 when (exception) {
@@ -126,7 +127,7 @@ class GroupController(
 
         for (username in usernames) {
             groupService.addMemberToGroup(chatId, key, username).fold(
-                onSuccess = { succeeded.add("@$username") },
+                onSuccess = { succeeded.add("@${username.escapeHtml()}") },
                 onFailure = { exception ->
                     val reason = when (exception) {
                         is ValidationException -> "не зареєстровано"
@@ -134,13 +135,13 @@ class GroupController(
                         is ResourceNotFoundException -> "не знайдено"
                         else -> "помилка"
                     }
-                    failed.add("@$username" to reason)
+                    failed.add("@${username.escapeHtml()}" to reason)
                 }
             )
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} додано до <b>${group.name}</b>.")
+        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} додано до <b>${group.name.escapeHtml()}</b>.")
         if (failed.isNotEmpty()) lines.add("Не додано: ${failed.joinToString(", ") { "${it.first} (${it.second})" }}.")
         return CommandResponse.Success(lines.joinToString("\n"))
     }
@@ -174,13 +175,13 @@ class GroupController(
 
         for (username in usernames) {
             groupService.removeMemberFromGroup(chatId, key, username).fold(
-                onSuccess = { succeeded.add("@$username") },
-                onFailure = { failed.add("@$username") }
+                onSuccess = { succeeded.add("@${username.escapeHtml()}") },
+                onFailure = { failed.add("@${username.escapeHtml()}") }
             )
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} видалено з <b>${group.name}</b>.")
+        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} видалено з <b>${group.name.escapeHtml()}</b>.")
         if (failed.isNotEmpty()) lines.add("Не знайдено в групі: ${failed.joinToString(", ")}.")
         return CommandResponse.Success(lines.joinToString("\n"))
     }
@@ -194,7 +195,7 @@ class GroupController(
         val roleArg = args[1].uppercase()
 
         val role = runCatching { MemberRole.valueOf(roleArg) }.getOrNull()
-            ?: return CommandResponse.Error("Невідома роль: ${args[1]}. Доступні: moderator, admin, member")
+            ?: return CommandResponse.Error("Невідома роль: ${args[1].escapeHtml()}. Доступні: moderator, admin, member")
 
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<String>()
@@ -203,8 +204,8 @@ class GroupController(
             memberService.getMemberByUsername(username)
                 .flatMap { member -> memberService.setMemberRole(chatId, member.userId, role) }
                 .fold(
-                    onSuccess = { succeeded.add("@$username") },
-                    onFailure = { failed.add("@$username") }
+                    onSuccess = { succeeded.add("@${username.escapeHtml()}") },
+                    onFailure = { failed.add("@${username.escapeHtml()}") }
                 )
         }
 
