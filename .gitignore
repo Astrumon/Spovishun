@@ -145,3 +145,8 @@ yarn-error.log*
 # Skill temp files
 .claude/tmp/
 /docs/
+
+# ======================
+# Backups
+# ======================
+backups/

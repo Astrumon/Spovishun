@@ -12,7 +12,7 @@ A Kotlin-based Telegram bot built with Clean Architecture, Koin DI, Exposed ORM,
 | ORM | Exposed 0.55.0 |
 | Migrations | Flyway 10.x |
 | Database (dev) | PostgreSQL (local) |
-| Database (prod) | PostgreSQL (Neon) |
+| Database (prod) | PostgreSQL 16 (self-hosted, Docker on Oracle Cloud VM) |
 | Config | dotenv-kotlin |
 | Logging | SLF4J + Logback |
 
@@ -53,7 +53,70 @@ src/main/resources/
 cp .env.example .env   # fill in your values
 
 ./gradlew runDev    # PROFILE=dev  — local PostgreSQL + Flyway
-./gradlew runProd   # PROFILE=prod — Neon PostgreSQL + Flyway
+./gradlew runProd   # PROFILE=prod — cloud PostgreSQL + Flyway
+```
+
+## Deployment
+
+Production deploys automatically on merge to `main` via `.github/workflows/deploy.yml`.
+The workflow builds a Docker image, pushes to `ghcr.io`, then SSHes to the Oracle Cloud VM and runs:
+```bash
+docker compose --profile prod pull bot
+docker compose --profile prod up -d
+```
+
+### First-time VM setup
+```bash
+# 1. Clone repo and create .env
+git clone https://github.com/Astrumon/spovishun.git ~/Spovishun
+cd ~/Spovishun
+cp .env.example .env
+nano .env  # set TELEGRAM_BOT_TOKEN, POSTGRES_PASSWORD, PROD_DATABASE_PASSWORD, etc.
+
+# 2. Start the full stack
+docker compose --profile prod up -d
+
+# 3. Verify both services are healthy
+docker compose ps
+docker compose logs bot --tail 50
+```
+
+## Backups
+
+`scripts/backup.sh` creates a compressed daily backup of the production database.
+
+```bash
+# Manual run (from ~/Spovishun on the VM)
+chmod +x scripts/backup.sh
+./scripts/backup.sh
+
+# Output: backups/spovishun_YYYYMMDD_HHMMSS.dump.gz
+# Log:    backups/backup.log
+```
+
+### Automated daily backup (cron)
+```bash
+crontab -e
+# Add:
+0 3 * * * cd /home/ubuntu/Spovishun && ./scripts/backup.sh >> backups/cron.log 2>&1
+```
+
+Backups older than 14 days are removed automatically.
+
+### Restore from backup
+```bash
+# 1. Copy dump into the container
+docker cp backups/spovishun_YYYYMMDD_HHMMSS.dump.gz spovishun-db:/tmp/restore.dump.gz
+
+# 2. Decompress and restore
+docker exec spovishun-db bash -c "gunzip -c /tmp/restore.dump.gz > /tmp/restore.dump"
+docker exec spovishun-db pg_restore \
+  -U postgres -d spovishun_prod \
+  --no-owner --no-acl --clean --if-exists \
+  /tmp/restore.dump
+
+# 3. Cleanup
+docker exec spovishun-db rm /tmp/restore.dump /tmp/restore.dump.gz
 ```
 
 ## Testing
@@ -117,7 +180,7 @@ claude   # launch Claude Code in the project directory
 | `DEV_DATABASE_DRIVER` | `org.postgresql.Driver` |
 | `DEV_DATABASE_USERNAME` | `postgres` |
 | `DEV_DATABASE_PASSWORD` | `secret` |
-| `PROD_DATABASE_URL` | `jdbc:postgresql://...neon.tech/spovishun` |
+| `PROD_DATABASE_URL` | `jdbc:postgresql://postgres:5432/spovishun_prod` |
 | `PROD_DATABASE_DRIVER` | `org.postgresql.Driver` |
 | `PROD_DATABASE_USERNAME` | `postgres` |
 | `PROD_DATABASE_PASSWORD` | `secret` |
