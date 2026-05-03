@@ -9,31 +9,19 @@ import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupRepository
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+
 class GroupRepositoryImpl : GroupRepository {
 
     override suspend fun getAllGroups(chatId: Long): ResultContainer<List<Group>> = safeDbQuery {
-        Groups.selectAll().where { Groups.chatId eq chatId }.map { row ->
-            Group(
-                id = row[Groups.id].value,
-                chatId = row[Groups.chatId],
-                name = row[Groups.name],
-                memberUsernames = emptyList()
-            )
-        }
+        Groups.selectAll().where { Groups.chatId eq chatId }.map { it.toGroup() }
     }
 
     override suspend fun findGroupByKey(chatId: Long, key: String): ResultContainer<Group> = safeDbQuery {
-        val result = Groups.selectAll()
+        Groups.selectAll()
             .where { (Groups.chatId eq chatId) and (Groups.name eq key) }
             .singleOrNull()
-        result?.let { row ->
-            Group(
-                id = row[Groups.id].value,
-                chatId = row[Groups.chatId],
-                name = row[Groups.name],
-                memberUsernames = emptyList()
-            )
-        } ?: throw ResourceNotFoundException("Group", key)
+            ?.toGroup()
+            ?: throw ResourceNotFoundException("Group", key)
     }
 
     override suspend fun createGroup(chatId: Long, name: String): ResultContainer<Group> = safeDbQuery {
