@@ -2,6 +2,7 @@ package com.ua.astrumon.presentation.controller
 
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.badge
@@ -25,18 +26,18 @@ class MembersController(
         return memberService.getAllMembersInChat(chatId).fold(
             onSuccess = { members ->
                 if (members.isEmpty()) {
-                    CommandResponse.Success("📋 <b>Немає зареєстрованих учасників</b>.\n\nНапиши будь-яке повідомлення, щоб зареєструватися!")
+                    CommandResponse.Success(BotMessages.Member.empty)
                 } else {
-                    val lines = mutableListOf("📋 <b>Зареєстровані учасники:</b>")
+                    val lines = mutableListOf(BotMessages.Member.listHeader)
                     members.forEach { m ->
                         val display = if (m.username.startsWith("user_")) {
                             m.firstName.escapeHtml()
                         } else {
                             "@${m.username.escapeHtml()}${m.role.badge()}"
                         }
-                        lines.add("• $display")
+                        lines.add(BotMessages.Member.listItem(display))
                     }
-                    CommandResponse.Success(lines.joinToString("\n") + "\n\n📝 Всього: ${members.size} учасників")
+                    CommandResponse.Success(lines.joinToString("\n") + BotMessages.Member.totalSuffix(members.size))
                 }
             },
             onFailure = { CommandResponse.Error(it.userMessage) }

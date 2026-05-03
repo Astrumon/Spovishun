@@ -5,6 +5,7 @@ import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 import org.slf4j.LoggerFactory
 
 class PingController(
@@ -27,17 +28,17 @@ class PingController(
         val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
             logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.let { it::class.simpleName })
-            return CommandResponse.Error("Failed to load members")
+            return CommandResponse.Error(BotMessages.Error.loadMembersInternal)
         }
 
         val members = membersResult.getOrNull() ?: emptyList()
         if (members.isEmpty()) {
-            return CommandResponse.Success("Немає зареєстрованих учасників.")
+            return CommandResponse.Success(BotMessages.Ping.noRegistered)
         }
 
         val extra = args.joinToString(" ")
-        val crabs = "🗿".repeat(members.size)
-        val header = if (extra.isNotEmpty()) "📢 $crabs $extra" else "📢 $crabs"
+        val crabs = BotMessages.Ping.crabAll.repeat(members.size)
+        val header = BotMessages.Ping.headerAll(crabs, extra)
         val mentions = members.joinToString(" ") { "@${it.username}" }
         return CommandResponse.Success("$header\n\n$mentions")
     }
@@ -53,7 +54,7 @@ class PingController(
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
         if (args.isEmpty()) {
-            return CommandResponse.Error("Використання: /ping &lt;група&gt; [текст]")
+            return CommandResponse.Error(BotMessages.Ping.usage)
         }
 
         val groupKey = args[0].lowercase()
@@ -79,12 +80,12 @@ class PingController(
         }
 
         if (validMembers.isEmpty()) {
-            return CommandResponse.Success("Немає кого пінгувати.")
+            return CommandResponse.Success(BotMessages.Ping.noTargets)
         }
 
         val extra = args.drop(1).joinToString(" ")
-        val crabs = "🦞".repeat(validMembers.size)
-        val header = if (extra.isNotEmpty()) "📣 $crabs $extra" else "📣 $crabs"
+        val crabs = BotMessages.Ping.crabGroup.repeat(validMembers.size)
+        val header = BotMessages.Ping.headerGroup(crabs, extra)
         val mentions = validMembers.joinToString(" ") { "@$it" }
         return CommandResponse.Success("$header\n\n$mentions")
     }

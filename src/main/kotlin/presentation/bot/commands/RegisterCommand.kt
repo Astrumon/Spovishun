@@ -3,6 +3,7 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.sanitizeUsername
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -22,7 +23,7 @@ class RegisterCommand(
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
         val response = registrationController.register(chatId, user.id, username, user.firstName, userRole)
 
-        val text = response.toText("✅ ")
+        val text = response.toText(BotMessages.Success.prefix)
 
         bot.reply(chatId, text)
     }

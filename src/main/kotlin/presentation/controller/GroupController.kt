@@ -12,6 +12,7 @@ import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
@@ -30,9 +31,9 @@ class GroupController(
         return groupService.getAllGroupsWithMembers(chatId).fold(
             onSuccess = { groups ->
                 if (groups.isEmpty()) {
-                    CommandResponse.Success("<b>Немає груп</b>. Створи: /newgroup &lt;назва&gt;")
+                    CommandResponse.Success(BotMessages.Group.empty)
                 } else {
-                    val lines = mutableListOf("📋 <b>Групи:</b>")
+                    val lines = mutableListOf(BotMessages.Group.listHeader)
                     groups.forEach { group ->
                         val names = if (group.members.isNotEmpty()) {
                             group.members.map { username ->
@@ -43,7 +44,7 @@ class GroupController(
                         } else {
                             listOf("—")
                         }
-                        lines.add("• <b>${group.name.escapeHtml()}</b> (/ping ${group.key.escapeHtml()}): ${names.joinToString(", ")}")
+                        lines.add(BotMessages.Group.listItem(group.name.escapeHtml(), group.key.escapeHtml(), names.joinToString(", ")))
                     }
                     CommandResponse.Success(lines.joinToString("\n"))
                 }
@@ -56,18 +57,18 @@ class GroupController(
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
-            return CommandResponse.Error("Не правильно використовуєш команду, спробуй: /newgroup &lt;назва&gt;")
+            return CommandResponse.Error(BotMessages.Group.usageNew)
         }
 
         val name = args[0].lowercase()
 
         return groupService.createGroup(chatId, name).fold(
             onSuccess = {
-                CommandResponse.Success("Група <b>${name.escapeHtml()}</b> створена!\nВиклик: /ping ${name.escapeHtml()}")
+                CommandResponse.Success(BotMessages.Group.created(name.escapeHtml()))
             },
             onFailure = { exception ->
                 when (exception) {
-                    is DuplicateResourceException -> CommandResponse.Error("Група <b>${name.escapeHtml()}</b> вже існує.")
+                    is DuplicateResourceException -> CommandResponse.Error(BotMessages.Group.exists(name.escapeHtml()))
                     else -> CommandResponse.Error(exception.userMessage)
                 }
             }
@@ -78,7 +79,7 @@ class GroupController(
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
-            return CommandResponse.Error("Використання: /delgroup &lt;назва&gt;")
+            return CommandResponse.Error(BotMessages.Group.usageDel)
         }
 
         val key = args[0].lowercase()
@@ -87,7 +88,7 @@ class GroupController(
             groupService.deleteGroup(chatId, key).map { group.name }
         }.fold(
             onSuccess = { groupName ->
-                CommandResponse.Success("Група <b>${groupName.escapeHtml()}</b> видалена.")
+                CommandResponse.Success(BotMessages.Group.deleted(groupName.escapeHtml()))
             },
             onFailure = { exception ->
                 when (exception) {
@@ -102,14 +103,14 @@ class GroupController(
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
-            return CommandResponse.Error("Використання: /addtogroup &lt;назва&gt; @username")
+            return CommandResponse.Error(BotMessages.Group.usageAdd)
         }
 
         val key = args[0].lowercase()
         val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
 
         if (usernames.isEmpty()) {
-            return CommandResponse.Error("Використання: /addtogroup &lt;назва&gt; @username")
+            return CommandResponse.Error(BotMessages.Group.usageAdd)
         }
 
         val group = groupService.getGroupByKey(chatId, key).fold(
@@ -130,10 +131,10 @@ class GroupController(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
                 onFailure = { exception ->
                     val reason = when (exception) {
-                        is ValidationException -> "не зареєстровано"
-                        is DuplicateResourceException -> "вже в групі"
-                        is ResourceNotFoundException -> "не знайдено"
-                        else -> "помилка"
+                        is ValidationException -> BotMessages.Group.failureNotRegistered
+                        is DuplicateResourceException -> BotMessages.Group.failureAlreadyIn
+                        is ResourceNotFoundException -> BotMessages.Group.failureNotFound
+                        else -> BotMessages.Group.failureError
                     }
                     failed.add("@${username.escapeHtml()}" to reason)
                 }
@@ -141,8 +142,8 @@ class GroupController(
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} додано до <b>${group.name.escapeHtml()}</b>.")
-        if (failed.isNotEmpty()) lines.add("Не додано: ${failed.joinToString(", ") { "${it.first} (${it.second})" }}.")
+        if (succeeded.isNotEmpty()) lines.add(BotMessages.Group.addedTo(succeeded.joinToString(", "), group.name.escapeHtml()))
+        if (failed.isNotEmpty()) lines.add(BotMessages.Group.notAdded(failed.joinToString(", ") { "${it.first} (${it.second})" }))
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 
@@ -150,14 +151,14 @@ class GroupController(
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
-            return CommandResponse.Error("Використання: /removefromgroup &lt;назва&gt; @username")
+            return CommandResponse.Error(BotMessages.Group.usageRemove)
         }
 
         val key = args[0].lowercase()
         val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
 
         if (usernames.isEmpty()) {
-            return CommandResponse.Error("Використання: /removefromgroup &lt;назва&gt; @username")
+            return CommandResponse.Error(BotMessages.Group.usageRemove)
         }
 
         val group = groupService.getGroupByKey(chatId, key).fold(
@@ -181,21 +182,21 @@ class GroupController(
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} видалено з <b>${group.name.escapeHtml()}</b>.")
-        if (failed.isNotEmpty()) lines.add("Не знайдено в групі: ${failed.joinToString(", ")}.")
+        if (succeeded.isNotEmpty()) lines.add(BotMessages.Group.removedFrom(succeeded.joinToString(", "), group.name.escapeHtml()))
+        if (failed.isNotEmpty()) lines.add(BotMessages.Group.notFoundInGroup(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 
     suspend fun grantRole(chatId: Long, userId: Long, args: List<String>): CommandResponse {
         requireAdminAccess(chatId, userId)?.let { return it }
 
-        if (args.size < 2) return CommandResponse.Error("Використання: /grantrole @user1,@user2 moderator|admin|member")
+        if (args.size < 2) return CommandResponse.Error(BotMessages.Group.usageGrant)
 
         val usernames = UserListParser.parseUserList(args[0])
         val roleArg = args[1].uppercase()
 
         val role = runCatching { MemberRole.valueOf(roleArg) }.getOrNull()
-            ?: return CommandResponse.Error("Невідома роль: ${args[1].escapeHtml()}. Доступні: moderator, admin, member")
+            ?: return CommandResponse.Error(BotMessages.Error.unknownRole(args[1].escapeHtml()))
 
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<String>()
@@ -210,8 +211,8 @@ class GroupController(
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add("${succeeded.joinToString(", ")} отримали роль ${role.name.lowercase()}.")
-        if (failed.isNotEmpty()) lines.add("Не знайдено: ${failed.joinToString(", ")}.")
+        if (succeeded.isNotEmpty()) lines.add(BotMessages.Group.rolesGranted(succeeded.joinToString(", "), role.name.lowercase()))
+        if (failed.isNotEmpty()) lines.add(BotMessages.Group.rolesNotFound(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 }
