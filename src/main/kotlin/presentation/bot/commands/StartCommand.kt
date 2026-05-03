@@ -5,6 +5,7 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -44,7 +45,7 @@ class StartCommand(
                             logger.warn("Failed to get chat administrators")
                         }
                         if (chat.type == "group") {
-                            bot.reply(chatId, buildInvitationText())
+                            bot.reply(chatId, BotMessages.Welcome.invitation)
                         }
                     }
                 }
@@ -61,14 +62,4 @@ class StartCommand(
 
         bot.reply(chatId, text)
     }
-
-    private fun buildInvitationText(): String = """
-        📋 <b>Реєстрація учасників</b>
-
-        Я додав адміністраторів та користувачів з останніх повідомлень до бази даних.
-
-        Якщо вас ще немає в системі, будь ласка, напишіть будь-яке повідомлення (наприклад, <code>/register</code>), щоб я міг вас зареєструвати.
-
-        Це потрібно для того, щоб ви могли користуватися всіма функціями бота.
-    """.trimIndent()
 }

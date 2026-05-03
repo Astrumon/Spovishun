@@ -3,6 +3,7 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.domain.model.Member
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -26,7 +27,7 @@ class ShowGroupsCommand(
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 
         val text = groupController.getGroups(chatId, member, userRole)
-            .toText(onError = { "❌ Помилка завантаження груп: $it" })
+            .toText(onError = { BotMessages.Error.loadGroups(it) })
 
         bot.reply(chatId, text)
     }

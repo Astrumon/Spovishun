@@ -4,6 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.common.util.sanitizeUsername
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -24,7 +25,7 @@ class PingGroupCommand(
         val text = pingController.pingGroup(chatId, user.id, username, user.firstName, userRole, args).toText(
             onNotFound = {
                 val available = it.available.joinToString(", ") { k -> k.escapeHtml() }.ifEmpty { "—" }
-                "Групу <b>${it.identifier.escapeHtml()}</b> не знайдено.\nДоступні: $available"
+                BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), available)
             },
         )
 
