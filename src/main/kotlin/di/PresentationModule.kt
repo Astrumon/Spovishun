@@ -16,6 +16,7 @@ import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
+import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
@@ -45,7 +46,8 @@ val presentationModule = module {
 
     // Bot components
     single { CommandRegistry(getAll()) }
-    single { TelegramBot(get(), get()) }
-    single { MessageHandler(get(), get()) }
+    single { PingCallbackHandler(get(), get()) }
+    single { TelegramBot(get(), get(), get(), get()) }
+    single { MessageHandler(get(), get(), get()) }
     single { BotAdminUtils() }
 }

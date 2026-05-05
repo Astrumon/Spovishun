@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.2.0] - 2026-05-05
+
+### Added
+- Ping group selection menu with inline keyboard and callback handler
+- Anti-piracy protection and security hardening
+- 6 Claude Code sub-agents (kotlin-reviewer, database-reviewer, doc-updater, and others)
+
+### Changed
+- Migrate prod DB to self-hosted PostgreSQL on Oracle VM
+- Typesafe bot messages — replace raw strings with sealed class hierarchy
+- Standardize `GroupRepositoryImpl` to use `toGroup()` mapper
+
+---
+
 ## [1.1.0] - 2026-04-28
 
 ### Added

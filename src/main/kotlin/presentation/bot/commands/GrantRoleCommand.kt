@@ -2,6 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.toText
 class GrantRoleCommand(
@@ -14,9 +15,9 @@ class GrantRoleCommand(
         val (chatId, userId, args) = update.messageContext() ?: return
 
         val text = groupController.grantRole(chatId = chatId, userId = userId, args = args).toText(
-            successPrefix = "✅ ",
-            onAccessDenied = { "🚫 Лише адміни можуть призначати ролі." },
-            onNotFound = { "❌ ${it.resource} '${it.identifier}' не знайдено." },
+            successPrefix = BotMessages.Success.prefix,
+            onAccessDenied = { BotMessages.Error.onlyAdminsRoles },
+            onNotFound = { BotMessages.Error.resourceNotFound(it.resource, it.identifier) },
         )
 
         bot.reply(chatId, text)

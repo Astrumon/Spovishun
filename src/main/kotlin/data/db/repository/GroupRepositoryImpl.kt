@@ -9,43 +9,22 @@ import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupRepository
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.slf4j.LoggerFactory
 
 class GroupRepositoryImpl : GroupRepository {
-    private val logger = LoggerFactory.getLogger(GroupRepositoryImpl::class.java)
 
     override suspend fun getAllGroups(chatId: Long): ResultContainer<List<Group>> = safeDbQuery {
-        logger.info("getAllGroups called for chatId=$chatId")
-        Groups.selectAll().where { Groups.chatId eq chatId }.map { row ->
-            Group(
-                id = row[Groups.id].value,
-                chatId = row[Groups.chatId],
-                name = row[Groups.name],
-                memberUsernames = emptyList()
-            )
-        }
+        Groups.selectAll().where { Groups.chatId eq chatId }.map { it.toGroup() }
     }
 
     override suspend fun findGroupByKey(chatId: Long, key: String): ResultContainer<Group> = safeDbQuery {
-        logger.info("findGroupByKey called with chatId=$chatId, key='$key'")
-        logger.debug("Executing SQL query for groups table")
-        val result = Groups.selectAll()
+        Groups.selectAll()
             .where { (Groups.chatId eq chatId) and (Groups.name eq key) }
             .singleOrNull()
-        logger.debug("SQL query executed, result: ${result != null}")
-        result?.let { row ->
-            logger.debug("Group found with id=${row[Groups.id].value}")
-            Group(
-                id = row[Groups.id].value,
-                chatId = row[Groups.chatId],
-                name = row[Groups.name],
-                memberUsernames = emptyList()
-            )
-        } ?: throw ResourceNotFoundException("Group", key)
+            ?.toGroup()
+            ?: throw ResourceNotFoundException("Group", key)
     }
 
     override suspend fun createGroup(chatId: Long, name: String): ResultContainer<Group> = safeDbQuery {
-        logger.info("createGroup called with chatId=$chatId, name='$name'")
         val existing = Groups.selectAll()
             .where { (Groups.chatId eq chatId) and (Groups.name eq name) }
             .singleOrNull()
@@ -67,7 +46,6 @@ class GroupRepositoryImpl : GroupRepository {
     }
 
     override suspend fun deleteGroup(chatId: Long, key: String): ResultContainer<Unit> = safeDbQuery {
-        logger.info("deleteGroup called with chatId=$chatId, key='$key'")
         val deletedCount = Groups.deleteWhere {
             (Groups.chatId eq chatId) and (Groups.name eq key)
         }

@@ -3,16 +3,21 @@ package com.ua.astrumon.presentation.bot
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.bot
 import com.github.kotlintelegrambot.dispatch
+import com.github.kotlintelegrambot.dispatcher.callbackQuery
 import com.github.kotlintelegrambot.dispatcher.command
 import com.github.kotlintelegrambot.dispatcher.message
 import com.github.kotlintelegrambot.extensions.filters.Filter
+import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
+import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import org.slf4j.LoggerFactory
 
 
 class TelegramBot(
     private val commandRegistry: CommandRegistry,
     private val messageHandler: MessageHandler,
+    private val config: AppConfig,
+    private val pingCallbackHandler: PingCallbackHandler,
 ) {
     private val logger = LoggerFactory.getLogger(TelegramBot::class.java)
 
@@ -22,6 +27,8 @@ class TelegramBot(
         dispatch {
             commandRegistry.commands.forEach { cmd ->
                 command(cmd.name) {
+                    val chatId = update.message?.chat?.id
+                    if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@command
                     logger.info("Command '{}' invoked", cmd.name)
                     cmd.execute(bot, update)
                 }
@@ -30,6 +37,24 @@ class TelegramBot(
             message(Filter.Text) {
                 messageHandler.handleIncomingMessage(bot, update)
             }
+
+            callbackQuery {
+                val chatId = update.callbackQuery?.message?.chat?.id
+                if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@callbackQuery
+                pingCallbackHandler.handle(bot, update)
+            }
+        }
+    }
+
+    fun verifyIdentity(bot: Bot, expectedUsername: String?): Boolean {
+        if (expectedUsername.isNullOrBlank()) {
+            logger.warn("EXPECTED_BOT_USERNAME not set — identity check skipped")
+            return true
+        }
+        val result = bot.getMe()
+        val actual = result.fold({ it.username }, { null })
+        return (actual == expectedUsername).also {
+            if (!it) logger.error("Bot identity mismatch — refusing to start")
         }
     }
 

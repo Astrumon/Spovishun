@@ -1,9 +1,9 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 
 class RegistrationController(
     private val autoRegisterService: AutoRegisterService,
@@ -16,7 +16,7 @@ class RegistrationController(
             firstName = firstName,
             userRole = userRole
         )
-        return CommandResponse.Success(buildWelcomeMessage())
+        return CommandResponse.Success(BotMessages.Welcome.message())
     }
 
     /**
@@ -40,36 +40,15 @@ class RegistrationController(
         val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
         if (result.isFailure) {
-            return CommandResponse.Error("$firstName, не вдалося зареєструватися. Спробуйте пізніше.")
+            return CommandResponse.Error(BotMessages.Registration.failed(firstName))
         }
 
-        val roleText = if (userRole == MemberRole.ADMIN) " як адміністратор \uD83D\uDD10" else ""
         return if (alreadyRegistered) {
-            CommandResponse.Success("$firstName, ви вже зареєстровані в системі.")
+            CommandResponse.Success(BotMessages.Registration.alreadyRegistered(firstName))
+        } else if (userRole == MemberRole.ADMIN) {
+            CommandResponse.Success(BotMessages.Registration.successAdmin(firstName))
         } else {
-            CommandResponse.Success("$firstName, ви успішно зареєстровані в системі$roleText!")
+            CommandResponse.Success(BotMessages.Registration.success(firstName))
         }
     }
-
-    private fun buildWelcomeMessage(): String = """
-        👋 <b>Spovishun на місці!</b> ${VersionInfo.getFullVersion()}
-
-        📋 <b>Реєстрація:</b>
-        • /register — зареєструватися в системі
-        • Або просто напишіть будь-яке повідомлення
-
-        Команди:
-        • /all — сповістити всіх
-        • /ping &lt;група&gt; [текст] — сповістити групу
-        • /groups — список груп
-        • /members — список учасників
-
-        🔐 <b>Адмін:</b>
-        • /newgroup &lt;назва&gt; — створити групу
-        • /delgroup &lt;назва&gt; — видалити групу
-        • /addtogroup &lt;назва&gt; @user1, @user2 — додати до групи
-        • /removefromgroup &lt;назва&gt; @user1, @user2 — видалити з групи
-        • /grantrole @user1, @user2 member|moderator|admin — призначити роль одному або кільком учасникам
-          └ member: базовий доступ · moderator 🛡: керує групами · admin 🔐: повний доступ
-    """.trimIndent()
 }

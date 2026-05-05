@@ -35,6 +35,7 @@ import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -125,7 +126,7 @@ abstract class BaseE2ETest {
         val registrationController = RegistrationController(autoRegisterService)
         val pingController = PingController(memberService, groupService, autoRegisterService)
 
-        messageHandler = MessageHandler(autoRegisterService, botAdminUtils)
+        messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
         commandRegistry = CommandRegistry(
             listOf(
                 StartCommand(registrationController, botAdminUtils),
@@ -142,7 +143,7 @@ abstract class BaseE2ETest {
             )
         )
 
-        val telegramBot = TelegramBot(commandRegistry, messageHandler)
+        val telegramBot = TelegramBot(commandRegistry, messageHandler, mockk(relaxed = true), mockk())
         mainBot = telegramBot.create(E2EConfig.mainBotToken!!)
 
         // Send a sentinel message and enqueue its range for bulk cleanup in @AfterAll
