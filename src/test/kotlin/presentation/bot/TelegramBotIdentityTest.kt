@@ -26,7 +26,7 @@ class TelegramBotIdentityTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        telegramBot = TelegramBot(commandRegistry, messageHandler, config)
+        telegramBot = TelegramBot(commandRegistry, messageHandler, config, mockk())
     }
 
     @Test

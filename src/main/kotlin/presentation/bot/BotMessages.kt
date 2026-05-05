@@ -37,6 +37,7 @@ object BotMessages {
             format("error.group_not_found_html", identifierEscaped, available)
         fun unknownRole(roleEscaped: String): String = format("error.unknown_role", roleEscaped)
         val loadMembersInternal: String get() = get("error.load_members_internal")
+        val loadGroupsInternal: String get() = get("error.load_groups_internal")
     }
 
     object Success {
@@ -53,17 +54,19 @@ object BotMessages {
     }
 
     object Ping {
-        val crabAll: String get() = get("ping.crab.all")
-        val crabGroup: String get() = get("ping.crab.group")
+        val iconAll: String get() = get("ping.icon.all")
+        val iconGroup: String get() = get("ping.icon.group")
         val noRegistered: String get() = get("ping.no_registered")
         val noTargets: String get() = get("ping.no_targets")
         val usage: String get() = get("ping.usage")
         fun headerAll(crabs: String, extra: String): String =
             if (extra.isEmpty()) format("ping.header.all_no_extra", crabs)
             else format("ping.header.all_with_extra", crabs, extra)
-        fun headerGroup(crabs: String, extra: String): String =
-            if (extra.isEmpty()) format("ping.header.group_no_extra", crabs)
-            else format("ping.header.group_with_extra", crabs, extra)
+        fun headerGroup(groupName: String, crabs: String, extra: String): String =
+            if (extra.isEmpty()) format("ping.header.group_no_extra", groupName, crabs)
+            else format("ping.header.group_with_extra", groupName, crabs, extra)
+        val menuPrompt: String get() = get("ping.menuPrompt")
+        val noGroups: String get() = get("ping.noGroups")
     }
 
     object Group {
