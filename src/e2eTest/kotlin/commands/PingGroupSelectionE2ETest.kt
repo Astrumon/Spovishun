@@ -66,6 +66,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
     @Test
     fun `pingGroupById returns noTargets when group has no registered members`() {
         runBlocking {
+            chatService.ensureChat(testChatId, null, null).getOrThrow()
             groupService.createGroup(testChatId, "empty_squad").getOrThrow()
         }
         val group = allGroups().first { it.name == "empty_squad" }
