@@ -87,6 +87,68 @@ class PingControllerTest {
         assertTrue(result is CommandResponse.Error)
     }
 
+    // --- pingGroupById ---
+
+    @Test
+    fun `pingGroupById should ping correct group when multiple groups exist`() = runTest {
+        val targetGroup = GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice"))
+        val otherGroup = GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(targetGroup, otherGroup))
+        coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(member)
+
+        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("@alice"))
+        assertTrue(!result.message.contains("@bob"))
+    }
+
+    @Test
+    fun `pingGroupById should return NotFound when group id does not exist`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(
+            listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")))
+        )
+
+        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 999L)
+
+        assertTrue(result is CommandResponse.NotFound)
+    }
+
+    @Test
+    fun `pingGroupById should return noTargets when group has no registered members`() = runTest {
+        val group = GroupWithMembers(1L, chatId, "devs", "devs", listOf("ghost"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { memberService.getMemberByUsername("ghost") } returns ResultContainer.failure(
+            ResourceNotFoundException("Member", "ghost")
+        )
+
+        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("Немає кого пінгувати"))
+    }
+
+    @Test
+    fun `pingGroupById should return Error on service failure`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
+
+        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L)
+
+        assertTrue(result is CommandResponse.Error)
+    }
+
+    @Test
+    fun `pingGroupById message contains group name in header`() = runTest {
+        val group = GroupWithMembers(1L, chatId, "backend", "backend", listOf("alice"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(member)
+
+        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("backend"))
+    }
+
     // --- pingGroup ---
 
     @Test

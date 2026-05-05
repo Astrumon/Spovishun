@@ -143,7 +143,7 @@ abstract class BaseE2ETest {
             )
         )
 
-        val telegramBot = TelegramBot(commandRegistry, messageHandler, mockk(relaxed = true))
+        val telegramBot = TelegramBot(commandRegistry, messageHandler, mockk(relaxed = true), mockk())
         mainBot = telegramBot.create(E2EConfig.mainBotToken!!)
 
         // Send a sentinel message and enqueue its range for bulk cleanup in @AfterAll

@@ -56,8 +56,18 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 
+    // Retrofit (HTTP client)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+
     // Telegram
     implementation(libs.telegram.bot)
+
+    // Force secure versions of transitive dependencies
+    constraints {
+        implementation(libs.okhttp)
+        implementation(libs.okio)
+    }
 }
 
 kotlin {

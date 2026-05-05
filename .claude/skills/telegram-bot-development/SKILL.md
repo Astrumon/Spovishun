@@ -21,6 +21,7 @@ description: Use this skill when developing, debugging, or extending Telegram bo
 | Inline keyboards, callback queries, button flows | `references/keyboards.md` |
 | Bot token security, input validation, deployment, shutdown | `references/security-deployment.md` |
 | Suspend handlers, coroutine scope, dispatcher rules | `references/coroutines-integration.md` |
+| Adding, modifying, or using user-facing bot message strings | `references/bot-messages.md` |
 
 ## Always-Active Rules
 
@@ -29,6 +30,7 @@ description: Use this skill when developing, debugging, or extending Telegram bo
 - `Controller` returns `CommandResponse`; `Command` owns emoji prefixes and final text assembly
 - Never expose stack traces to users; send a generic error message instead
 - `BOT_TOKEN` must come from an environment variable — never hardcode it
+- Never hardcode user-facing strings in commands or controllers — always use `BotMessages` backed by `messages.properties`; see `references/bot-messages.md`
 
 ## Output Format
 
@@ -45,6 +47,7 @@ When implementing bot features:
 - Do NOT hardcode `BOT_TOKEN` or any credentials in source files.
 - Do NOT use `GlobalScope` for coroutines in handlers — use the injected scope.
 - Do NOT skip `answerCallbackQuery` for callback queries, even if no popup is shown.
+- Do NOT hardcode user-facing strings in commands or controllers — all text goes in `messages.properties` and is accessed via `BotMessages`.
 
 ## Error Handling
 

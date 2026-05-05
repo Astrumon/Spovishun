@@ -2,6 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
+import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 
@@ -14,6 +15,10 @@ internal data class MessageContext(val chatId: Long, val userId: Long, val args:
 
 internal fun Bot.reply(chatId: Long, text: String) {
     sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
+}
+
+internal fun Bot.replyWithKeyboard(chatId: Long, text: String, keyboard: InlineKeyboardMarkup) {
+    sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML, replyMarkup = keyboard)
 }
 
 internal fun Update.messageContext(): MessageContext? {

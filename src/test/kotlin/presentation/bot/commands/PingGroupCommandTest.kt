@@ -8,7 +8,10 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
+import com.ua.astrumon.common.exception.DatabaseException
+import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.service.GroupWithMembers
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
 import com.ua.astrumon.presentation.controller.PingController
@@ -71,14 +74,41 @@ class PingGroupCommandTest {
     }
 
     @Test
-    fun `should send usage message when no args`() = runTest {
+    fun `should show inline keyboard when no args and groups exist`() = runTest {
+        val groups = listOf(
+            GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")),
+            GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob")),
+        )
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList()) } returns
-            CommandResponse.Error("Використання: /ping &lt;група&gt; [текст]")
+        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            ResultContainer.success(groups)
 
         command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("/ping") }, ParseMode.HTML) }
+        coVerify { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
+    }
+
+    @Test
+    fun `should send noGroups message when no args and groups list is empty`() = runTest {
+        val update = createUpdate(text = "/ping")
+        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            ResultContainer.success(emptyList())
+
+        command.execute(bot, update)
+
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("ще немає груп") }, ParseMode.HTML) }
+    }
+
+    @Test
+    fun `should send error message when no args and listGroupsForMenu fails`() = runTest {
+        val update = createUpdate(text = "/ping")
+        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            ResultContainer.failure(DatabaseException("db error"))
+
+        command.execute(bot, update)
+
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Failed to load groups", ParseMode.HTML) }
     }
 
     @Test
