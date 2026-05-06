@@ -2,6 +2,7 @@ package com.ua.astrumon.data.db.repository
 
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.data.db.eqIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.data.db.table.MemberChats
 import com.ua.astrumon.data.db.table.Members
@@ -33,7 +34,7 @@ class MemberRepositoryImpl : MemberRepository {
     override suspend fun findByUsername(username: String): ResultContainer<Member?> =
         safeDbQuery {
             Members.selectAll()
-                .where { Members.username eq username }
+                .where { Members.username eqIgnoreCase username }
                 .singleOrNull()?.toMember()
         }
 
@@ -54,7 +55,7 @@ class MemberRepositoryImpl : MemberRepository {
         safeDbQuery {
             Members.innerJoin(MemberChats)
                 .selectAll()
-                .where { (Members.username eq username) and (MemberChats.chatId eq chatId) }
+                .where { (Members.username eqIgnoreCase username) and (MemberChats.chatId eq chatId) }
                 .singleOrNull()?.toMemberWithChat()
         }
 
