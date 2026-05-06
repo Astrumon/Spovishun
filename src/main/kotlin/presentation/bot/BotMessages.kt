@@ -95,6 +95,7 @@ object BotMessages {
         val failureAlreadyIn: String get() = get("group.failure.already_in")
         val failureNotFound: String get() = get("group.failure.not_found")
         val failureError: String get() = get("group.failure.error")
+        val failureInvalidUsername: String get() = get("group.failure.invalid_username")
     }
 
     object Registration {
