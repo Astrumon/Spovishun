@@ -435,6 +435,14 @@ async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch })
   ensureDir(ctxDir);
   fs.writeFileSync(path.join(ctxDir, 'context.md'), `## 🪝 Active Task (Notion)\n**${name}**\n\n${content}`, 'utf8');
   fs.writeFileSync(path.join(ctxDir, 'branch.txt'), taskBranch, 'utf8');
+  fs.writeFileSync(path.join(ctxDir, 'task.json'), JSON.stringify({
+    id: page.id,
+    title: name,
+    status: 'In progress',
+    branch: taskBranch,
+    priority: page.properties?.Priority?.select?.name ?? null,
+    content: extractBlocks(allBlocks),
+  }), 'utf8');
   writeSessionLock(path.join(ctxDir, 'session.lock'));
 
   // 7. Update Notion status to In progress
@@ -591,6 +599,14 @@ async function main() {
       const contextMd = `## 🪝 Active Task (Notion)\n**${name}**\n\n${content}`;
       fs.writeFileSync(path.join(ctxDir, 'context.md'), contextMd, 'utf8');
       fs.writeFileSync(path.join(ctxDir, 'branch.txt'), cacheBranch, 'utf8');
+      fs.writeFileSync(path.join(ctxDir, 'task.json'), JSON.stringify({
+        id: page.id,
+        title: name,
+        status: page.properties?.Status?.status?.name ?? null,
+        branch: taskBranch,
+        priority: page.properties?.Priority?.select?.name ?? null,
+        content: extractBlocks(allBlocks),
+      }), 'utf8');
       writeSessionLock(path.join(ctxDir, 'session.lock'));
     }
 

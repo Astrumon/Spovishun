@@ -25,6 +25,23 @@ node scripts/notion/get-claude-md.js                          # full read — on
 
 Use targeted `--section` reads to load only the relevant part and save tokens.
 
+## REST-first hot path
+
+The start-task flow (`notion-task-inject.js` hook + `scripts/notion/*.js`) is 100% Notion REST via `scripts/notion/lib/notion-http.js`. Task content, status updates, and CLAUDE.md reads all happen through these scripts — no MCP is involved. The hook writes the result to `.dev-context/{branch}_prd/` and injects it via `additionalContext` (no tool-call overhead for Claude).
+
+**Do NOT add MCP calls to this path.** MCP is for operations the scripts cannot cover.
+
+## MCP vs REST decision matrix
+
+| Operation | Tool |
+|---|---|
+| Read task / board / CLAUDE.md (hot path) | `scripts/notion/*.js` (REST) |
+| Update task status (hot path) | `scripts/notion/update-status.js` or hook PATCH |
+| Free-form semantic search across Notion | MCP `notion-search` |
+| Create / update arbitrary page content | MCP via `notion-page-builder` skill |
+| Create / query databases | MCP via `notion-database-manager` skill |
+| Bulk doc sync | MCP via `update-doc-full` |
+
 ## Decision Table
 
 | Operation | Skill |
