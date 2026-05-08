@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.3.0] - 2026-05-08
+
+### Added
+- Birthday greeting feature — bot automatically congratulates group members on their birthday
+
+### Changed
+- Sanitize and validate username input across all group commands
+
+---
+
 ## [1.2.0] - 2026-05-05
 
 ### Added
