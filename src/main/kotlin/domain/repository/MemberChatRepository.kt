@@ -11,4 +11,5 @@ interface MemberChatRepository {
     suspend fun updateRole(memberId: Long, chatId: Long, role: MemberRole): ResultContainer<MemberChat>
     suspend fun findAllByChatId(chatId: Long): ResultContainer<List<MemberChat>>
     suspend fun existsByMemberIdAndChatId(memberId: Long, chatId: Long): ResultContainer<Boolean>
+    suspend fun findChatIdsByMemberId(memberId: Long): ResultContainer<List<Long>>
 }

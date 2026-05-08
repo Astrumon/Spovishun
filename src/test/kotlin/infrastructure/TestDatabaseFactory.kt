@@ -33,13 +33,13 @@ object TestDatabaseFactory {
         val ds = HikariDataSource(hikariConfig)
         Database.connect(ds)
 
-        Flyway.configure()
+        val flyway = Flyway.configure()
             .dataSource(ds)
             .locations("classpath:db/migration/postgresql")
-            .baselineOnMigrate(true)
-            .baselineVersion("0")
+            .cleanDisabled(false)
             .load()
-            .migrate()
+        flyway.clean()
+        flyway.migrate()
 
         initializedUrl = url
         dataSource = ds

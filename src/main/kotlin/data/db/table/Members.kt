@@ -6,4 +6,5 @@ object Members : LongIdTable("members") {
     val userId = long("user_id").uniqueIndex()
     val username = varchar("username", 64)
     val firstname = varchar("firstname", 128)
+    val birthMd = short("birth_md").nullable()
 }

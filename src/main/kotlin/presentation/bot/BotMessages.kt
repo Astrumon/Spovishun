@@ -98,6 +98,18 @@ object BotMessages {
         val failureInvalidUsername: String get() = get("group.failure.invalid_username")
     }
 
+    object Birthday {
+        val usage: String get() = get("birthday.usage")
+        val invalidDate: String get() = get("birthday.invalid_date")
+        fun setSuccess(dateEscaped: String): String = format("birthday.set_success", dateEscaped)
+        val cleared: String get() = get("birthday.cleared")
+        fun userNotRegistered(usernameEscaped: String): String = format("birthday.user_not_registered", usernameEscaped)
+
+        private val greetingKeys = (1..5).map { "birthday.greeting.$it" }
+        fun randomGreeting(firstNameEscaped: String, random: kotlin.random.Random = kotlin.random.Random.Default): String =
+            format(greetingKeys.random(random), firstNameEscaped)
+    }
+
     object Registration {
         fun failed(firstName: String): String = format("registration.failed", firstName)
         fun alreadyRegistered(firstName: String): String = format("registration.already_registered", firstName)
