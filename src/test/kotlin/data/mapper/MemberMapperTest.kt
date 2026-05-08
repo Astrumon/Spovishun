@@ -23,6 +23,7 @@ class MemberMapperTest {
         every { row[Members.userId] } returns 12345L
         every { row[Members.username] } returns "john"
         every { row[Members.firstname] } returns "John"
+        every { row[Members.birthMd] } returns null
 
         val member = row.toMember()
 
@@ -40,6 +41,7 @@ class MemberMapperTest {
         every { row[Members.userId] } returns 12345L
         every { row[Members.username] } returns "john"
         every { row[Members.firstname] } returns "John"
+        every { row[Members.birthMd] } returns null
         every { row[MemberChats.role] } returns "ADMIN"
         every { row[MemberChats.joinedAt] } returns now
 
@@ -60,6 +62,7 @@ class MemberMapperTest {
         every { row[Members.userId] } returns 12345L
         every { row[Members.username] } returns "john"
         every { row[Members.firstname] } returns "John"
+        every { row[Members.birthMd] } returns null
         every { row[MemberChats.role] } returns "MEMBER"
         every { row[MemberChats.joinedAt] } returns null
 

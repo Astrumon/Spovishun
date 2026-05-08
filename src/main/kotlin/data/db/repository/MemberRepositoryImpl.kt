@@ -8,12 +8,14 @@ import com.ua.astrumon.data.db.table.MemberChats
 import com.ua.astrumon.data.db.table.Members
 import com.ua.astrumon.data.mapper.toMember
 import com.ua.astrumon.data.mapper.toMemberWithChat
+import com.ua.astrumon.domain.model.BirthDate
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.repository.MemberRepository
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.upsert
 
 class MemberRepositoryImpl : MemberRepository {
@@ -65,5 +67,23 @@ class MemberRepositoryImpl : MemberRepository {
                 .selectAll()
                 .where { MemberChats.chatId eq chatId }
                 .map { it.toMemberWithChat() }
+        }
+
+    override suspend fun findAllByBirthMd(birthMd: Int): ResultContainer<List<Member>> =
+        safeDbQuery {
+            Members.selectAll()
+                .where { Members.birthMd eq birthMd.toShort() }
+                .map { it.toMember() }
+        }
+
+    override suspend fun updateBirthday(userId: Long, birthday: BirthDate?): ResultContainer<Member> =
+        safeDbQuery {
+            Members.update({ Members.userId eq userId }) {
+                it[Members.birthMd] = birthday?.toMmDd()?.toShort()
+            }
+            Members.selectAll()
+                .where { Members.userId eq userId }
+                .singleOrNull()?.toMember()
+                ?: throw ResourceNotFoundException("Member", userId.toString())
         }
 }
