@@ -3,7 +3,7 @@ package com.ua.astrumon.presentation.controller
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
-import com.ua.astrumon.common.util.UserListParser
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
@@ -107,9 +107,9 @@ class GroupController(
         }
 
         val key = args[0].lowercase()
-        val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
+        val parsed = UsernameInputSanitizer.parseUsernames(args.drop(1).joinToString(" "))
 
-        if (usernames.isEmpty()) {
+        if (parsed.valid.isEmpty() && parsed.invalid.isEmpty()) {
             return CommandResponse.Error(BotMessages.Group.usageAdd)
         }
 
@@ -126,7 +126,11 @@ class GroupController(
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<Pair<String, String>>()
 
-        for (username in usernames) {
+        parsed.invalid.forEach { token ->
+            failed.add("@${token.escapeHtml()}" to BotMessages.Group.failureInvalidUsername)
+        }
+
+        for (username in parsed.valid) {
             groupService.addMemberToGroup(chatId, key, username).fold(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
                 onFailure = { exception ->
@@ -155,9 +159,9 @@ class GroupController(
         }
 
         val key = args[0].lowercase()
-        val usernames = UserListParser.parseUserList(args.drop(1).joinToString(" "))
+        val parsed = UsernameInputSanitizer.parseUsernames(args.drop(1).joinToString(" "))
 
-        if (usernames.isEmpty()) {
+        if (parsed.valid.isEmpty() && parsed.invalid.isEmpty()) {
             return CommandResponse.Error(BotMessages.Group.usageRemove)
         }
 
@@ -174,7 +178,11 @@ class GroupController(
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<String>()
 
-        for (username in usernames) {
+        parsed.invalid.forEach { token ->
+            failed.add("@${token.escapeHtml()} (${BotMessages.Group.failureInvalidUsername})")
+        }
+
+        for (username in parsed.valid) {
             groupService.removeMemberFromGroup(chatId, key, username).fold(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
                 onFailure = { failed.add("@${username.escapeHtml()}") }
@@ -192,7 +200,7 @@ class GroupController(
 
         if (args.size < 2) return CommandResponse.Error(BotMessages.Group.usageGrant)
 
-        val usernames = UserListParser.parseUserList(args[0])
+        val parsed = UsernameInputSanitizer.parseUsernames(args[0])
         val roleArg = args[1].uppercase()
 
         val role = runCatching { MemberRole.valueOf(roleArg) }.getOrNull()
@@ -201,7 +209,11 @@ class GroupController(
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<String>()
 
-        for (username in usernames) {
+        parsed.invalid.forEach { token ->
+            failed.add("@${token.escapeHtml()} (${BotMessages.Group.failureInvalidUsername})")
+        }
+
+        for (username in parsed.valid) {
             memberService.getMemberByUsername(username)
                 .flatMap { member -> memberService.setMemberRole(chatId, member.userId, role) }
                 .fold(

@@ -1,5 +1,6 @@
 package com.ua.astrumon.data.db.repository
 
+import com.ua.astrumon.data.db.eqIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.common.exception.*
 import com.ua.astrumon.common.result.ResultContainer
@@ -68,5 +69,5 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         .singleOrNull()
 
     private fun getMemberByUsername(username: String) =
-        Members.selectAll().where { Members.username eq username }.singleOrNull()
+        Members.selectAll().where { Members.username eqIgnoreCase username }.singleOrNull()
 }

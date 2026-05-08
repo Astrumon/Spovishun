@@ -9,4 +9,5 @@ data class MemberWithChat(
     val firstName: String,
     val role: MemberRole,
     val joinedAt: Instant?,
+    val birthday: BirthDate? = null,
 )

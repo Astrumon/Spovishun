@@ -63,6 +63,13 @@ class MemberChatRepositoryImpl : MemberChatRepository {
                 .any()
         }
 
+    override suspend fun findChatIdsByMemberId(memberId: Long): ResultContainer<List<Long>> =
+        safeDbQuery {
+            MemberChats.selectAll()
+                .where { MemberChats.memberId eq memberId }
+                .map { it[MemberChats.chatId] }
+        }
+
     private fun memberChatPredicate(memberId: Long, chatId: Long) =
         (MemberChats.memberId eq memberId) and (MemberChats.chatId eq chatId)
 }

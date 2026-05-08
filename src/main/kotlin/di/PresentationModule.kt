@@ -4,6 +4,7 @@ import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
+import com.ua.astrumon.presentation.bot.commands.BirthdayCommand
 import com.ua.astrumon.presentation.bot.commands.BotCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
@@ -17,10 +18,15 @@ import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
+import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RegistrationController
+import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -30,6 +36,7 @@ val presentationModule = module {
     single { MembersController(get(), get()) }
     single { RegistrationController(get()) }
     single { PingController(get(), get(), get()) }
+    single { BirthdayController(get(), get()) }
 
     // Commands
     single { StartCommand(get(), get()) } bind BotCommand::class
@@ -43,6 +50,10 @@ val presentationModule = module {
     single { DeleteGroupCommand(get()) } bind BotCommand::class
     single { AddUserToGroupCommand(get()) } bind BotCommand::class
     single { RemoveUserFromGroupCommand(get()) } bind BotCommand::class
+    single { BirthdayCommand(get()) } bind BotCommand::class
+
+    // Scheduler
+    single { BirthdayGreetingScheduler(get(), get(), CoroutineScope(SupervisorJob() + CoroutineName("birthday-scheduler"))) }
 
     // Bot components
     single { CommandRegistry(getAll()) }

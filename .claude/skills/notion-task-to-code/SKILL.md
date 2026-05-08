@@ -10,6 +10,17 @@ description: Converts a Spovishun Notion task into a ready-to-use AI agent promp
 ## Workflow
 
 ### Step 1: Fetch the task
+
+**1a.** Get the current branch:
+```
+git rev-parse --abbrev-ref HEAD
+```
+
+**1b.** Derive the cache folder: replace `/` with `-` in the branch name and append `_prd` (e.g. `feature/spovishun-77-foo` → `feature-spovishun-77-foo_prd`).
+
+**1c.** If `.dev-context/{folder}/task.json` exists → `Read` it directly. No Bash, no Notion API call needed.
+
+**1d.** Otherwise (standalone invocation or no cache) → fetch from Notion:
 ```
 node scripts/notion/get-task.js <N-or-pageId>
 ```

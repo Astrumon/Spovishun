@@ -5,4 +5,5 @@ data class Member(
     val userId: Long,
     val username: String,
     val firstName: String,
+    val birthday: BirthDate? = null,
 )
