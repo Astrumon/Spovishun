@@ -3,6 +3,7 @@ package com.ua.astrumon.presentation.bot
 import com.ua.astrumon.common.util.VersionInfo
 import java.text.MessageFormat
 import java.util.ResourceBundle
+import kotlin.random.Random
 
 /**
  * Centralized bot response strings, backed by messages.properties.
@@ -106,7 +107,7 @@ object BotMessages {
         fun userNotRegistered(usernameEscaped: String): String = format("birthday.user_not_registered", usernameEscaped)
 
         private val greetingKeys = (1..5).map { "birthday.greeting.$it" }
-        fun randomGreeting(firstNameEscaped: String, random: kotlin.random.Random = kotlin.random.Random.Default): String =
+        fun randomGreeting(firstNameEscaped: String, random: Random = Random.Default): String =
             format(greetingKeys.random(random), firstNameEscaped)
     }
 
