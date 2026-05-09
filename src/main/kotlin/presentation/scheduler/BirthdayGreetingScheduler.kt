@@ -64,7 +64,7 @@ class BirthdayGreetingScheduler(
                     .fold(onSuccess = { it }, onFailure = { emptyList() })
                 if (chatIds.isEmpty()) continue
 
-                val text = BotMessages.Birthday.randomGreeting(member.firstName.escapeHtml())
+                val text = BotMessages.Birthday.randomGreeting(member.firstName.escapeHtml() + " ${member.username}")
                 chatIds.forEach { chatId ->
                     bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
                 }

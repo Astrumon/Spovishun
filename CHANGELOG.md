@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.3.1] - 2026-05-09
+
+### Fixed
+- Birthday greeting now includes the Telegram username alongside the first name (`firstName @username`), making the mention identifiable in group chats
+
+---
+
 ## [1.3.0] - 2026-05-08
 
 ### Added
