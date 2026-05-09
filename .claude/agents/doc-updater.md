@@ -52,6 +52,7 @@ New articles go as records in the category's inline DB — reference the categor
 | Database migrations (Flyway, new/modified .sql files) | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
 | Architecture (DI modules, layers, patterns, services) | https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe |
 | Bot commands (user-facing command list) | https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди") |
+| **Feature-specific docs** (new command + DI bindings + migration for one feature) | https://www.notion.so/35b3462f68a9813e9435e56810ad69a1 |
 | Hooks, subagents, rules (.claude/ infrastructure) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
 | Claude Code skills (.claude/skills/) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
 | CI/CD pipelines (GitHub Actions workflows) | https://www.notion.so/33c3462f68a98146bf26cc0e5f5c2799 |
@@ -140,6 +141,8 @@ For each changed DI module, extract:
 
 **Target page:** https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe
 
+**IMPORTANT — Feature routing exception:** If the new DI bindings are part of a new feature (i.e., they accompany a new `*Command.kt` and a new migration in the same commit range), do NOT propose an Architecture update for those bindings. Route them to the Features page instead (`https://www.notion.so/35b3462f68a9813e9435e56810ad69a1`). Architecture page documents general DI patterns, not per-feature bindings.
+
 ---
 
 ### Zone 3: CLAUDE.md Files
@@ -154,7 +157,9 @@ For each changed CLAUDE.md, note what section was added/changed and check for st
 
 For each changed Command file, extract the command string and what it does.
 
-**Target page:** https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди")
+**Target page:** https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди") — for the user-facing command summary list only.
+
+**IMPORTANT — Feature routing exception:** Full feature documentation (command format, DI bindings, DB schema, scheduler behavior) goes to the Features page (`https://www.notion.so/35b3462f68a9813e9435e56810ad69a1`), not here. Add to this target only a brief one-liner in "Доступні команди" if the command is new.
 
 ---
 
