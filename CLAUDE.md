@@ -66,6 +66,7 @@ Never call a `Service` directly from a `Command`.
 
 ## Documentation Sync
 - `update-doc-full` — range-based Notion doc audit; invoke via `/update-doc-full [range]` (e.g. `1m`); default range `2w`; delegates to `doc-updater` agent, batch-confirms via plannotator, applies via Notion MCP.
+- Feature-specific docs (commands, DI bindings, DB schema per feature) → Features page (`notion.so/35b3462f…`). Architecture and Command Flow pages document general patterns only.
 
 ## When to use scripts vs MCP (Notion)
 

@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.4.0] - 2026-05-11
+
+### Added
+- `/whatsnew` command — shows the latest release notes; `/whatsnew $h` displays full version history
+- Auto-broadcast release notes to all chats when bot starts with a new version
+- `bot_meta` generic KV table (V10 migration) for persisting last-notified version
+- `release_notes.json` as the single source of truth for version history
+
+---
+
 ## [1.3.1] - 2026-05-09
 
 ### Fixed

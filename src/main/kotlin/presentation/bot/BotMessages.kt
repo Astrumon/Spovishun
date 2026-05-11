@@ -111,6 +111,12 @@ object BotMessages {
             format(greetingKeys.random(random), firstNameEscaped)
     }
 
+    object WhatsNew {
+        val prefix: String get() = get("whatsnew.prefix") + " "
+        val historyTitle: String get() = get("whatsnew.history_title")
+        val noNotes: String get() = get("whatsnew.no_notes")
+    }
+
     object Registration {
         fun failed(firstName: String): String = format("registration.failed", firstName)
         fun alreadyRegistered(firstName: String): String = format("registration.already_registered", firstName)

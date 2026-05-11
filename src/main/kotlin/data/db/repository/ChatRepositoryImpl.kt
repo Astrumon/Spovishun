@@ -13,6 +13,11 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 
 class ChatRepositoryImpl : ChatRepository {
+    override suspend fun findAllChatIds(): ResultContainer<List<Long>> =
+        safeDbQuery {
+            Chats.selectAll().map { it[Chats.chatId] }
+        }
+
     override suspend fun findById(chatId: Long): ResultContainer<Chat?> =
         safeDbQuery {
             Chats.selectAll()

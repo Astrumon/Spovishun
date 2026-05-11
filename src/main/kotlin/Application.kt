@@ -8,6 +8,7 @@ import com.ua.astrumon.di.repositoryModule
 import com.ua.astrumon.di.serviceModule
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
+import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
@@ -18,6 +19,7 @@ object Application : KoinComponent {
     private val telegramBot: TelegramBot by inject()
     private val config: AppConfig by inject()
     private val birthdayGreetingScheduler: BirthdayGreetingScheduler by inject()
+    private val releaseAnnouncer: ReleaseAnnouncer by inject()
 
     private val profile = System.getenv("PROFILE") ?: "dev"
 
@@ -30,6 +32,7 @@ object Application : KoinComponent {
             throw IllegalStateException("Bot identity check failed — refusing to start")
         }
         birthdayGreetingScheduler.start(bot)
+        releaseAnnouncer.notifyIfNewVersion(bot)
         telegramBot.startPolling(bot)
     }
 
