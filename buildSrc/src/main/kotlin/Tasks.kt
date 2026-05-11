@@ -21,7 +21,7 @@ fun Project.registerAppTasks() {
                 package com.ua.astrumon.common.util
 
                 object VersionInfo {
-                    private const val VERSION = "$version"
+                    const val VERSION = "$version"
                     const val BOT_NAME = "Spovishun"
                     fun getFullVersion(): String = BOT_NAME + " v" + VERSION
                 }

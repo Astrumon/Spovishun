@@ -80,6 +80,12 @@ application {
 
 registerAppTasks()
 
+tasks.processResources {
+    filesMatching("version.properties") {
+        expand("version" to project.version.toString())
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }

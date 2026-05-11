@@ -8,14 +8,12 @@ class ChatService(
     private val chatRepository: ChatRepository
 ) {
 
-    suspend fun ensureChat(chatId: Long, title: String?, type: String?): ResultContainer<Chat> {
-        return chatRepository.findById(chatId)
-            .flatMap { existing ->
-                if (existing != null) {
-                    ResultContainer.success(existing)
-                } else {
-                    chatRepository.save(chatId, title, type)
-                }
-            }
-    }
+    suspend fun ensureChat(chatId: Long, title: String?, type: String?): ResultContainer<Chat> =
+        chatRepository.findById(chatId).flatMap { existing ->
+            if (existing != null) ResultContainer.success(existing)
+            else chatRepository.save(chatId, title, type)
+        }
+
+    suspend fun getAllChatIds(): ResultContainer<List<Long>> =
+        chatRepository.findAllChatIds()
 }
