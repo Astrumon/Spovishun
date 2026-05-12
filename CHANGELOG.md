@@ -5,6 +5,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.5.0] - 2026-05-12
+
+### Added
+- `/random [group]` command — picks a random member from the chat or from a named group
+- `/whatsnew $on` / `$off` — admin-only per-chat toggle for release note broadcasts
+- `/whatsnew $h` — displays full version history
+- `chats.announcements_enabled` column (V11 migration) for per-chat broadcast preference
+- `CommandResponse.Silent` — suppresses bot message when release notes are empty
+
+---
+
 ## [1.4.0] - 2026-05-11
 
 ### Added
