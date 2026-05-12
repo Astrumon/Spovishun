@@ -7,6 +7,7 @@ sealed class CommandResponse {
     data class AccessDenied(val reason: String) : CommandResponse()
     data class NotFound(val resource: String, val identifier: String, val available: List<String> = emptyList()) : CommandResponse()
     data class Error(val message: String) : CommandResponse()
+    data object Silent : CommandResponse()
 }
 
 /**
@@ -23,4 +24,5 @@ fun CommandResponse.toText(
     is CommandResponse.Error -> onError(message)
     is CommandResponse.AccessDenied -> onAccessDenied(reason)
     is CommandResponse.NotFound -> onNotFound(this)
+    is CommandResponse.Silent -> ""
 }
