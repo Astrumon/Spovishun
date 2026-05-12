@@ -23,6 +23,7 @@ import com.ua.astrumon.presentation.bot.commands.MembersCommand
 import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
 import com.ua.astrumon.presentation.bot.commands.PingAllCommand
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
+import com.ua.astrumon.presentation.bot.commands.RandomCommand
 import com.ua.astrumon.presentation.bot.commands.RegisterCommand
 import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
@@ -31,6 +32,7 @@ import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.config.AppConfig
@@ -70,6 +72,7 @@ abstract class BaseIntegrationTest {
     protected lateinit var membersController: MembersController
     protected lateinit var registrationController: RegistrationController
     protected lateinit var pingController: PingController
+    protected lateinit var randomController: RandomController
 
     // Commands — real
     protected lateinit var startCommand: StartCommand
@@ -83,6 +86,7 @@ abstract class BaseIntegrationTest {
     protected lateinit var removeUserFromGroupCommand: RemoveUserFromGroupCommand
     protected lateinit var pingAllCommand: PingAllCommand
     protected lateinit var pingGroupCommand: PingGroupCommand
+    protected lateinit var randomCommand: RandomCommand
     protected lateinit var messageHandler: MessageHandler
 
     protected lateinit var cleaner: TestDatabaseCleaner
@@ -129,6 +133,7 @@ abstract class BaseIntegrationTest {
         membersController = MembersController(memberService, autoRegisterService)
         registrationController = RegistrationController(autoRegisterService)
         pingController = PingController(memberService, groupService, autoRegisterService)
+        randomController = RandomController(memberService, groupService, autoRegisterService)
 
         startCommand = StartCommand(registrationController, botAdminUtils)
         registerCommand = RegisterCommand(registrationController, botAdminUtils)
@@ -141,6 +146,7 @@ abstract class BaseIntegrationTest {
         removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController)
         pingAllCommand = PingAllCommand(pingController, botAdminUtils)
         pingGroupCommand = PingGroupCommand(pingController, botAdminUtils)
+        randomCommand = RandomCommand(randomController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
     }
 

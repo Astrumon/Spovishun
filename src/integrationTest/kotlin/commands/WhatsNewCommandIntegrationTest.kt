@@ -18,7 +18,7 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
 
     @BeforeTest
     fun setupWhatsNew() {
-        val whatsNewController = WhatsNewController(releaseNotesService)
+        val whatsNewController = WhatsNewController(releaseNotesService, chatService, memberService)
         whatsNewCommand = WhatsNewCommand(whatsNewController)
     }
 

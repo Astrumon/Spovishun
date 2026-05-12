@@ -1,0 +1,2 @@
+ALTER TABLE chats
+    ADD COLUMN announcements_enabled BOOLEAN NOT NULL DEFAULT TRUE;
