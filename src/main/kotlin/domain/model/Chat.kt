@@ -6,5 +6,6 @@ data class Chat(
     val chatId: Long,
     val title: String?,
     val type: String?,
-    val registeredAt: Instant
+    val registeredAt: Instant,
+    val announcementsEnabled: Boolean = true,
 )

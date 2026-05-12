@@ -8,5 +8,6 @@ fun ResultRow.toChat() = Chat(
     chatId = this[Chats.chatId],
     title = this[Chats.title],
     type = this[Chats.type],
-    registeredAt = this[Chats.registeredAt]
+    registeredAt = this[Chats.registeredAt],
+    announcementsEnabled = this[Chats.announcementsEnabled],
 )

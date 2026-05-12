@@ -79,7 +79,7 @@ class ReleaseAnnouncerTest {
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAllChatIds() } returns ResultContainer.success(chatIds)
+        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
         announcer.notifyIfNewVersion(bot)
@@ -117,7 +117,7 @@ class ReleaseAnnouncerTest {
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAllChatIds() } returns ResultContainer.success(chatIds)
+        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
         every {
             bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML)

@@ -5,6 +5,7 @@ import com.ua.astrumon.domain.model.ReleaseNote
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ReleaseNotesFormatterTest {
@@ -14,7 +15,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatLatest should include version and date`() {
-        val result = ReleaseNotesFormatter.formatLatest(listOf(singleNote))
+        val result = requireNotNull(ReleaseNotesFormatter.formatLatest(listOf(singleNote)))
 
         assertContains(result, "2.0.0")
         assertContains(result, "2026-01-01")
@@ -22,7 +23,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatLatest should include all changes as bullet points`() {
-        val result = ReleaseNotesFormatter.formatLatest(listOf(singleNote))
+        val result = requireNotNull(ReleaseNotesFormatter.formatLatest(listOf(singleNote)))
 
         assertContains(result, "Feature A")
         assertContains(result, "Feature B")
@@ -31,22 +32,21 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatLatest should include bot name`() {
-        val result = ReleaseNotesFormatter.formatLatest(listOf(singleNote))
+        val result = requireNotNull(ReleaseNotesFormatter.formatLatest(listOf(singleNote)))
 
         assertContains(result, VersionInfo.BOT_NAME)
     }
 
     @Test
-    fun `formatLatest should return noNotes message for empty list`() {
+    fun `formatLatest should return null for empty list`() {
         val result = ReleaseNotesFormatter.formatLatest(emptyList())
 
-        assertTrue(result.isNotBlank())
-        assertTrue(result.length > 3)
+        assertNull(result)
     }
 
     @Test
     fun `formatLatest should use first note when multiple provided`() {
-        val result = ReleaseNotesFormatter.formatLatest(listOf(singleNote, oldNote))
+        val result = requireNotNull(ReleaseNotesFormatter.formatLatest(listOf(singleNote, oldNote)))
 
         assertContains(result, "2.0.0")
         assertTrue(!result.contains("1.0.0"))
@@ -78,7 +78,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatLatest should wrap version in bold HTML tag`() {
-        val result = ReleaseNotesFormatter.formatLatest(listOf(singleNote))
+        val result = requireNotNull(ReleaseNotesFormatter.formatLatest(listOf(singleNote)))
 
         assertTrue(result.contains("<b>") && result.contains("</b>"))
     }

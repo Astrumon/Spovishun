@@ -40,8 +40,8 @@ class ReleaseAnnouncer(
             botMetaService.setLastNotifiedVersion(version)
             return
         }
-        val chatIds = chatService.getAllChatIds().getOrNull() ?: return
-        val text = ReleaseNotesFormatter.formatLatest(listOf(entry))
+        val chatIds = chatService.getAnnouncementChatIds().getOrNull() ?: return
+        val text = ReleaseNotesFormatter.formatLatest(listOf(entry)) ?: return
         sendToAllChats(bot, chatIds, text)
         botMetaService.setLastNotifiedVersion(version)
     }

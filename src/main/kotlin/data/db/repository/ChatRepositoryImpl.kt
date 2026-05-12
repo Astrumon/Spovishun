@@ -11,6 +11,7 @@ import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 
 class ChatRepositoryImpl : ChatRepository {
     override suspend fun findAllChatIds(): ResultContainer<List<Long>> =
@@ -44,5 +45,20 @@ class ChatRepositoryImpl : ChatRepository {
                 .where { Chats.chatId eq chatId }
                 .singleOrNull()?.toChat()
                 ?: throw ResourceNotFoundException("Chat", chatId.toString())
+        }
+
+    override suspend fun setAnnouncementsEnabled(chatId: Long, enabled: Boolean): ResultContainer<Unit> =
+        safeDbQuery {
+            Chats.update({ Chats.chatId eq chatId }) {
+                it[announcementsEnabled] = enabled
+            }
+            Unit
+        }
+
+    override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> =
+        safeDbQuery {
+            Chats.selectAll()
+                .where { Chats.announcementsEnabled eq true }
+                .map { it[Chats.chatId] }
         }
 }

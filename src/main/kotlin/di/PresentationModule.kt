@@ -16,6 +16,7 @@ import com.ua.astrumon.presentation.bot.commands.RegisterCommand
 import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
+import com.ua.astrumon.presentation.bot.commands.RandomCommand
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
@@ -23,6 +24,7 @@ import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
@@ -40,7 +42,8 @@ val presentationModule = module {
     single { RegistrationController(get()) }
     single { PingController(get(), get(), get()) }
     single { BirthdayController(get(), get()) }
-    single { WhatsNewController(get()) }
+    single { WhatsNewController(get(), get(), get()) }
+    single { RandomController(get(), get(), get()) }
 
     // Commands
     single { StartCommand(get(), get()) } bind BotCommand::class
@@ -56,6 +59,7 @@ val presentationModule = module {
     single { RemoveUserFromGroupCommand(get()) } bind BotCommand::class
     single { BirthdayCommand(get()) } bind BotCommand::class
     single { WhatsNewCommand(get()) } bind BotCommand::class
+    single { RandomCommand(get(), get()) } bind BotCommand::class
 
     // Schedulers
     single { BirthdayGreetingScheduler(get(), get(), CoroutineScope(SupervisorJob() + CoroutineName("birthday-scheduler"))) }

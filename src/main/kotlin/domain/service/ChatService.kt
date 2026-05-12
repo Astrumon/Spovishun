@@ -16,4 +16,10 @@ class ChatService(
 
     suspend fun getAllChatIds(): ResultContainer<List<Long>> =
         chatRepository.findAllChatIds()
+
+    suspend fun setAnnouncementsEnabled(chatId: Long, enabled: Boolean): ResultContainer<Unit> =
+        chatRepository.setAnnouncementsEnabled(chatId, enabled)
+
+    suspend fun getAnnouncementChatIds(): ResultContainer<List<Long>> =
+        chatRepository.findAnnouncementChatIds()
 }
