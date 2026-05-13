@@ -96,3 +96,41 @@ Notion:notion-create-pages(
 - Only one task In progress at a time - remind the user if they try to start another
 
 </details>
+
+## After Task Completion (Auto Doc)
+
+When a task moves to `Done`, automatically perform the following steps — no user prompt needed.
+
+### Step 1 — Identify changed files
+
+```bash
+git diff develop...HEAD --name-only
+```
+
+If the branch is already merged into `main`, use `git diff main~1...main --name-only` instead.
+
+### Step 2 — Classify the change set
+
+| File pattern match | Action |
+|---|---|
+| New file `presentation/bot/commands/*Command.kt` | New feature OR new command in existing feature |
+| New file `presentation/scheduler/*.kt` | Passive component of an existing feature |
+| Modified `presentation/bot/commands/*Command.kt` or `BotMessages.kt` | Existing feature update |
+| No matches | No doc action needed — exit |
+
+### Step 3 — Apply doc change
+
+**New feature:** create a new record in the Features inline DB. Use the `notion-navigator` skill to get the current Features group page ID. Populate using the template from `.claude/rules/common/feature-documentation.md`, reading the command file and task description as source.
+
+**Feature update:** find the existing Features record by command or scheduler name (search via `mcp__claude_ai_Notion__notion-search`). Patch only the affected section (commands table or functionality bullets). Do not rewrite unaffected sections.
+
+### Step 4 — Report
+
+At the end of the task transition, report what was created or updated (one line). Example:
+```
+📦 Features doc: created "👋 Registration & Onboarding" record in the Features DB.
+```
+
+### Failure handling
+
+If any Notion API call fails: log the intended change in chat and continue — do NOT block the task status transition.

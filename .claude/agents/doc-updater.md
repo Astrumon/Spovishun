@@ -51,8 +51,7 @@ New articles go as records in the category's inline DB — reference the categor
 | Database tables (schema, columns, Exposed definitions) | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
 | Database migrations (Flyway, new/modified .sql files) | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
 | Architecture (DI modules, layers, patterns, services) | https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe |
-| Bot commands (user-facing command list) | https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди") |
-| **Feature-specific docs** (new command + DI bindings + migration for one feature) | https://www.notion.so/35b3462f68a9813e9435e56810ad69a1 |
+| **Features** (new/updated bot commands, schedulers, user-facing behavior) | https://www.notion.so/35f3462f68a981419511fb0ea80d1bb4 |
 | Hooks, subagents, rules (.claude/ infrastructure) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
 | Claude Code skills (.claude/skills/) | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
 | CI/CD pipelines (GitHub Actions workflows) | https://www.notion.so/33c3462f68a98146bf26cc0e5f5c2799 |
@@ -108,8 +107,9 @@ Combine both lists (unstaged + untracked). If git is unavailable, report the err
 | `src/main/kotlin/di/*Module.kt` | Zone 2: Architecture |
 | `src/main/kotlin/Application.kt` | Zone 2: Architecture |
 | `**/CLAUDE.md` | Zone 3: CLAUDE.md Files |
-| `src/main/kotlin/presentation/bot/commands/*Command.kt` | Zone 4: Bot Commands |
-| `src/main/kotlin/presentation/bot/handler/MessageHandler.kt` | Zone 4: Bot Commands |
+| `src/main/kotlin/presentation/bot/commands/*Command.kt` | Zone 6: Features |
+| `src/main/kotlin/presentation/scheduler/*.kt` | Zone 6: Features |
+| `src/main/kotlin/presentation/bot/handler/MessageHandler.kt` | Zone 2: Architecture |
 | `.claude/hooks/*.js` | Zone 5: .claude/ Infrastructure |
 | `.claude/agents/*.md` | Zone 5: .claude/ Infrastructure |
 | `.claude/rules/**/*.md` | Zone 5: .claude/ Infrastructure |
@@ -141,7 +141,7 @@ For each changed DI module, extract:
 
 **Target page:** https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe
 
-**IMPORTANT — Feature routing exception:** If the new DI bindings are part of a new feature (i.e., they accompany a new `*Command.kt` and a new migration in the same commit range), do NOT propose an Architecture update for those bindings. Route them to the Features page instead (`https://www.notion.so/35b3462f68a9813e9435e56810ad69a1`). Architecture page documents general DI patterns, not per-feature bindings.
+Architecture page documents general DI patterns only. Per-feature bindings belong in the Features category (Zone 6).
 
 ---
 
@@ -155,11 +155,10 @@ For each changed CLAUDE.md, note what section was added/changed and check for st
 
 ### Zone 4: Bot Commands
 
-For each changed Command file, extract the command string and what it does.
+Zone 4 no longer routes bot command files — those are handled by Zone 6: Features.
+This zone is reserved for `MessageHandler.kt` routing changes only.
 
-**Target page:** https://www.notion.so/Spovishun-3183462f68a9803aa93ae34eb81d2659 (section "Доступні команди") — for the user-facing command summary list only.
-
-**IMPORTANT — Feature routing exception:** Full feature documentation (command format, DI bindings, DB schema, scheduler behavior) goes to the Features page (`https://www.notion.so/35b3462f68a9813e9435e56810ad69a1`), not here. Add to this target only a brief one-liner in "Доступні команди" if the command is new.
+**Target page:** https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe
 
 ---
 
@@ -168,6 +167,20 @@ For each changed Command file, extract the command string and what it does.
 For each changed hook/agent/rule/settings file, extract name and purpose.
 
 **Target page:** https://www.notion.so/33c3462f68a981439024cf50673df3a7
+
+---
+
+### Zone 6: Features
+
+For each new or modified Command file or scheduler file:
+- Extract the command string, role requirement, argument format, and behavior from the source.
+- Classify: new feature (new `*Command.kt`), new passive component (new `*Scheduler.kt`), or update to existing feature.
+- Match to an existing Features record by command name if available.
+
+**Target page:** https://www.notion.so/35f3462f68a981419511fb0ea80d1bb4
+
+When proposing a new record: use the template from `.claude/rules/common/feature-documentation.md`.
+When proposing an update: reference the existing record by name and specify which section changes.
 
 ---
 
@@ -234,6 +247,17 @@ Last commits: <output of git log --oneline -5>
 
 ---
 
+### Zone 6: Features
+
+#### Change Classification
+| File | Classification | Feature Name |
+|------|---------------|-------------|
+
+#### Proposed Notion Updates (major/critical only)
+- [ ] <new record OR update to existing record, with target Features page URL>
+
+---
+
 ### Notion Category Analysis (only when RANGE-MODE with Notion context)
 
 #### Already Documented (skipped — no new entry needed)
@@ -248,7 +272,7 @@ Last commits: <output of git log --oneline -5>
 ---
 
 ### Summary
-- Zones audited: 5
+- Zones audited: 6
 - Total proposed changes: N
 - Already documented (skipped): N
 - Potentially outdated records: N

@@ -7,7 +7,7 @@ description: >
   "notion page for", "where in notion", "find the notion page".
   Refresh triggers: "оновити карту", "refresh navigator", "перевір notion структуру", "sync notion map".
   Load silently before any Notion write operation.
-last_verified: 2026-04-08
+last_verified: 2026-05-13
 ---
 
 # Notion Navigator - Spovishun Workspace Map
@@ -27,6 +27,8 @@ New documentation articles are created as records in the category inline databas
 | Flyway migration workflow, PostgreSQL setup | Database | `33c3462f68a9817e83aef4f1a912a8dd` |
 | E2E test setup, integration test infrastructure | Testing | `33c3462f68a98108b41cf3b5c83610fb` |
 | GitHub Actions workflow, CI pipeline, repo setup | CI/CD | `33c3462f68a98146bf26cc0e5f5c2799` |
+| New user-facing feature (new command, scheduler, behaviour change) | Features | `35f3462f68a981419511fb0ea80d1bb4` |
+| New or updated command, command flow, user-facing behavior change | Features | `35f3462f68a981419511fb0ea80d1bb4` |
 | New or updated skill, hook, agent, rule in .claude/ | AI Tools | `33c3462f68a981439024cf50673df3a7` |
 | Idea planning pipeline, Claude Code guides | AI Tools | `33c3462f68a981439024cf50673df3a7` |
 | Learning resources, reference links | Other/Learning | `31d3462f68a981d1b134eebd436830eb` |
@@ -68,6 +70,7 @@ Category Group Pages:
 
 | Category | Group Page ID | Collection ID |
 |----------|--------------|---------------|
+| Features | `35f3462f68a981419511fb0ea80d1bb4` | `collection://2500abb2-2973-4e1a-b7ee-0faa2837a97e` |
 | Architecture | `33c3462f68a9819894a4df73c3b7d9fe` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` |
 | Database | `33c3462f68a9817e83aef4f1a912a8dd` | `collection://74e2c987-7021-4d70-8a4f-dc04e82269b4` |
 | Testing | `33c3462f68a98108b41cf3b5c83610fb` | `collection://af9016e6-c28e-4962-8976-4ba43bb4b419` |
@@ -99,6 +102,7 @@ Refresh when: new Notion page was created, user mentions an unknown page, last_v
 ```
 Notion:notion-fetch(id: "3193462f68a981b79936e2e45291df85")   Documentation root
 Notion:notion-fetch(id: "3183462f68a9803aa93ae34eb81d2659")   Workspace root
+Notion:notion-fetch(id: "35f3462f68a981419511fb0ea80d1bb4")   Features
 Notion:notion-fetch(id: "33c3462f68a9819894a4df73c3b7d9fe")   Architecture
 Notion:notion-fetch(id: "33c3462f68a9817e83aef4f1a912a8dd")   Database
 Notion:notion-fetch(id: "33c3462f68a98108b41cf3b5c83610fb")   Testing

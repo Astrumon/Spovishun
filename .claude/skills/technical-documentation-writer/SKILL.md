@@ -87,6 +87,41 @@ For AI assistant context files, include:
 
 For changelogs, follow [Keep a Changelog](https://keepachangelog.com) format — see `changelog-generator` skill.
 
+### Feature Page (Notion Features category)
+
+Canonical structure is defined in `.claude/rules/common/feature-documentation.md`.
+Quick template for reference:
+
+```
+## Призначення
+1–3 sentences: what the feature does, who uses it, why it exists.
+
+## Версія
+v1.X.0 — introduced in [task link]
+
+## Команди / точки входу
+| Command / Trigger | Role required | Description |
+|---|---|---|
+| /command | member | One-line description |
+
+## Формат вводу
+(omit if no arguments)
+Argument shape, accepted values, example: `/command arg1 arg2`
+
+## Функціонал / поведінка
+- What happens step-by-step
+- Edge cases and side effects
+- Passive components (schedulers, auto-services) described here
+
+## Діаграма
+(optional — embed screenshot from diagram-design skill only for non-trivial flows)
+
+## Пов'язані фічі
+(optional — links to related Features records)
+```
+
+Rules: ≤ 250 words (excluding tables/diagram). No DI tables, no DB schema, no method signatures, no internal class names. See canonical rule for full forbidden list.
+
 ## Writing Principles
 - Start with "why", then "what", then "how"
 - Use active voice: "The bot sends" not "Messages are sent"
