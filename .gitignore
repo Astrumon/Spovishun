@@ -137,6 +137,9 @@ yarn-error.log*
 .claude/settings.local.json
 .claude/scripts/.skills-last-sync
 .claude/session-state.json
+.claude/learnings-queue.json
+.claude/learnings-queue.backup.json
+.claude/learnings-queue.errors.log
 
 # ======================
 # Dev Context (local task cache)

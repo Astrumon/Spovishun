@@ -11,14 +11,29 @@ const fs = require('fs');
 const path = require('path');
 
 const stateFile = path.join(__dirname, '..', 'session-state.json');
+const queueFile = path.join(__dirname, '..', 'learnings-queue.json');
 
 try {
-  if (!fs.existsSync(stateFile)) process.exit(0);
-  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-  if (state.docSyncNeeded) {
-    process.stdout.write(JSON.stringify({
-      systemMessage: 'Last session left doc sync pending. Run doc-updater if still relevant.'
-    }) + '\n');
+  const messages = [];
+
+  if (fs.existsSync(stateFile)) {
+    const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    if (state.docSyncNeeded) {
+      messages.push('Last session left doc sync pending. Run doc-updater if still relevant.');
+    }
+  }
+
+  if (fs.existsSync(queueFile)) {
+    try {
+      const queue = JSON.parse(fs.readFileSync(queueFile, 'utf8'));
+      if (Array.isArray(queue) && queue.length > 5) {
+        messages.push(`📝 Learnings queue has ${queue.length} entries. Run /reflect to process.`);
+      }
+    } catch (_) { /* ignore malformed queue */ }
+  }
+
+  if (messages.length > 0) {
+    process.stdout.write(JSON.stringify({ systemMessage: messages.join('\n') }) + '\n');
   }
 } catch (err) {
   // Silent — don't block session start
