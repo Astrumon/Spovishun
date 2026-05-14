@@ -17,7 +17,7 @@ Each feature gets its own record in the Features inline DB — never combine fea
 3. **Команди / точки входу** — table with columns: Command/trigger | Role required | Description (one line).
 4. **Формат вводу** — argument shape, accepted values, examples. Omit if the command takes no arguments.
 5. **Функціонал / поведінка** — bullet list: what happens step-by-step, edge cases, side effects. Passive components (schedulers, auto-services) are described here, not as a separate section.
-6. **Діаграма** (optional) — sequence or flow diagram embedded as a screenshot from the `diagram-design` skill. Include only when the flow is non-trivial (3+ actors or non-obvious ordering).
+6. **Діаграма** (optional) — sequence or flow diagram as a Mermaid code block (` ```mermaid `). Include only when the flow is non-trivial (3+ actors or non-obvious ordering). Do NOT use the `diagram-design` skill for feature pages.
 7. **Пов'язані фічі** (optional) — links to other Features records this feature depends on or extends.
 
 ## Explicitly Forbidden
