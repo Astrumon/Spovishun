@@ -9,6 +9,8 @@ Single source of truth for IDs referenced across Notion skills.
 | CLAUDE.md page | `31c3462f68a9819c8150ff31d729293e` | workflow-spovishun (auto-fetches this) |
 | Workspace root | `3183462f68a9803aa93ae34eb81d2659` | navigator |
 | Documentation root | `3193462f68a981b79936e2e45291df85` | navigator, doc-updater |
+| Features group page | `35f3462f68a981419511fb0ea80d1bb4` | navigator, doc-updater, task-manager |
+| Features collection (data source) | `2500abb2-2973-4e1a-b7ee-0faa2837a97e` | update-doc-full, doc-updater |
 | Notion API version | `2022-06-28` | direct API calls only |
 
 > For the full workspace map (category pages, collection IDs per doc category), use the `notion-navigator` skill.

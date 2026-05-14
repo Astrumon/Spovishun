@@ -78,7 +78,8 @@ Scan the file list from Step 2 against these patterns and record which categorie
 | `src/main/resources/db/migration/V*__*.sql` | database | `e1e21982827642a3a56d2ea602a0170e` | `collection://74e2c987-7021-4d70-8a4f-dc04e82269b4` |
 | `src/main/kotlin/di/*Module.kt` | architecture | `c4cea10d5e4d4ad6a4f226e1022eb49a` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` |
 | `src/main/kotlin/Application.kt` | architecture | `c4cea10d5e4d4ad6a4f226e1022eb49a` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` |
-| `src/main/kotlin/presentation/bot/commands/*Command.kt` | architecture | `c4cea10d5e4d4ad6a4f226e1022eb49a` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` |
+| `src/main/kotlin/presentation/bot/commands/*Command.kt` | features | `1335edcc7363463286883345edda06fd` | `collection://2500abb2-2973-4e1a-b7ee-0faa2837a97e` |
+| `src/main/kotlin/presentation/scheduler/*.kt` | features | `1335edcc7363463286883345edda06fd` | `collection://2500abb2-2973-4e1a-b7ee-0faa2837a97e` |
 | `src/main/kotlin/presentation/bot/handler/MessageHandler.kt` | architecture | `c4cea10d5e4d4ad6a4f226e1022eb49a` | `collection://b640a79f-ed87-4e14-9f7f-796065d03364` |
 | `.github/workflows/*.yml` | cicd | `a565714f075f4b7b89dec10812dbe7f4` | `collection://ed906931-fd5e-4033-93e1-7aaf43873438` |
 | `src/test/**/*.kt` | testing | `c017b7d0138c400ab5f5e52f85dfd7bf` | `collection://af9016e6-c28e-4962-8976-4ba43bb4b419` |
