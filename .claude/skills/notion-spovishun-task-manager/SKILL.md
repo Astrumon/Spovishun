@@ -24,11 +24,22 @@ description: Use this skill for ALL task management operations in the Spovishun 
 ## Reading the Board
 
 ```
-node scripts/notion/get-board.js                # JSON (default) - use when processing data
-node scripts/notion/get-board.js --format=md    # markdown table - use when displaying to user
+node scripts/notion/get-board.js                       # JSON (default) - use when processing data
+node scripts/notion/get-board.js --format=md           # markdown table - use when displaying to user
+node scripts/notion/get-board.js --epic "<name|id>"    # only tasks linked to that epic
 ```
 
-Display statuses: In progress / Not started / Done (last 3).
+Display statuses: In progress / Not started / Done (last 3). The board table includes `Epic` and `Blocked by` columns.
+
+## Epics
+
+```
+node scripts/notion/list-epics.js --format=md          # list all epics
+node scripts/notion/list-epics.js --status=Active      # filter by status
+echo '{"name":"…","goal":"…","status":"Planned"}' | node scripts/notion/create-epic.js
+```
+
+To re-assign a task's epic, use `notion-update-page` with the property `Epic` set to `[{"id": "<epic-page-id>"}]`. To clear it, pass an empty array.
 
 ## Updating a Task
 

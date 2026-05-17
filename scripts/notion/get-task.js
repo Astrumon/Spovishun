@@ -6,6 +6,7 @@ const { DATABASE_ID } = require('./lib/constants');
 const { richText, extractBlocks } = require('./lib/format-task');
 const { extractBranchFromBlocks, deriveBranchFromName } = require('./lib/extract-branch');
 const { toDashed } = require('./lib/page-id');
+const { resolveRelationIds, extractRelationIds } = require('./lib/resolve-relations');
 
 const VALID_FORMATS = ['json', 'md'];
 
@@ -44,6 +45,11 @@ function renderMd(task) {
   const meta = [task.status, task.priority, task.branch].filter(Boolean).join(' | ');
   const parts = [`# ${task.title}`];
   if (meta) parts.push(meta);
+  if (task.epic) parts.push(`**Epic:** ${task.epic.title ?? task.epic.id}`);
+  if (task.blockedBy && task.blockedBy.length > 0) {
+    const list = task.blockedBy.map(b => `- ${b.title ?? b.id}`).join('\n');
+    parts.push(`**Blocked by:**\n${list}`);
+  }
   if (task.content) parts.push('---', task.content);
   return parts.join('\n\n');
 }
@@ -82,6 +88,9 @@ async function main() {
   const blocks = blocksResult?.results || [];
   const props = page.properties || {};
   const title = richText(props.Name?.title);
+  const epicIds = extractRelationIds(props.Epic);
+  const blockedByIds = extractRelationIds(props['Blocked by']);
+  const titleMap = await resolveRelationIds(token, [...epicIds, ...blockedByIds]);
 
   const task = {
     id: page.id,
@@ -89,6 +98,10 @@ async function main() {
     status: props.Status?.status?.name ?? null,
     branch: extractBranchFromBlocks(blocks) ?? deriveBranchFromName(title),
     priority: props.Priority?.select?.name ?? null,
+    epic: epicIds[0]
+      ? { id: epicIds[0], title: titleMap.get(epicIds[0]) ?? null }
+      : null,
+    blockedBy: blockedByIds.map(id => ({ id, title: titleMap.get(id) ?? null })),
     content: extractBlocks(blocks),
   };
 

@@ -62,6 +62,33 @@ Branch name: `feature/spovishun-{N}-{slug}`
 
 ---
 
+## Step 3.5: Link to an Epic (optional)
+
+Ask the user: "Чи прив'язати задачу до існуючого епіка?"
+
+If yes — list available epics:
+```bash
+node scripts/notion/list-epics.js --format=text
+```
+
+Show the numbered list and ask which one (`1`, `2`, …) or `skip`. Save the chosen epic's `id` as `epicId`. If the user says `skip` or the list is empty, `epicId = null`.
+
+If the user wants a brand-new epic, suggest invoking the `newepic` skill first, then return here.
+
+---
+
+## Step 3.6: Mark blockers (optional)
+
+Ask: "Чи є задачі-блокери (вже на борді), без яких ця не може початись?"
+
+If yes — accept task numbers (e.g. `84, 86`) or full page IDs. For each number, resolve to a page ID:
+```bash
+node scripts/notion/get-task.js spovishun-<N> --format=json
+```
+Collect the resolved page IDs into `blockedBy` (array). If the user skips, `blockedBy = []`.
+
+---
+
 ## Step 4: Build page content
 
 Every new task page must include all five sections:
@@ -94,6 +121,19 @@ Rules:
 
 ## Step 5: Create the task
 
+Use the script (it supports `epicId` and `blockedBy`):
+```bash
+echo '{
+  "title": "feature/spovishun-{N}: {task title}",
+  "priority": "Medium",
+  "icon": "✨",
+  "epicId": "<page-id from Step 3.5 or null>",
+  "blockedBy": ["<page-id>", ...],
+  "content": "{full page content from Step 4}"
+}' | node scripts/notion/create-task.js
+```
+
+Alternatively (MCP path, if no relations needed):
 ```
 Notion:notion-create-pages(
   parent: { type: "data_source_id", data_source_id: "3193462f-68a9-80b8-99b9-000bcbf3b536" },
@@ -106,6 +146,7 @@ Notion:notion-create-pages(
 ```
 
 ⚠️ The property name is **Name** (not Title) — case-sensitive.
+⚠️ The script default Status is `To do`; if you need `Not started`, patch via `update-status.js` after creation.
 
 ---
 

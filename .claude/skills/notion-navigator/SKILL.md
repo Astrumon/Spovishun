@@ -7,7 +7,7 @@ description: >
   "notion page for", "where in notion", "find the notion page".
   Refresh triggers: "оновити карту", "refresh navigator", "перевір notion структуру", "sync notion map".
   Load silently before any Notion write operation.
-last_verified: 2026-05-13
+last_verified: 2026-05-17
 ---
 
 # Notion Navigator - Spovishun Workspace Map
@@ -31,6 +31,7 @@ New documentation articles are created as records in the category inline databas
 | New or updated command, command flow, user-facing behavior change | Features | `35f3462f68a981419511fb0ea80d1bb4` |
 | New or updated skill, hook, agent, rule in .claude/ | AI Tools | `33c3462f68a981439024cf50673df3a7` |
 | Idea planning pipeline, Claude Code guides | AI Tools | `33c3462f68a981439024cf50673df3a7` |
+| New Epic (multi-task initiative description) | Epics | `3633462f68a981098385fa260e9ce132` |
 | Learning resources, reference links | Other/Learning | `31d3462f68a981d1b134eebd436830eb` |
 | General project rules (for AI or devs) | CLAUDE.md | `31c3462f68a9819c8150ff31d729293e` |
 | New feature roadmap item | Plan | `31c3462f68a98029a084df47ae579e2b` |
@@ -76,6 +77,7 @@ Category Group Pages:
 | Testing | `33c3462f68a98108b41cf3b5c83610fb` | `collection://af9016e6-c28e-4962-8976-4ba43bb4b419` |
 | CI/CD | `33c3462f68a98146bf26cc0e5f5c2799` | `collection://ed906931-fd5e-4033-93e1-7aaf43873438` |
 | AI Tools | `33c3462f68a981439024cf50673df3a7` | `collection://1dc936bc-7068-41f8-a93f-457109111c5f` |
+| Epics | `3633462f68a981098385fa260e9ce132` | `collection://a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0` |
 | Other | `33c3462f68a9819c97cffd4d1ae31db4` | no inline DB - has sub-pages |
 
 Other sub-pages:
@@ -90,6 +92,10 @@ Other sub-pages:
 | Resource | ID |
 |----------|----|
 | Board collection (data source) | `3193462f-68a9-80b8-99b9-000bcbf3b536` |
+| Epics database (compact) | `d0c0020049f74b0589979065d8cfe7d3` |
+| Epics data source | `a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0` |
+
+Task board now exposes `Epic` (relation → Epics) and `Blocked by` (self-relation, paired with `Blocks`).
 
 ## When to Refresh
 
