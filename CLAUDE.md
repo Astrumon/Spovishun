@@ -72,10 +72,12 @@ Never call a `Service` directly from a `Command`.
 
 | Use case | Preferred tool |
 |---|---|
-| Board overview | `node scripts/notion/get-board.js` |
-| Task by number or pageId | `node scripts/notion/get-task.js <N-or-pageId>` |
+| Board overview | `node scripts/notion/get-board.js` (supports `--epic <name|id>`) |
+| Task by number or pageId | `node scripts/notion/get-task.js <N-or-pageId>` (includes `epic` + `blockedBy`) |
 | CLAUDE.md page | `node scripts/notion/get-claude-md.js` |
-| Create task | `node scripts/notion/create-task.js` or MCP `notion-create-pages` |
+| Create task | `node scripts/notion/create-task.js` (accepts `epicId`, `blockedBy`) or MCP `notion-create-pages` |
+| List epics | `node scripts/notion/list-epics.js` |
+| Create epic | `node scripts/notion/create-epic.js` or skill `newepic` |
 | Update status | `node scripts/notion/update-status.js` or MCP `notion-update-page` |
 | Semantic search across arbitrary Notion content | MCP `notion-search` (not replicable via scripts) |
 
@@ -84,9 +86,17 @@ Use these skills to go from a raw idea to implementable tasks:
 - `idea-brainstormer` — structures a raw idea into a problem brief (problem statement, scope, risks, feasibility)
 - `solution-designer` — compares 2–3 implementation approaches within existing architecture; produces a Solution Decision
 - `task-decomposer` — breaks the chosen solution into atomic Notion-compatible tasks with DoD and AI prompts
+- `newepic` — creates an Epic page (multi-task initiative). Required by `task-decomposer` when a solution produces 3+ tasks.
 
-Pipeline flow: `idea-brainstormer` → `solution-designer` → `task-decomposer` → `newtask` / `notion-task-to-code`
+Pipeline flow: `idea-brainstormer` → `solution-designer` → `task-decomposer` (creates Epic via `newepic`) → `newtask` / `notion-task-to-code`
 Each skill is standalone — invoke at any stage.
+
+### Epics & task relations
+The task board has two relation properties:
+- `Epic` — links a task to its parent initiative in the Epics database (`d0c0020049f74b0589979065d8cfe7d3`). Use it to group, filter, and roll up tasks.
+- `Blocked by` / `Blocks` — self-relation expressing task dependencies inside the board.
+
+Epics live as records of the Epics inline DB on the Documentation page `3633462f68a981098385fa260e9ce132`. Create one whenever an initiative spans 3+ tasks; otherwise omit.
 
 Rules in `.claude/rules/` are always active — they load automatically, no explicit invocation needed.
 

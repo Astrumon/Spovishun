@@ -51,6 +51,14 @@ From the fetched task page, extract:
 - **Steps** - ordered list of implementation steps
 - **Definition of Done** - completion condition
 - **prompt toggle** - existing AI prompt if present (use as base, expand if needed)
+- **epic** (from `get-task.js` output) - parent Epic title and id, if any
+- **blockedBy** - list of blocker tasks (title + id)
+
+When generating the prompt (Step 4), inject into the Context section:
+- "This task belongs to Epic: **<epic.title>**" — if epic is present
+- "Blocked by (must verify before starting): <comma-separated blocker titles>" — if blockedBy is non-empty
+
+This gives the implementing agent shared context about the broader initiative and ordering constraints.
 
 ### Step 5: Present the output
 Show the prompt in a code block and offer to update the prompt toggle in Notion.

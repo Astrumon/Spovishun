@@ -25,6 +25,36 @@ Notion:notion-search(query: "", data_source_url: "collection://3193462f-68a9-80b
 
 Find the highest existing task number N. New tasks start at N+1.
 
+### Step 0.5: Determine Epic context
+
+If the decomposition produces **3 or more tasks**, an Epic is required (single source of truth for the initiative).
+
+1. List existing epics:
+   ```bash
+   node scripts/notion/list-epics.js --format=text
+   ```
+2. Ask the user: "Прив'язати до існуючого епіка (вкажи номер) чи створити новий?"
+3. If user picks an existing one → save its `id` as `epicId`.
+4. If new → create it **with full body inline**:
+   - Use `.claude/skills/_templates/epic-page.md` for section structure (TL;DR, § 1 Current state, § 7 Risks, § 8 Roadmap, § 9 Task decomposition are required)
+   - Reuse the Solution Decision from `solution-designer` (or the input description) to populate §§ 1–8
+   - The § 9 decomposition table you are about to produce in Step 2 becomes the body of that section — write it into the Epic page in the same pass
+   - Create via MCP so callouts/tables/toggles render correctly:
+     ```
+     mcp__claude_ai_Notion__notion-create-pages(
+       parent: { type: "data_source_id", data_source_id: "a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0" },
+       pages: [{
+         properties: { "Name": "<Epic name>", "Status": "Active", "Goal": "<1–2 sentences>" },
+         icon: "🧩",
+         content: "<full markdown body following the template>"
+       }]
+     )
+     ```
+   - Save the returned `id` as `epicId`
+   - Never create a stub-with-link instead — the Epic page must own the content (see `newepic` skill for the full rule)
+
+For 1–2 tasks, an Epic is optional — ask once and respect the answer.
+
 ### Step 1: Understand
 Parse the input — either a Solution Decision from `solution-designer` or a direct solution description.
 Identify all layers and components that need changes.
@@ -51,7 +81,19 @@ Show the **Overview Table** first (compact), then the full **Task Cards**.
 Ask the user to confirm, merge, split, or reorder before creating anything in Notion.
 
 ### Step 5: Create in Notion (on confirmation)
-If the user confirms, offer to create tasks using `notion-spovishun-task-manager`.
+For each task in order:
+1. Build the stdin JSON for `create-task.js`:
+   - `title` = `feature/spovishun-{N}: {task title}`
+   - `priority` = inferred from the overview table (default `Medium`)
+   - `epicId` = the Epic chosen in Step 0.5 (or `null` if skipped)
+   - `blockedBy` = page IDs of preceding tasks **already created in this run** (use the IDs returned by previous `create-task.js` calls to wire the dependency chain)
+   - `content` = the full 5-section markdown
+2. Call:
+   ```bash
+   echo '<json>' | node scripts/notion/create-task.js
+   ```
+3. Record the returned `id` so later tasks can reference it as a blocker.
+
 After creating, suggest starting implementation with `notion-task-to-code` on the first task.
 
 ---
@@ -167,6 +209,9 @@ You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Arc
 | Resource | ID |
 |----------|----|
 | Board collection | `3193462f-68a9-80b8-99b9-000bcbf3b536` |
+| Epics collection | `a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0` |
+| Epics database (compact) | `d0c0020049f74b0589979065d8cfe7d3` |
+| Epics group page | `3633462f68a981098385fa260e9ce132` |
 | CLAUDE.md | `31c3462f68a9819c8150ff31d729293e` |
 
 ---
@@ -175,5 +220,6 @@ You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Arc
 - `solution-designer` — previous step: produces the Solution Decision to decompose
 - `idea-brainstormer` — two steps back: structures the original raw idea
 - `newtask` — creates an individual task in Notion + feature branch
+- `newepic` — creates an Epic page when decomposition needs one
 - `notion-spovishun-task-manager` — board CRUD; use for bulk task creation
 - `notion-task-to-code` — AI prompt format reference; use after tasks are created to start implementation
