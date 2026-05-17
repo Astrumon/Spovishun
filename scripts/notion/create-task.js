@@ -3,6 +3,7 @@
 const http = require('./lib/notion-http');
 const { loadToken } = require('./lib/load-token');
 const { DATABASE_ID } = require('./lib/constants');
+const { toDashed } = require('./lib/page-id');
 
 const VALID_PRIORITIES = ['High', 'Medium', 'Low'];
 
@@ -13,6 +14,21 @@ function readStdin() {
     process.stdin.on('data', chunk => { data += chunk; });
     process.stdin.on('end', () => resolve(data));
     process.stdin.on('error', reject);
+  });
+}
+
+function normalizeRelationIds(value, fieldName) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    process.stderr.write(`Error: "${fieldName}" must be an array of page IDs\n`);
+    process.exit(1);
+  }
+  return value.map(id => {
+    if (typeof id !== 'string' || !id.trim()) {
+      process.stderr.write(`Error: "${fieldName}" entries must be non-empty strings\n`);
+      process.exit(1);
+    }
+    return toDashed(id.trim());
   });
 }
 
@@ -32,7 +48,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { title, priority, content, icon } = input;
+  const { title, priority, content, icon, epicId, blockedBy } = input;
 
   if (!title || typeof title !== 'string' || !title.trim()) {
     process.stderr.write('Error: "title" is required and must be a non-empty string\n');
@@ -46,14 +62,28 @@ async function main() {
     process.stderr.write('Error: "content" must be a string\n');
     process.exit(1);
   }
+  if (epicId !== undefined && epicId !== null && (typeof epicId !== 'string' || !epicId.trim())) {
+    process.stderr.write('Error: "epicId" must be a non-empty string when provided\n');
+    process.exit(1);
+  }
+
+  const blockedByIds = normalizeRelationIds(blockedBy, 'blockedBy');
+
+  const properties = {
+    Name: { title: [{ type: 'text', text: { content: title.trim() } }] },
+    Priority: { select: { name: priority } },
+    Status: { status: { name: 'To do' } },
+  };
+  if (epicId) {
+    properties.Epic = { relation: [{ id: toDashed(epicId.trim()) }] };
+  }
+  if (blockedByIds.length > 0) {
+    properties['Blocked by'] = { relation: blockedByIds.map(id => ({ id })) };
+  }
 
   const body = {
     parent: { database_id: DATABASE_ID },
-    properties: {
-      Name: { title: [{ type: 'text', text: { content: title.trim() } }] },
-      Priority: { select: { name: priority } },
-      Status: { status: { name: 'To do' } },
-    },
+    properties,
     children: content
       ? [{ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content } }] } }]
       : [],
