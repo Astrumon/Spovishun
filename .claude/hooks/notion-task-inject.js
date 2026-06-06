@@ -18,63 +18,248 @@
  *    Called by Claude after user picks task(s) via AskUserQuestion.
  *    Exits 1 on error so Claude can surface it; all other modes exit 0.
  *
- * State files:
+ * Configuration. Env vars take precedence; otherwise resolved from the consumer's
+ * spovishun-skills.config.yaml (so a plain `install` works without extra env setup):
+ *   NOTION_TOKEN or NOTION_SKILLS_TOKEN  — Notion API token (required; from env/.env)
+ *   NOTION_DATABASE_ID          ⟵ notion.database_id   — task board database ID (required)
+ *                                  (NOTION_BOARD_COLLECTION_ID is accepted as a
+ *                                  deprecated alias; it was a misnamed pre-1.2.2
+ *                                  env var that actually held the database id.)
+ *   PROJECT_PREFIX              ⟵ slug(project.name)    — branch prefix → feature/<prefix>-N
+ *   GIT_DEVELOP_BRANCH          ⟵ git.dev_branch        — base branch name, default "develop"
+ *
+ * State files (in consumer project, under .dev-context/):
  *   .dev-context/{branch}_prd/branch.txt      — exact branch name
  *   .dev-context/{branch}_prd/context.md      — cached task text from Notion
  *   .dev-context/{branch}_prd/plan.md         — approved plan (auto-saved on ExitPlanMode)
  *   .dev-context/{branch}_prd/session.lock    — "{ppid}:{timestamp}" dedup guard
  *   .dev-context/selected-tasks.json          — active tasks shared across Claude instances
- *
- * Requires: NOTION_SKILLS_TOKEN (or NOTION_TOKEN) in env or .env file.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { loadToken } = require('../../scripts/notion/lib/load-token');
-const notionHttp = require('../../scripts/notion/lib/notion-http');
-const { request: notionRequest } = notionHttp;
-const { queryByPriorityTier, PRIORITY_TIERS, PICKER_TIER_LIMIT } = require('../../scripts/notion/lib/query-tasks');
-const { richText, extractBlocks } = require('../../scripts/notion/lib/format-task');
-const { extractBranchFromBlocks, extractTaskNumber, deriveBranchFromName } = require('../../scripts/notion/lib/extract-branch');
-const { DATABASE_ID } = require('../../scripts/notion/lib/constants');
-const { toDashed } = require('../../scripts/notion/lib/page-id');
+const https = require('https');
+
+// ─── Configuration ─────────────────────────────────────────────────────────────
+
+function loadEnv() {
+  const envFile = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envFile)) {
+    for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
+      const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+  }
+}
+
+loadEnv();
+
+// Minimal scalar reader for spovishun-skills.config.yaml — avoids a js-yaml
+// dependency in the standalone hook. Supports both 1-level (`section`, `'key'`)
+// and 2-level dotted (`section`, `'sub.key'`) lookups. Returns '' when the
+// section/key is absent.
+function readConfigValue(section, keyPath) {
+  const configFile = path.join(process.cwd(), 'spovishun-skills.config.yaml');
+  if (!fs.existsSync(configFile)) return '';
+  const lines = fs.readFileSync(configFile, 'utf8').split('\n');
+  const segments = keyPath.split('.');
+
+  let inSection = false;
+  let subIndent = -1;
+  let inSubsection = false;
+  let subIndentInner = -1;
+
+  for (const rawLine of lines) {
+    // Top-level section boundary.
+    if (/^[A-Za-z0-9_]+:/.test(rawLine)) {
+      inSection = rawLine.startsWith(`${section}:`);
+      subIndent = -1;
+      inSubsection = false;
+      subIndentInner = -1;
+      continue;
+    }
+    if (!inSection) continue;
+
+    const indentMatch = rawLine.match(/^(\s+)/);
+    const indent = indentMatch ? indentMatch[1].length : 0;
+    if (indent === 0) continue;
+
+    if (segments.length === 1) {
+      const m = rawLine.match(/^\s+([A-Za-z0-9_]+):\s*(.+?)\s*$/);
+      if (m && m[1] === segments[0]) return m[2].replace(/^["']|["']$/g, '');
+      continue;
+    }
+
+    // 2-level path: first find the subsection header, then a scalar within it
+    // at a deeper indent.
+    if (!inSubsection) {
+      const mHeader = rawLine.match(/^(\s+)([A-Za-z0-9_]+):\s*$/);
+      if (mHeader && mHeader[2] === segments[0]) {
+        subIndent = mHeader[1].length;
+        inSubsection = true;
+        subIndentInner = -1;
+      }
+      continue;
+    }
+
+    // Inside subsection: exit when indentation returns to subIndent or shallower
+    // and the line declares a different key.
+    if (indent <= subIndent) {
+      inSubsection = false;
+      subIndentInner = -1;
+      // Re-check this same line as a potential subsection header for segments[0].
+      const mHeader = rawLine.match(/^(\s+)([A-Za-z0-9_]+):\s*$/);
+      if (mHeader && mHeader[2] === segments[0]) {
+        subIndent = mHeader[1].length;
+        inSubsection = true;
+      }
+      continue;
+    }
+
+    const mVal = rawLine.match(/^\s+([A-Za-z0-9_]+):\s*(.+?)\s*$/);
+    if (mVal && mVal[1] === segments[1]) return mVal[2].replace(/^["']|["']$/g, '');
+  }
+  return '';
+}
+
+function slug(name) {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+const NOTION_TOKEN = process.env.NOTION_SKILLS_TOKEN || process.env.NOTION_TOKEN;
+// NOTION_BOARD_COLLECTION_ID is the deprecated 1.2.0/1.2.1 alias — it was always
+// a misnomer (the hook queries /v1/databases/{id}/query, not a data source).
+// Keep accepting it so existing consumer .env files keep working.
+const DATABASE_ID = process.env.NOTION_DATABASE_ID
+  || process.env.NOTION_BOARD_COLLECTION_ID
+  || readConfigValue('notion', 'database_id');
+const PROJECT_PREFIX = process.env.PROJECT_PREFIX || slug(readConfigValue('project', 'name')) || 'project';
+const DEVELOP_BRANCH = process.env.GIT_DEVELOP_BRANCH || readConfigValue('git', 'dev_branch') || 'develop';
+// Board v2 (Scrum) optional Stage select filter. Empty string = unset = no filter (Board v1).
+const STAGE_FILTER = process.env.NOTION_PICKER_STAGE_FILTER || readConfigValue('notion', 'picker.stage_filter');
+
+function stageFilterClause() {
+  if (!STAGE_FILTER) return null;
+  return { property: 'Stage', select: { equals: STAGE_FILTER } };
+}
+
+function withStageFilter(baseFilter) {
+  const stage = stageFilterClause();
+  if (!stage) return baseFilter;
+  if (baseFilter && Array.isArray(baseFilter.and)) {
+    return { and: [...baseFilter.and, stage] };
+  }
+  return { and: [baseFilter, stage] };
+}
 
 const DEV_CONTEXT_DIR = '.dev-context';
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SELECTED_TASKS_FILE = '.dev-context/selected-tasks.json';
 const SELECTED_TASKS_VERSION = 1;
+const PICKER_TIER_LIMIT = 5;
 
-const TRIGGER_WORDS = [
-  // English
-  'implement', 'refactor',
-  // Ukrainian
-  'реалізуй', 'розроби', 'задача', 'таск', 'фіча'
-];
-
+const TRIGGER_WORDS = ['implement', 'refactor', 'реалізуй', 'розроби', 'задача', 'таск', 'фіча'];
 const START_TASK_TRIGGERS = ['start new task', 'почати нову задачу', 'беру нову задачу'];
-
 const REFRESH_TRIGGERS = ['reread task', 'update task context', 'оновити контекст задачі', 'перечитати задачу'];
 
-// ─── Git helpers ──────────────────────────────────────────────────────────────
+// ─── Notion HTTP ───────────────────────────────────────────────────────────────
+
+function notionRequest(token, method, urlPath, body) {
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : null;
+    const options = {
+      hostname: 'api.notion.com',
+      path: urlPath,
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      },
+    };
+    if (data) options.headers['Content-Length'] = Buffer.byteLength(data);
+
+    const req = https.request(options, res => {
+      let raw = '';
+      res.on('data', c => { raw += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(raw)); } catch { resolve(null); }
+      });
+    });
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+// ─── Rich text helpers ─────────────────────────────────────────────────────────
+
+function richText(blocks) {
+  return (blocks || []).map(b => b.plain_text || '').join('');
+}
+
+function blockToMd(block) {
+  const t = block.type;
+  if (!block[t]) return '';
+  const rt = block[t].rich_text || [];
+  const text = richText(rt);
+  if (t === 'heading_1') return `# ${text}`;
+  if (t === 'heading_2') return `## ${text}`;
+  if (t === 'heading_3') return `### ${text}`;
+  if (t === 'bulleted_list_item') return `- ${text}`;
+  if (t === 'numbered_list_item') return `1. ${text}`;
+  if (t === 'to_do') return `- [${block[t].checked ? 'x' : ' '}] ${text}`;
+  if (t === 'code') return `\`\`\`\n${text}\n\`\`\``;
+  if (t === 'divider') return '---';
+  if (t === 'paragraph') return text;
+  return text;
+}
+
+function extractBlocks(blocks) {
+  return blocks.map(blockToMd).filter(Boolean).join('\n');
+}
+
+// ─── Branch helpers ────────────────────────────────────────────────────────────
+
+function extractTaskNumber(name) {
+  const m = name.match(/[/-](\d+)[:-]/);
+  return m ? m[1] : null;
+}
+
+function extractBranchFromBlocks(blocks) {
+  for (const b of blocks) {
+    if (b.type !== 'paragraph') continue;
+    const text = richText(b.paragraph?.rich_text || []);
+    const m = text.match(/feature\/[\w-]+-\d+[\w-]*/);
+    if (m) return m[0];
+  }
+  return null;
+}
+
+function deriveBranchFromName(name) {
+  const num = extractTaskNumber(name);
+  if (!num) return null;
+  const slug = name
+    .replace(/^feature\/[\w-]+-\d+[:\s-]*/i, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  return `feature/${PROJECT_PREFIX}-${num}-${slug}`;
+}
+
+function toDashed(id) {
+  if (id.includes('-')) return id;
+  return `${id.slice(0,8)}-${id.slice(8,12)}-${id.slice(12,16)}-${id.slice(16,20)}-${id.slice(20)}`;
+}
+
+// ─── Git helpers ───────────────────────────────────────────────────────────────
 
 function getCurrentBranch() {
   try {
     return execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' }).toString().trim();
-  } catch {
-    return null;
-  }
-}
-
-function gitCheckoutFromDevelop(branch) {
-  try {
-    execSync('git checkout develop', { stdio: 'pipe' });
-    execSync('git pull origin develop', { stdio: 'pipe' });
-    execSync(`git checkout -b "${branch}"`, { stdio: 'pipe' });
-    return { ok: true, message: `Created and switched to: ${branch}` };
-  } catch (err) {
-    return { ok: false, message: err.message };
-  }
+  } catch { return null; }
 }
 
 function gitSetupBranch(branch) {
@@ -83,7 +268,14 @@ function gitSetupBranch(branch) {
     execSync(`git checkout "${branch}"`, { stdio: 'pipe' });
     return { ok: true, message: `Switched to existing branch: ${branch}` };
   } catch {
-    return gitCheckoutFromDevelop(branch);
+    try {
+      execSync(`git checkout ${DEVELOP_BRANCH}`, { stdio: 'pipe' });
+      execSync(`git pull origin ${DEVELOP_BRANCH}`, { stdio: 'pipe' });
+      execSync(`git checkout -b "${branch}"`, { stdio: 'pipe' });
+      return { ok: true, message: `Created and switched to: ${branch}` };
+    } catch (err) {
+      return { ok: false, message: err.message };
+    }
   }
 }
 
@@ -93,10 +285,10 @@ function gitCreateBranchOnly(branch) {
     return { ok: true, message: `Branch already exists: ${branch}` };
   } catch {
     try {
-      execSync('git fetch origin develop --quiet', { stdio: 'pipe' });
-    } catch { /* no remote, ignore */ }
+      execSync(`git fetch origin ${DEVELOP_BRANCH} --quiet`, { stdio: 'pipe' });
+    } catch { /* no remote */ }
     try {
-      execSync(`git branch "${branch}" develop`, { stdio: 'pipe' });
+      execSync(`git branch "${branch}" ${DEVELOP_BRANCH}`, { stdio: 'pipe' });
       return { ok: true, message: `Created branch (no checkout): ${branch}` };
     } catch (err) {
       return { ok: false, message: err.message };
@@ -105,18 +297,15 @@ function gitCreateBranchOnly(branch) {
 }
 
 function conflictCheck(newBranch, existingTasks, force) {
-  const getDiff = (branch) => {
+  const getDiff = branch => {
     try {
       const count = parseInt(
-        execSync(`git rev-list develop..${branch} --count`, { stdio: 'pipe' }).toString().trim(),
-        10
+        execSync(`git rev-list ${DEVELOP_BRANCH}..${branch} --count`, { stdio: 'pipe' }).toString().trim(), 10
       );
       if (isNaN(count) || count === 0) return null;
-      const out = execSync(`git diff --name-only develop...${branch}`, { stdio: 'pipe' }).toString();
+      const out = execSync(`git diff --name-only ${DEVELOP_BRANCH}...${branch}`, { stdio: 'pipe' }).toString();
       return new Set(out.split('\n').filter(Boolean));
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   };
 
   const newFiles = getDiff(newBranch);
@@ -142,7 +331,7 @@ function conflictCheck(newBranch, existingTasks, force) {
   return { conflict: false, disclaimer };
 }
 
-// ─── Dev context folder ───────────────────────────────────────────────────────
+// ─── Dev context folder ────────────────────────────────────────────────────────
 
 function branchToFolderName(branch) {
   return branch.replace(/\//g, '-') + '_prd';
@@ -152,26 +341,16 @@ function getContextDir(branch) {
   return path.join(process.cwd(), DEV_CONTEXT_DIR, branchToFolderName(branch));
 }
 
-/**
- * Checks whether the lock belongs to the current session.
- * Lock file format: "{ppid}:{timestamp}"
- * Guards against PID reuse on Windows: lock is considered invalid after SESSION_TTL_MS.
- */
 function isCurrentSession(lockFile) {
   try {
     const content = fs.readFileSync(lockFile, 'utf8').trim();
     const [pidStr, tsStr] = content.split(':');
     const pid = parseInt(pidStr, 10);
     const ts = parseInt(tsStr, 10);
-
-    // Lock older than TTL means a new session (guards against PID reuse)
     if (Date.now() - ts > SESSION_TTL_MS) return false;
-
-    process.kill(pid, 0); // throws if process does not exist
+    process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function writeSessionLock(lockFile) {
@@ -183,17 +362,14 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// ─── Selected tasks state ─────────────────────────────────────────────────────
+// ─── Selected tasks state ──────────────────────────────────────────────────────
 
 function loadSelectedTasks() {
   const filePath = path.join(process.cwd(), SELECTED_TASKS_FILE);
   try {
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const data = JSON.parse(raw);
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     return Array.isArray(data.tasks) ? data.tasks : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveSelectedTasks(tasks) {
@@ -202,11 +378,37 @@ function saveSelectedTasks(tasks) {
   fs.writeFileSync(filePath, JSON.stringify({ version: SELECTED_TASKS_VERSION, tasks }, null, 2), 'utf8');
 }
 
-// ─── Task Picker ──────────────────────────────────────────────────────────────
+// ─── Task Picker ───────────────────────────────────────────────────────────────
+
+async function queryByPriorityTier(token, status) {
+  const priorities = ['High', 'Medium', 'Low', 'Normal'];
+  for (const priority of priorities) {
+    const result = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
+      filter: withStageFilter({
+        and: [
+          { property: 'Status', status: { equals: status } },
+          { property: 'Priority', select: { equals: priority } },
+        ]
+      }),
+      sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
+      page_size: PICKER_TIER_LIMIT,
+    });
+    const candidates = result?.results || [];
+    if (candidates.length > 0) return { candidates, tier: priority };
+  }
+  // Fallback: any priority
+  const result = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
+    filter: withStageFilter({ property: 'Status', status: { equals: status } }),
+    sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
+    page_size: PICKER_TIER_LIMIT,
+  });
+  return { candidates: result?.results || [], tier: null };
+}
 
 async function runPicker(token, currentBranch, isForce) {
-  // 1. Validate selected-tasks.json — clear entire file if any task is no longer active
   let selectedTasks = loadSelectedTasks();
+
+  // Validate active tasks
   if (selectedTasks.length > 0) {
     for (const task of selectedTasks) {
       const page = await notionRequest(token, 'GET', `/v1/pages/${task.pageId}`, null);
@@ -219,8 +421,8 @@ async function runPicker(token, currentBranch, isForce) {
     }
   }
 
-  // 2. If on an active task branch, inject from cache (user is resuming work)
-  if (currentBranch && currentBranch !== 'develop' && currentBranch !== 'main') {
+  // Resume from cache if on active task branch
+  if (currentBranch && currentBranch !== DEVELOP_BRANCH && currentBranch !== 'main') {
     const activeEntry = selectedTasks.find(t => t.branch === currentBranch);
     if (activeEntry) {
       const ctxDir = getContextDir(currentBranch);
@@ -233,150 +435,93 @@ async function runPicker(token, currentBranch, isForce) {
         const planFile = path.join(ctxDir, 'plan.md');
         const plan = fs.existsSync(planFile) ? fs.readFileSync(planFile, 'utf8') : null;
         writeSessionLock(path.join(ctxDir, 'session.lock'));
-        output(buildSystemPrompt(context, plan, '\n**Git:** Already on active task branch — skipping checkout', true));
+        outputPrompt(buildSystemPrompt(context, plan, '\n**Git:** Already on active task branch — skipping checkout', true));
         return;
       }
     }
   }
 
-  // 3. Query candidate tasks by priority tier (High → Medium → Low), excluding already-selected
   const selectedPageIds = new Set(selectedTasks.map(t => t.pageId));
-
   let source = 'toDo';
-  let { candidates, tier } = await queryByPriorityTier(notionHttp, token, 'To do', selectedPageIds);
+  let { candidates, tier } = await queryByPriorityTier(token, 'To do');
+  candidates = candidates.filter(p => !selectedPageIds.has(p.id.replace(/-/g, '')));
 
   if (candidates.length === 0) {
     source = 'notStarted';
-    ({ candidates, tier } = await queryByPriorityTier(notionHttp, token, 'Not started', selectedPageIds));
+    ({ candidates, tier } = await queryByPriorityTier(token, 'Not started'));
+    candidates = candidates.filter(p => !selectedPageIds.has(p.id.replace(/-/g, '')));
   }
 
-  // 3b. Check for orphaned "In progress" tasks (in Notion but missing from selected-tasks.json)
   const inProgressResult = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
-    filter: { property: 'Status', status: { equals: 'In progress' } },
-    page_size: PICKER_TIER_LIMIT
+    filter: withStageFilter({ property: 'Status', status: { equals: 'In progress' } }),
+    page_size: PICKER_TIER_LIMIT,
   });
   const orphanedInProgress = (inProgressResult?.results || []).filter(
     p => !selectedPageIds.has(p.id.replace(/-/g, ''))
   );
 
   if (candidates.length === 0 && orphanedInProgress.length === 0) {
-    output(buildSystemPrompt(
-      '## 🪝 No Tasks Available\n\nNo "To do", "Not started", or untracked "In progress" tasks found in Notion.',
+    outputPrompt(buildSystemPrompt(
+      '## No Tasks Available\n\nNo "To do", "Not started", or untracked "In progress" tasks found.',
       null, null, false
     ));
     return;
   }
 
-  // 4. Build option metadata (candidates are already the correct priority tier, ordered by created_time)
-  const orphanedOptions = orphanedInProgress.map(page => {
+  const toOption = page => {
     const name = (page.properties?.Name?.title || []).map(t => t.plain_text).join('') || 'Unknown';
     const taskNum = extractTaskNumber(name) || '?';
     const priority = page.properties?.Priority?.select?.name || 'Normal';
     const pageId = page.id.replace(/-/g, '');
-    const displayName = name.replace(/^feature\/spovishun-\d+:\s*/i, '').trim();
-    return { taskNum, name, displayName, priority, pageId, orphaned: true };
-  });
+    const displayName = name.replace(new RegExp(`^feature\\/${PROJECT_PREFIX}-\\d+[:\\s-]*`, 'i'), '').trim();
+    return { taskNum, name, displayName, priority, pageId };
+  };
 
-  const todoOptions = candidates.map(page => {
-    const name = (page.properties?.Name?.title || []).map(t => t.plain_text).join('') || 'Unknown';
-    const taskNum = extractTaskNumber(name) || '?';
-    const priority = tier || page.properties?.Priority?.select?.name || 'Normal';
-    const pageId = page.id.replace(/-/g, '');
-    const displayName = name.replace(/^feature\/spovishun-\d+:\s*/i, '').trim();
-    return { taskNum, name, displayName, priority, pageId, orphaned: false };
-  });
-
-  // Orphaned In progress tasks listed first (resume takes priority)
+  const orphanedOptions = orphanedInProgress.map(p => ({ ...toOption(p), orphaned: true }));
+  const todoOptions = candidates.map(p => ({ ...toOption(p), tier, orphaned: false }));
   const options = [...orphanedOptions, ...todoOptions];
 
-  // 5. Format picker directive for Claude
   const parallelNote = selectedTasks.length > 0
-    ? `\n⚠️ **${selectedTasks.length} task(s) currently active**: ${selectedTasks.map(t => `spovishun-${t.taskNumber}`).join(', ')}. Adding more = parallel execution across Claude Code instances.`
+    ? `\n${selectedTasks.length} task(s) currently active. Adding more = parallel execution across Claude Code instances.`
     : '';
-
   const sourceNote = source === 'notStarted'
-    ? '\n> 📋 No "To do" tasks found — showing "Not started". Selected task(s) will be moved to "To do" automatically.'
+    ? '\n> No "To do" tasks found — showing "Not started". Selected tasks will be moved to "To do" automatically.'
+    : '';
+  const orphanedNote = orphanedOptions.length > 0
+    ? '\n> Untracked "In progress" tasks found — listed first for recovery.'
     : '';
 
   const applyFlags = [
     source === 'notStarted' ? '--from-not-started' : '',
-    isForce ? '--force' : ''
+    isForce ? '--force' : '',
   ].filter(Boolean).join(' ');
   const applyFlagsSuffix = applyFlags ? ` ${applyFlags}` : '';
 
   const optionLines = options.map((o, i) => {
-    const tag = o.orphaned ? ' *(↩ In progress — untracked)*' : ` *(Priority: ${o.priority})*`;
-    return `${i + 1}. **spovishun-${o.taskNum}** — ${o.displayName}${tag}\n   pageId: \`${o.pageId}\``;
+    const tag = o.orphaned ? ' *(In progress — untracked)*' : ` *(Priority: ${o.priority})*`;
+    return `${i + 1}. **${PROJECT_PREFIX}-${o.taskNum}** — ${o.displayName}${tag}\n   pageId: \`${o.pageId}\``;
   }).join('\n');
 
-  const orphanedNote = orphanedOptions.length > 0
-    ? '\n> ⚠️ Untracked "In progress" tasks found in Notion — listed first for recovery.'
-    : '';
-
-  // Single task — skip AskUserQuestion, apply automatically
   if (options.length === 1) {
     const o = options[0];
-    const directive = `## 🪝 Task Picker
-${parallelNote}${sourceNote}${orphanedNote}
-
-**Available tasks**:
-${optionLines}
-
----
-### REQUIRED NEXT ACTIONS (execute in order):
-1. Only one task available — apply automatically without asking the user.
-2. Run Bash: \`node .claude/hooks/notion-task-inject.js --apply-pick ${o.pageId}${applyFlagsSuffix}\`
-   If stderr starts with \`CONFLICT:\` → show user the conflicting files, ask: retry with \`--force\` or skip?
-3. Run \`git checkout <branch>\` if not already there.
-4. Briefly confirm: task name and branch.
-5. Immediately invoke the \`notion-task-to-code\` skill with pageId \`${o.pageId}\` to load task context and enter Plan Mode. Do not wait for user input.`;
-    output(directive);
+    outputPrompt(`## Task Picker\n${parallelNote}${sourceNote}${orphanedNote}\n\n**Available tasks**:\n${optionLines}\n\n---\n### REQUIRED NEXT ACTIONS (execute in order):\n1. Only one task available — apply automatically without asking the user.\n2. Run Bash: \`node "$CLAUDE_PROJECT_DIR/.claude/hooks/notion-task-inject.js" --apply-pick ${o.pageId}${applyFlagsSuffix}\`\n   If stderr starts with \`CONFLICT:\` → show user the conflicting files, ask: retry with \`--force\` or skip?\n3. Briefly confirm: task name and branch.\n4. Immediately invoke the \`notion-task-to-code\` skill with pageId \`${o.pageId}\` to load task context and enter Plan Mode.`);
     return;
   }
 
   const aqOptions = options.map(o => {
     const label = o.orphaned
-      ? `spovishun-${o.taskNum} — ${o.displayName} (↩ resume)`
-      : `spovishun-${o.taskNum} — ${o.displayName}`;
+      ? `${PROJECT_PREFIX}-${o.taskNum} — ${o.displayName} (resume)`
+      : `${PROJECT_PREFIX}-${o.taskNum} — ${o.displayName}`;
     return `     {label: "${label}", value: "${o.pageId}"}`;
   }).join(',\n');
 
-  const directive = `## 🪝 Task Picker
-${parallelNote}${sourceNote}${orphanedNote}
-
-**Available tasks**:
-${optionLines}
-
----
-### REQUIRED NEXT ACTIONS (execute in order):
-1. Call \`AskUserQuestion\`:
-   \`\`\`
-   question: "Оберіть задачі для початку роботи (можна вибрати декілька):"
-   multiSelect: true
-   options: [
-${aqOptions},
-     {label: "Відмінити", value: "cancel"}
-   ]
-   \`\`\`
-2. If user picked **"Відмінити"** → inform user, stop.
-3. For **each** selected pageId — run Bash sequentially:
-   - 1st task:  \`node .claude/hooks/notion-task-inject.js --apply-pick <pageId>${applyFlagsSuffix}\`
-   - 2nd+ task: \`node .claude/hooks/notion-task-inject.js --apply-pick <pageId>${applyFlagsSuffix} --no-switch\`
-   If stderr starts with \`CONFLICT:\` → show user the conflicting files, ask: retry with \`--force\` or skip?
-4. After all applies — if ≥2 tasks selected → show the DISCLAIMER line from stdout.
-5. Run \`git checkout <branch-of-first-selected-task>\` if not already there.
-6. Briefly confirm: task name(s), branch(es), and total active parallel tasks count.
-7. Immediately invoke the \`notion-task-to-code\` skill with the first selected pageId to load task context and enter Plan Mode. Do not wait for user input.`;
-
-  output(directive);
+  outputPrompt(`## Task Picker\n${parallelNote}${sourceNote}${orphanedNote}\n\n**Available tasks**:\n${optionLines}\n\n---\n### REQUIRED NEXT ACTIONS (execute in order):\n1. Call \`AskUserQuestion\`:\n   \`\`\`\n   question: "Select tasks to start working on (multiple selection allowed):"\n   multiSelect: true\n   options: [\n${aqOptions},\n     {label: "Cancel", value: "cancel"}\n   ]\n   \`\`\`\n2. If user picked **"Cancel"** → inform user, stop.\n3. For **each** selected pageId — run Bash sequentially:\n   - 1st task:  \`node "$CLAUDE_PROJECT_DIR/.claude/hooks/notion-task-inject.js" --apply-pick <pageId>${applyFlagsSuffix}\`\n   - 2nd+ task: \`node "$CLAUDE_PROJECT_DIR/.claude/hooks/notion-task-inject.js" --apply-pick <pageId>${applyFlagsSuffix} --no-switch\`\n   If stderr starts with \`CONFLICT:\` → show user the conflicting files, ask: retry with \`--force\` or skip?\n4. After all applies — if ≥2 tasks selected → show the DISCLAIMER line from stdout.\n5. Briefly confirm: task name(s), branch(es), total active parallel tasks count.\n6. Immediately invoke the \`notion-task-to-code\` skill with the first selected pageId to load task context and enter Plan Mode.`);
 }
 
-// ─── Apply Pick ───────────────────────────────────────────────────────────────
+// ─── Apply Pick ────────────────────────────────────────────────────────────────
 
 async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch }) {
   const notionPageId = toDashed(pageId);
-
-  // 1. Fetch page
   const page = await notionRequest(token, 'GET', `/v1/pages/${notionPageId}`, null);
   if (!page || page.object === 'error') {
     process.stderr.write(`[apply-pick] Failed to fetch page ${pageId}: ${JSON.stringify(page)}\n`);
@@ -387,13 +532,12 @@ async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch })
   const status = page.properties?.Status?.status?.name;
   const cleanPageId = page.id.replace(/-/g, '');
 
-  // 2. Handle status transition
   if (fromNotStarted) {
     const patch = await notionRequest(token, 'PATCH', `/v1/pages/${page.id}`, {
       properties: { Status: { status: { name: 'To do' } } }
     });
     if (patch?.object === 'error') {
-      process.stderr.write(`[apply-pick] Failed to update status to To do: ${JSON.stringify(patch)}\n`);
+      process.stderr.write(`[apply-pick] Failed to update status: ${JSON.stringify(patch)}\n`);
       process.exit(1);
     }
   } else if (!['To do', 'In progress'].includes(status)) {
@@ -401,7 +545,6 @@ async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch })
     process.exit(1);
   }
 
-  // 3. Fetch blocks to derive branch and content
   const blocksResult = await notionRequest(token, 'GET', `/v1/blocks/${cleanPageId}/children?page_size=100`, null);
   const allBlocks = blocksResult?.results || [];
 
@@ -413,8 +556,6 @@ async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch })
   }
 
   const taskNumber = extractTaskNumber(name);
-
-  // 4. Conflict check against other active tasks
   const selectedTasks = loadSelectedTasks();
   const otherTasks = selectedTasks.filter(t => t.pageId !== cleanPageId);
   const check = conflictCheck(taskBranch, otherTasks, force);
@@ -423,47 +564,34 @@ async function applyPickMain(token, pageId, { force, fromNotStarted, noSwitch })
     process.exit(1);
   }
 
-  // 5. Git setup
-  const gitResult = noSwitch
-    ? gitCreateBranchOnly(taskBranch)
-    : gitSetupBranch(taskBranch);
+  const gitResult = noSwitch ? gitCreateBranchOnly(taskBranch) : gitSetupBranch(taskBranch);
 
-  // 6. Write context files
-  const contentBlocks = allBlocks.filter(b => b.type !== 'toggle');
-  const content = extractBlocks(contentBlocks);
+  const content = extractBlocks(allBlocks.filter(b => b.type !== 'toggle'));
   const ctxDir = getContextDir(taskBranch);
   ensureDir(ctxDir);
-  fs.writeFileSync(path.join(ctxDir, 'context.md'), `## 🪝 Active Task (Notion)\n**${name}**\n\n${content}`, 'utf8');
+  fs.writeFileSync(path.join(ctxDir, 'context.md'), `## Active Task (Notion)\n**${name}**\n\n${content}`, 'utf8');
   fs.writeFileSync(path.join(ctxDir, 'branch.txt'), taskBranch, 'utf8');
   fs.writeFileSync(path.join(ctxDir, 'task.json'), JSON.stringify({
-    id: page.id,
-    title: name,
-    status: 'In progress',
-    branch: taskBranch,
+    id: page.id, title: name, status: 'In progress', branch: taskBranch,
     priority: page.properties?.Priority?.select?.name ?? null,
     content: extractBlocks(allBlocks),
   }), 'utf8');
   writeSessionLock(path.join(ctxDir, 'session.lock'));
 
-  // 7. Update Notion status to In progress
   await notionRequest(token, 'PATCH', `/v1/pages/${page.id}`, {
     properties: { Status: { status: { name: 'In progress' } } }
   });
 
-  // 8. Upsert into selected-tasks.json
   const updated = selectedTasks.filter(t => t.pageId !== cleanPageId);
   updated.push({ pageId: cleanPageId, taskNumber, name, branch: taskBranch, addedAt: Date.now(), status: 'In progress' });
   saveSelectedTasks(updated);
 
-  // 9. Output result
   if (check.disclaimer) process.stdout.write(check.disclaimer + '\n');
-  process.stdout.write(`OK: spovishun-${taskNumber} activated on ${taskBranch}\n`);
-  if (!gitResult.ok) {
-    process.stderr.write(`[apply-pick] Git warning: ${gitResult.message}\n`);
-  }
+  process.stdout.write(`OK: ${PROJECT_PREFIX}-${taskNumber} activated on ${taskBranch}\n`);
+  if (!gitResult.ok) process.stderr.write(`[apply-pick] Git warning: ${gitResult.message}\n`);
 }
 
-// ─── PostToolUse: ExitPlanMode — auto-save plan ───────────────────────────────
+// ─── PostToolUse: ExitPlanMode ─────────────────────────────────────────────────
 
 async function runPostExitPlan() {
   let raw = '';
@@ -474,29 +602,21 @@ async function runPostExitPlan() {
   try { data = JSON.parse(raw); } catch { process.exit(0); }
 
   const planContent = data?.tool_input?.plan;
-  if (!planContent) {
-    process.stderr.write('[notion-task-inject] post-exit-plan: no plan in tool_input\n');
-    process.exit(0);
-  }
+  if (!planContent) process.exit(0);
 
   const branch = getCurrentBranch();
-  if (!branch || branch === 'develop' || branch === 'main') {
-    process.stderr.write('[notion-task-inject] post-exit-plan: not on a feature branch\n');
-    process.exit(0);
-  }
+  if (!branch || branch === DEVELOP_BRANCH || branch === 'main') process.exit(0);
 
   const ctxDir = getContextDir(branch);
   ensureDir(ctxDir);
   fs.writeFileSync(path.join(ctxDir, 'plan.md'), planContent, 'utf8');
-  // Invalidate session lock so the next UserPromptSubmit in this session
-  // re-injects context + plan instead of skipping via isCurrentSession().
   const lockFile = path.join(ctxDir, 'session.lock');
   if (fs.existsSync(lockFile)) fs.unlinkSync(lockFile);
   process.stderr.write(`[notion-task-inject] plan saved → .dev-context/${branchToFolderName(branch)}/plan.md\n`);
   process.exit(0);
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
   let raw = '';
@@ -507,69 +627,65 @@ async function main() {
   try { data = JSON.parse(raw); } catch { process.exit(0); }
 
   const prompt = (data.prompt || '').toLowerCase();
-
   const isStartTask = START_TASK_TRIGGERS.some(t => prompt.includes(t));
   const isRefresh = REFRESH_TRIGGERS.some(t => prompt.includes(t));
   const isForce = prompt.includes('--force');
-  const hasTrigger = isStartTask || isRefresh || TRIGGER_WORDS.some(word => prompt.includes(word));
+  const hasTrigger = isStartTask || isRefresh || TRIGGER_WORDS.some(w => prompt.includes(w));
 
   if (!hasTrigger) process.exit(0);
 
+  if (!DATABASE_ID) {
+    process.stderr.write('[notion-task-inject] NOTION_DATABASE_ID not set, skipping\n');
+    process.exit(0);
+  }
+
   const currentBranch = getCurrentBranch();
 
-  // ── START_TASK_TRIGGERS → interactive picker ─────────────────────────────────
   if (isStartTask) {
-    const token = loadToken();
-    if (!token) {
+    if (!NOTION_TOKEN) {
       process.stderr.write('[notion-task-inject] NOTION_TOKEN not set, skipping picker\n');
       process.exit(0);
     }
     try {
-      await runPicker(token, currentBranch, isForce);
+      await runPicker(NOTION_TOKEN, currentBranch, isForce);
     } catch (err) {
       process.stderr.write(`[notion-task-inject] Picker error: ${err.message}\n`);
     }
     process.exit(0);
   }
 
-  // ── Try to serve from cache (TRIGGER_WORDS / REFRESH) ───────────────────────
-  if (!isRefresh && currentBranch && currentBranch !== 'develop' && currentBranch !== 'main') {
+  // Cache-first injection
+  if (!isRefresh && currentBranch && currentBranch !== DEVELOP_BRANCH && currentBranch !== 'main') {
     const ctxDir = getContextDir(currentBranch);
     const contextFile = path.join(ctxDir, 'context.md');
     const lockFile = path.join(ctxDir, 'session.lock');
-    const planFile = path.join(ctxDir, 'plan.md');
 
     if (fs.existsSync(contextFile)) {
-      // Already injected in this session — skip
       if (isCurrentSession(lockFile)) process.exit(0);
-
-      // New session, same branch — inject from cache
       const context = fs.readFileSync(contextFile, 'utf8');
+      const planFile = path.join(ctxDir, 'plan.md');
       const plan = fs.existsSync(planFile) ? fs.readFileSync(planFile, 'utf8') : null;
       writeSessionLock(lockFile);
-
-      output(buildSystemPrompt(context, plan, null, false));
+      outputPrompt(buildSystemPrompt(context, plan, null, false));
       process.exit(0);
     }
   }
 
-  // ── Fetch from Notion (TRIGGER_WORDS / REFRESH) ──────────────────────────────
-  const token = loadToken();
-  if (!token) {
-    process.stderr.write('[notion-task-inject] NOTION_SKILLS_TOKEN not set, skipping\n');
+  // Fetch from Notion
+  if (!NOTION_TOKEN) {
+    process.stderr.write('[notion-task-inject] NOTION_TOKEN not set, skipping\n');
     process.exit(0);
   }
 
   try {
-    // Include both statuses — task may already be In progress
-    const queryResult = await notionRequest(token, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
-      filter: {
+    const queryResult = await notionRequest(NOTION_TOKEN, 'POST', `/v1/databases/${DATABASE_ID}/query`, {
+      filter: withStageFilter({
         or: [
           { property: 'Status', status: { equals: 'To do' } },
-          { property: 'Status', status: { equals: 'In progress' } }
+          { property: 'Status', status: { equals: 'In progress' } },
         ]
-      },
-      page_size: 1
+      }),
+      page_size: 1,
     });
 
     const page = queryResult?.results?.[0];
@@ -578,30 +694,25 @@ async function main() {
     const name = (page.properties?.Name?.title || []).map(t => t.plain_text).join('') || 'Unknown';
     const pageId = page.id.replace(/-/g, '');
 
-    const blocksResult = await notionRequest(token, 'GET', `/v1/blocks/${pageId}/children?page_size=100`, null);
+    const blocksResult = await notionRequest(NOTION_TOKEN, 'GET', `/v1/blocks/${pageId}/children?page_size=100`, null);
     const allBlocks = blocksResult?.results || [];
-    const contentBlocks = allBlocks.filter(b => b.type !== 'toggle');
-    const content = extractBlocks(contentBlocks);
+    const content = extractBlocks(allBlocks.filter(b => b.type !== 'toggle'));
 
-    // Derive task branch
     let taskBranch = extractBranchFromBlocks(allBlocks);
     if (!taskBranch) taskBranch = deriveBranchFromName(name);
 
-    // Determine cache folder
-    const cacheBranch = currentBranch && currentBranch !== 'develop' && currentBranch !== 'main'
+    const cacheBranch = currentBranch && currentBranch !== DEVELOP_BRANCH && currentBranch !== 'main'
       ? currentBranch
       : taskBranch;
 
-    // Save to cache
     if (cacheBranch) {
       const ctxDir = getContextDir(cacheBranch);
       ensureDir(ctxDir);
-      const contextMd = `## 🪝 Active Task (Notion)\n**${name}**\n\n${content}`;
+      const contextMd = `## Active Task (Notion)\n**${name}**\n\n${content}`;
       fs.writeFileSync(path.join(ctxDir, 'context.md'), contextMd, 'utf8');
       fs.writeFileSync(path.join(ctxDir, 'branch.txt'), cacheBranch, 'utf8');
       fs.writeFileSync(path.join(ctxDir, 'task.json'), JSON.stringify({
-        id: page.id,
-        title: name,
+        id: page.id, title: name,
         status: page.properties?.Status?.status?.name ?? null,
         branch: taskBranch,
         priority: page.properties?.Priority?.select?.name ?? null,
@@ -612,22 +723,20 @@ async function main() {
 
     let branchNote = '';
     if (isRefresh) {
-      branchNote = '\n> 🔄 Context refreshed from Notion.';
+      branchNote = '\n> Context refreshed from Notion.';
     } else if (currentBranch && taskBranch && currentBranch !== taskBranch) {
-      branchNote = `\n> ⚠️ Current branch: \`${currentBranch}\`. Task branch: \`${taskBranch}\`. Use "start new task" to switch and load full context.`;
+      branchNote = `\n> Current branch: \`${currentBranch}\`. Task branch: \`${taskBranch}\`. Use "start new task" to switch.`;
     }
 
-    // On refresh — also load plan.md if present
     let plan = null;
     if (isRefresh && cacheBranch) {
       const planFile = path.join(getContextDir(cacheBranch), 'plan.md');
       if (fs.existsSync(planFile)) plan = fs.readFileSync(planFile, 'utf8');
     }
 
-    const contextText = `## 🪝 Active Task (Notion — In progress)\n**${name}**\n\n${content}`;
-    output(buildSystemPrompt(contextText, plan, branchNote, false));
+    const contextText = `## Active Task (Notion)\n**${name}**\n\n${content}`;
+    outputPrompt(buildSystemPrompt(contextText, plan, branchNote, false));
     process.exit(0);
-
   } catch (err) {
     process.stderr.write(`[notion-task-inject] Error: ${err.message}\n`);
     process.exit(0);
@@ -636,15 +745,15 @@ async function main() {
 
 function buildSystemPrompt(context, plan, branchNote, isStartTask) {
   const parts = [context];
-  if (plan) parts.push(`\n---\n## 📋 Approved Plan\n${plan}`);
+  if (plan) parts.push(`\n---\n## Approved Plan\n${plan}`);
   if (branchNote) parts.push(branchNote);
   parts.push('\n---');
 
   let instruction;
   if (isStartTask && plan) {
-    instruction = '✅ Plan already approved. Proceed directly with implementation — do NOT enter plan mode again.';
+    instruction = 'Plan already approved. Proceed directly with implementation — do NOT enter plan mode again.';
   } else if (isStartTask) {
-    instruction = '⚠️ IMPORTANT: You MUST call the EnterPlanMode tool immediately before doing anything else. Build a detailed implementation plan based on the task above. Do NOT write any code until the plan is approved.';
+    instruction = 'IMPORTANT: You MUST call the EnterPlanMode tool immediately before doing anything else.';
   } else {
     instruction = '*Work within the scope of this task. Do not go beyond what is described.*';
   }
@@ -653,16 +762,16 @@ function buildSystemPrompt(context, plan, branchNote, isStartTask) {
   return parts.join('\n');
 }
 
-function output(systemPrompt) {
+function outputPrompt(systemPrompt) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
-      additionalContext: systemPrompt
+      additionalContext: systemPrompt,
     }
   }));
 }
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
+// ─── Entry point ───────────────────────────────────────────────────────────────
 
 if (process.argv[2] === '--post-exit-plan') {
   runPostExitPlan();
@@ -672,15 +781,15 @@ if (process.argv[2] === '--post-exit-plan') {
     process.stderr.write('[apply-pick] Usage: --apply-pick <pageId> [--from-not-started] [--no-switch] [--force]\n');
     process.exit(1);
   }
-  const token = loadToken();
-  if (!token) {
+  if (!NOTION_TOKEN) {
     process.stderr.write('[apply-pick] NOTION_TOKEN not set\n');
     process.exit(1);
   }
-  const force = process.argv.includes('--force');
-  const fromNotStarted = process.argv.includes('--from-not-started');
-  const noSwitch = process.argv.includes('--no-switch');
-  applyPickMain(token, pageId, { force, fromNotStarted, noSwitch }).catch(err => {
+  applyPickMain(NOTION_TOKEN, pageId, {
+    force: process.argv.includes('--force'),
+    fromNotStarted: process.argv.includes('--from-not-started'),
+    noSwitch: process.argv.includes('--no-switch'),
+  }).catch(err => {
     process.stderr.write(`[apply-pick] Error: ${err.message}\n`);
     process.exit(1);
   });

@@ -1,9 +1,8 @@
 ---
 name: telegram-bot-development
-description: Use this skill when developing, debugging, or extending Telegram bots in the Spovishun project. Triggers on questions about Telegram Bot API, bot commands, message handling, inline keyboards, bot deployment, or update routing. Ukrainian triggers: "команда бота", "інлайн клавіатура", "обробник повідомлень", "реєстрація бота".
+description: "Kotlin Telegram bot development — command routing, inline keyboards, coroutine scope, BotMessages, and Command→Controller→Service layer enforcement. Triggers: Telegram bot, bot command, inline keyboard, callback query, MessageHandler, bot deployment, команда бота, інлайн клавіатура, обробник повідомлень, реєстрація бота."
 ---
-
-# Telegram Bot Development (Spovishun)
+# Telegram Bot Development (Kotlin)
 
 ## Workflow
 
@@ -38,7 +37,7 @@ When implementing bot features:
 1. **Architecture summary** — which layer is modified and why
 2. **Code snippet** — the new command/handler/helper with Kotlin idioms
 3. **Registration note** — if a new command needs to be registered in `MessageHandler`
-4. **Test hint** — which `BaseIntegrationTest` pattern to follow
+4. **Test hint** — which integration test pattern to follow
 
 ## Do NOT
 
@@ -59,7 +58,7 @@ When implementing bot features:
 
 - `kotlin-specialist` — coroutine scope design, sealed classes for `CommandResponse`
 - `postgresql-exposed-orm` — DB access patterns called from Services
-- `unit-testing-kotlin` — integration test patterns using `BaseIntegrationTest`
+- `unit-testing-kotlin` — integration test patterns
 
 ## Example Invocation
 

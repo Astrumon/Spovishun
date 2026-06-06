@@ -1,14 +1,13 @@
 ---
 name: notion-content-reader
-description: Use this skill when reading, fetching, or searching for content in Notion. Triggers on "find in Notion", "read my Notion page", "search Notion for", "what's on my Notion page", "fetch from Notion", or any request to retrieve existing Notion content. Always use this skill before attempting to read or navigate any Notion workspace, page, or database.
+description: "Reads, fetches, and searches Notion content. Prefers REST scripts for board/task/CLAUDE.md reads; falls back to MCP notion-search and notion-fetch for everything else. Triggers: find in Notion, read my Notion page, search Notion for, fetch from Notion, what's on my Notion page, знайди в Notion, прочитай Notion сторінку, пошукай в Notion."
 ---
-
 # Notion Content Reader
 
 > **Prefer scripts for these common reads** (faster, no MCP round-trip):
-> - Board overview `node scripts/notion/get-board.js`
-> - Task by number or pageId `node scripts/notion/get-task.js <N-or-pageId>`
-> - CLAUDE.md page `node scripts/notion/get-claude-md.js`
+> - Board overview `node .claude/scripts/notion/get-board.js`
+> - Task by number or pageId `node .claude/scripts/notion/get-task.js <N-or-pageId>`
+> - CLAUDE.md page `node .claude/scripts/notion/get-claude-md.js`
 >
 > Use MCP (notion-search, notion-fetch) for everything else.
 
@@ -45,11 +44,11 @@ Fetch root, then fetch children as needed. Never assume content - always verify 
 
 - Try multiple angles: topic name, page title, key term
 - If search times out, try a narrower query
-- Known Spovishun categories (Architecture, Database, Testing, CI/CD, AI Tools): use the Collection ID from notion-navigator - no need to fetch the DB first
+- For known categories: use the Collection ID from `notion-navigator` — no need to fetch the DB first
 
 ## Reading Database Records
 
-1. Known Spovishun category: use the Collection ID from notion-navigator
+1. Known category: use the Collection ID from `notion-navigator`
 2. Otherwise: fetch the DB page to get the data-source collection URL
 3. Use `notion-search(query: "", data_source_url: "collection://...")` to list all records
 4. Fetch individual records by their URL for full content

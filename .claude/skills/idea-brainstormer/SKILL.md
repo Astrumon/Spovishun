@@ -85,7 +85,7 @@ Present the completed Idea Brief and say:
 | Рівень ризику | Low / Medium / High | ... |
 
 ## Контекст Spovishun
-[Які шари / модулі, ймовірно, будуть зачеплені: presentation / domain / data / di / common?
+[Які шари / модулі, ймовірно, будуть зачеплені?
 Чи є в кодовій базі схожі патерни, на які можна спиратися?]
 ```
 
@@ -96,7 +96,6 @@ Present the completed Idea Brief and say:
 **MUST DO:**
 - Always ask clarifying questions before structuring (unless user explicitly says "just structure it" or "skip")
 - Include at least 2 risks, even for simple ideas
-- Reference Spovishun architecture layers when identifying affected areas
 - Keep "Формулювання проблеми" to 1–2 sentences maximum
 - State all assumptions explicitly — never leave them implicit
 
@@ -112,4 +111,3 @@ Present the completed Idea Brief and say:
 ## Related Skills
 - `solution-designer` — next step: compare implementation approaches for this idea
 - `architecture-designer` — if the idea implies a new architectural layer, module, or infrastructure change
-- `notion-spovishun-task-manager` — to check if a similar task already exists on the board

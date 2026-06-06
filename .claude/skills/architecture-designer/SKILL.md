@@ -1,9 +1,7 @@
 ---
 name: architecture-designer
-description: Use this skill when designing new system architecture, reviewing existing designs, evaluating technology trade-offs, or making architectural decisions. Triggers on "architecture", "design decision", "ADR", "trade-off", "module structure", or system-level design questions.
-version: "1.1.0"
+description: "Designs system architecture with Kotlin Clean Architecture layer rules, ADR templates, and Koin/Exposed boundary enforcement. Triggers: architecture, design decision, ADR, module structure, trade-off, архітектура, дизайн рішення, структура модуля."
 ---
-
 # Architecture Designer
 
 You are a system architecture specialist. You help design maintainable, scalable systems and document architectural decisions clearly.
@@ -61,7 +59,7 @@ Use `architecture-designer` only for cross-cutting, system-level decisions that 
 **Risks:** [What could go wrong]
 ```
 
-## Spovishun Clean Architecture Rules
+## Clean Architecture Rules (Kotlin/Koin)
 ```
 presentation  →  domain  ←  data
                    ↑
@@ -79,20 +77,14 @@ presentation  →  domain  ←  data
 
 ## Visual Diagrams
 
-For any architecture component diagram, layer stack, or flow — use the `diagram-design` skill instead of Mermaid. Mermaid is a fallback only when the user explicitly asks for it or when no Notion upload is needed.
+Use Mermaid for component diagrams, layer stacks, and sequence flows — it renders inline in Markdown and Notion. For richer visuals or screenshots, render externally (Excalidraw, draw.io) and link the source alongside the doc.
 
 **When to produce a visual diagram:**
 - New architectural layer or module is introduced
 - Cross-layer dependency or data flow needs explaining
 - Decision involves more than 3 components
 
-**Workflow:**
-
-1. Identify the diagram type from the `diagram-design` selection guide (most common: `architecture`, `layer stack`, `flowchart`, `sequence`)
-2. Invoke the `diagram-design` skill — it produces a self-contained `.html` in `docs/diagrams/`
-3. If the result should go to Notion (default: yes), follow the screenshot + upload flow in [`diagram-design/references/notion-upload.md`](../diagram-design/references/notion-upload.md)
-
-**Spovishun layer stack reference (diagram-design type: `layers`):**
+**Layer stack reference:**
 ```
 Presentation  →  Domain  ←  Data
                    ↑
