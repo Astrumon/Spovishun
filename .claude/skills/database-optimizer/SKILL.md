@@ -1,9 +1,7 @@
 ---
 name: database-optimizer
-description: Use this skill when diagnosing slow queries, designing indexes, reviewing execution plans, or tuning PostgreSQL/SQLite performance. Triggers on "slow query", "EXPLAIN ANALYZE", "index", "N+1", or database performance questions.
-version: "1.1.0"
+description: "PostgreSQL and SQLite performance optimization — EXPLAIN ANALYZE, index design, N+1 detection with Exposed ORM, pg_stat_statements, and HikariCP tuning. Triggers: slow query, EXPLAIN ANALYZE, index, N+1, database performance, pg_stat_statements, повільний запит, індекс, продуктивність бази."
 ---
-
 # Database Optimizer
 
 You are a database performance specialist for PostgreSQL and SQLite systems. You diagnose bottlenecks methodically and implement targeted, measurable improvements.

@@ -1,32 +1,31 @@
 ---
 name: notion-spovishun-task-manager
-description: Use this skill for ALL task management operations in the Spovishun project — creating tasks, updating status, reading the board, assigning branch names, or planning a sprint. Always use this skill when the user mentions "задача", "таск", "борд", "спринт", "створи задачу", "додай таск", "що в борді", "які задачі", "закрий задачу", "переведи в done", or any task/board-related request in the context of the Spovishun project. Combines Notion board operations with Spovishun-specific conventions (task numbering, branch naming, architecture layers). For general (non-Spovishun) Notion board operations, use notion-task-board-manager instead.
+description: "Project-specific Notion task manager. Covers task numbering, branch naming, epic linking, board reading via CLI scripts, status updates via MCP, and auto-doc update on task completion. Triggers: task board, update task status, what's in progress, show board, sprint planning, задача, борд, спринт, створи задачу, що в борді, закрий задачу, переведи в done."
 ---
+# Notion Project Task Manager
 
-# Notion Spovishun Task Manager
+Task management for a project board in Notion with project-specific conventions — task numbering, branch naming, and documentation auto-update.
 
-> Key IDs: see `notion-ids.md`. CLAUDE.md is auto-fetched by `notion-workflow-spovishun`.
-
-**I/O rule:** Reads go through `scripts/notion/` CLI scripts. Writes use MCP (`notion-create-pages`, `notion-update-page`) or `scripts/notion/create-task.js` / `scripts/notion/update-status.js` interchangeably.
+**I/O rule:** Reads go through `.claude/scripts/notion/` CLI scripts. Writes use MCP (`notion-create-pages`, `notion-update-page`) or `.claude/scripts/notion/create-task.js` / `.claude/scripts/notion/update-status.js` interchangeably. Cleanup uses `.claude/scripts/notion/archive-task.js <pageId> [--unarchive]` to move a throwaway page to Notion Trash (useful for smoke tests; no MCP equivalent at the moment).
 
 ## Project Conventions
 
 ### Task numbering
 - Format: `feature/spovishun-N-short-description`
-- `N` - next sequential number (always fetch board to find max N)
-- `short-description` - maximum 3 words in kebab-case
+- `N` — next sequential number (always fetch board to find max N)
+- `short-description` — maximum 3 words in kebab-case
 
 ### Task title in Notion
-- Property name is **Name** (not Title) - case-sensitive
+- Property name is **Name** (not Title) — case-sensitive
 - Format: `feature/spovishun-N: task name`
-- No emoji in title - emoji goes in the `icon` field
+- No emoji in title — emoji goes in the `icon` field
 
 ## Reading the Board
 
 ```
-node scripts/notion/get-board.js                       # JSON (default) - use when processing data
-node scripts/notion/get-board.js --format=md           # markdown table - use when displaying to user
-node scripts/notion/get-board.js --epic "<name|id>"    # only tasks linked to that epic
+node .claude/scripts/notion/get-board.js                       # JSON (default) — use when processing data
+node .claude/scripts/notion/get-board.js --format=md           # markdown table — use when displaying to user
+node .claude/scripts/notion/get-board.js --epic "<name|id>"    # only tasks linked to that epic
 ```
 
 Display statuses: In progress / Not started / Done (last 3). The board table includes `Epic` and `Blocked by` columns.
@@ -34,9 +33,9 @@ Display statuses: In progress / Not started / Done (last 3). The board table inc
 ## Epics
 
 ```
-node scripts/notion/list-epics.js --format=md          # list all epics
-node scripts/notion/list-epics.js --status=Active      # filter by status
-echo '{"name":"…","goal":"…","status":"Planned"}' | node scripts/notion/create-epic.js
+node .claude/scripts/notion/list-epics.js --format=md          # list all epics
+node .claude/scripts/notion/list-epics.js --status=Active      # filter by status
+echo '{"name":"…","goal":"…","status":"Planned"}' | node .claude/scripts/notion/create-epic.js
 ```
 
 To re-assign a task's epic, use `notion-update-page` with the property `Epic` set to `[{"id": "<epic-page-id>"}]`. To clear it, pass an empty array.
@@ -44,13 +43,15 @@ To re-assign a task's epic, use `notion-update-page` with the property `Epic` se
 ## Updating a Task
 
 ```
-Notion:notion-update-page(
+notion-update-page(
   page_id: "<task-id>",
   properties: { "Status": "In progress" }
 )
 ```
 
 Status flow: `Not started -> In progress -> Done`
+
+For Board v2 (Scrum) Stage model and migration from v1, see `references/board-v2-stages.md`.
 
 <details>
 <summary>Extended: creating a task (full 4-step workflow), common mistakes</summary>
@@ -67,7 +68,7 @@ Search the board; next N = max existing + 1.
 | Name | `feature/spovishun-N: task name` |
 | Status | `Not started` |
 
-### Step 3: Page content - all five sections required
+### Step 3: Page content — all five sections required
 
 ```
 ## Goal
@@ -81,7 +82,7 @@ feature/spovishun-{N}-short-description
 2. Second step
 
 ## Definition of Done
-A concrete condition - when this task is considered complete.
+A concrete condition — when this task is considered complete.
 
 prompt  (toggle/collapsible)
   Professional English prompt for AI agents (Claude Code / Windsurf).
@@ -90,21 +91,28 @@ prompt  (toggle/collapsible)
 ### Step 4: Create with icon
 
 ```
-Notion:notion-create-pages(
-  parent: { type: "data_source_id", data_source_id: "3193462f-68a9-80b8-99b9-000bcbf3b536" },
+notion-create-pages(
+  parent: { type: "database_id", database_id: "36f3462f68a981328625d728cac86ea3" },
   pages: [{
-    properties: { "Name": "feature/spovishun-N: task name", "Status": "Not started" },
+    properties: {
+      "Name": "feature/spovishun-N: task name",
+      "Status": "Not started",
+      "Stage": "Backlog"   // Board v2 only — omit on Board v1
+    },
     icon: "...",
     content: "..."
   }]
 )
 ```
 
-## Common Mistakes (Spovishun-specific)
+⚠️ `type: "database_id"` parent works only when the database has a single data source. For multi-source databases use the live-fetched `data_source_id` pattern from `notion-task-board-manager`.
+
+## Common Mistakes
 - Property name is **Name**, not Title
 - Missing any of the five page sections (Goal / Branch / Steps / DoD / prompt)
 - prompt toggle must be in English, professional tone
-- Only one task In progress at a time - remind the user if they try to start another
+- Only one task In progress at a time — remind the user if they try to start another
+- Board v2: forgetting to set `Stage = "Backlog"` on creation — task ends up with empty Stage and falls outside both Backlog and Sprint views
 
 </details>
 
@@ -118,29 +126,23 @@ When a task moves to `Done`, automatically perform the following steps — no us
 git diff develop...HEAD --name-only
 ```
 
-If the branch is already merged into `main`, use `git diff main~1...main --name-only` instead.
-
 ### Step 2 — Classify the change set
 
 | File pattern match | Action |
 |---|---|
-| New file `presentation/bot/commands/*Command.kt` | New feature OR new command in existing feature |
-| New file `presentation/scheduler/*.kt` | Passive component of an existing feature |
-| Modified `presentation/bot/commands/*Command.kt` or `BotMessages.kt` | Existing feature update |
+| New command/feature file in presentation layer | New feature |
+| Modified existing command/feature file | Existing feature update |
 | No matches | No doc action needed — exit |
 
 ### Step 3 — Apply doc change
 
-**New feature:** create a new record in the Features inline DB. Use the `notion-navigator` skill to get the current Features group page ID. Populate using the template from `.claude/rules/common/feature-documentation.md`, reading the command file and task description as source.
+**New feature:** use `notion-navigator` to get the correct category group page ID, then create a new record in the category inline DB.
 
-**Feature update:** find the existing Features record by command or scheduler name (search via `mcp__claude_ai_Notion__notion-search`). Patch only the affected section (commands table or functionality bullets). Do not rewrite unaffected sections.
+**Feature update:** find the existing record by name (search via `notion-search`). Patch only the affected section. Do not rewrite unaffected sections.
 
 ### Step 4 — Report
 
-At the end of the task transition, report what was created or updated (one line). Example:
-```
-📦 Features doc: created "👋 Registration & Onboarding" record in the Features DB.
-```
+At the end of the task transition, report what was created or updated (one line).
 
 ### Failure handling
 

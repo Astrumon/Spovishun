@@ -1,8 +1,7 @@
 ---
 name: notion-workspace-organizer
-description: Use this skill when reorganizing a Notion workspace, moving pages between parents, building navigation hubs, standardizing page names, or creating a logical hierarchy. Triggers on "organize my Notion", "move this page to", "restructure my workspace", "create a hub page", "clean up Notion", or any request to tidy, reorder, or restructure Notion pages and sections. Always use this skill before moving pages or auditing workspace structure — even for simple moves or renames.
+description: "Reorganizes Notion workspaces — maps structure, proposes before/after plans, moves pages in bulk (up to 100 per call), enforces naming conventions, and enforces max 3-level page hierarchy. Triggers: organize my Notion, move this page to, restructure my workspace, create a hub page, clean up Notion, організуй Notion, перемісти сторінку, реструктуризуй простір."
 ---
-
 # Notion Workspace Organizer
 
 ## Workspace Audit
@@ -41,7 +40,7 @@ Before moving anything, present a clear before/after plan:
 ```
 Current:                    Proposed:
 Projects/                   Projects/
-  Spovishun/                  Spovishun/
+  MyProject/                  MyProject/
     old docs/                   Documentation/
     random page                 Board/
   untitled/               Notes/

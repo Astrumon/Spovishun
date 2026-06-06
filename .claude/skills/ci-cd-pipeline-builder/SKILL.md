@@ -86,7 +86,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /app/spovishun
+            cd /app/Spovishun
             docker compose pull
             docker compose up -d --force-recreate
 ```

@@ -20,7 +20,7 @@ A `Repository` interface must not declare methods that no consumer ever calls.
 
 **D — Dependency Inversion**
 Depend on abstractions (`interface`), not on implementations (`Impl`).
-All dependencies must be injected via Koin — never instantiate dependencies directly inside a class.
+All dependencies must be injected — never instantiate dependencies directly inside a class.
 
 ## KISS
 - The simplest solution that solves the problem is the correct solution
@@ -30,7 +30,7 @@ All dependencies must be injected via Koin — never instantiate dependencies di
 
 ## YAGNI
 - NEVER implement functionality "for the future" without a current, specific need
-- No Notion task → no code. Period.
+- No task ticket → no code. Period.
 - Generic/reusable solutions are justified only when 3+ concrete use cases already exist
 - If a feature is not in the current sprint, don't start implementing it
 

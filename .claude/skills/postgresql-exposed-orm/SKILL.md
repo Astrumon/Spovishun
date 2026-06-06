@@ -1,15 +1,14 @@
 ---
 name: postgresql-exposed-orm
-description: Use this skill when working with Kotlin Exposed ORM and PostgreSQL. Triggers on questions about database schema design, Exposed tables, transactions, migrations (Flyway), N+1 problems, or SQL queries in Kotlin projects. Ukrainian triggers: "таблиця Exposed", "міграція Flyway", "запит до бази", "HikariCP пул".
+description: "Kotlin Exposed ORM with PostgreSQL — table design, query patterns, safeDbQuery enforcement, Flyway migrations, and HikariCP configuration. Triggers: Exposed ORM, Flyway, safeDbQuery, HikariCP, database schema, migration, таблиця Exposed, міграція Flyway, запит до бази, HikariCP пул."
 ---
-
 # PostgreSQL with Kotlin Exposed ORM
 
 ## Workflow
 
 1. Identify the task area from the user's request.
 2. Match it to the **Decision Table** below.
-3. Read `references/<chosen>.md` (use the `Read` tool with the full path `.claude/skills/postgresql-exposed-orm/references/<file>`).
+3. Read `references/<chosen>.md` using the `Read` tool.
 4. Apply patterns from that reference, combined with the Always-Active Rules below.
 
 ## Decision Table
@@ -22,7 +21,7 @@ description: Use this skill when working with Kotlin Exposed ORM and PostgreSQL.
 | Flyway SQL migrations, naming convention, `generateMigration` task | `references/migrations-flyway.md` |
 | HikariCP pool sizing, timeouts, Neon/cloud config | `references/hikaricp-config.md` |
 
-## Always-Active Rules (Spovishun-specific)
+## Always-Active Rules
 
 - **Always use `safeDbQuery { }`** — never bare `transaction { }` or manual `ResultContainer.catching { dbQuery { } }`.
 - `safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`.
@@ -52,7 +51,7 @@ When reviewing or designing DB code:
 
 ## Related Skills
 
-- `database-reviewer` — reviews Exposed table definitions and Flyway migrations before merge
+- `database-optimizer` — query performance, index design, EXPLAIN ANALYZE
 - `kotlin-specialist` — Kotlin coroutines and dispatcher rules that apply in DB context
 - `unit-testing-kotlin` — how to test repositories with MockImpl (no live DB in unit tests)
 

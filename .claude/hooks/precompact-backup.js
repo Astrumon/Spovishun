@@ -9,8 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const QUEUE_FILE = path.join(__dirname, '..', 'learnings-queue.json');
-const BACKUP_FILE = path.join(__dirname, '..', 'learnings-queue.backup.json');
+const QUEUE_FILE = path.join(process.cwd(), '.claude', 'learnings-queue.json');
+const BACKUP_FILE = path.join(process.cwd(), '.claude', 'learnings-queue.backup.json');
 
 try {
   if (!fs.existsSync(QUEUE_FILE)) process.exit(0);

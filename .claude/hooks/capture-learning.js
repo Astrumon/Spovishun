@@ -10,14 +10,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 
 // \b does not work with Cyrillic (Unicode chars are \W in JS regex), so use an explicit anchor
 const UA_PATTERN = /(?:^|[\s,;!?.])(ні[,\s]|не\s|стоп|зачекай|почекай|насправді|правильніше|краще|давай\s+по-іншому|переробимо|не\s+так)/i;
 const EN_PATTERN = /\b(no[,\s]|wait|actually|stop|let'?s\s+redo|that'?s\s+wrong|instead)\b/i;
 
-const QUEUE_FILE = path.join(__dirname, '..', 'learnings-queue.json');
-const ERROR_LOG = path.join(__dirname, '..', 'learnings-queue.errors.log');
+const QUEUE_FILE = path.join(process.cwd(), '.claude', 'learnings-queue.json');
+const ERROR_LOG = path.join(process.cwd(), '.claude', 'learnings-queue.errors.log');
 const MAX_ENTRIES = 500;
 const MAX_PROMPT_LENGTH = 2000;
 
@@ -74,7 +73,6 @@ try {
         previousAssistantTurnHash: null,
       };
 
-      // Evict oldest if over cap
       const updated = [...queue, entry];
       if (updated.length > MAX_ENTRIES) {
         updated.splice(0, updated.length - MAX_ENTRIES);
@@ -82,7 +80,7 @@ try {
 
       writeQueue(updated);
 
-      output({ systemMessage: `📝 Learning captured for /reflect (queue: ${updated.length})` });
+      output({ systemMessage: `Learning captured for /reflect (queue: ${updated.length})` });
     } catch (err) {
       logError(err);
       process.exit(0);

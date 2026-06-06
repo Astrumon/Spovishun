@@ -134,6 +134,9 @@ yarn-error.log*
 # ======================
 # Claude Code
 # ======================
+# spovishun-skills consumer config carries real Notion IDs — keep it local.
+# A sanitized template is committed as spovishun-skills.config.example.yaml.
+spovishun-skills.config.yaml
 .claude/settings.local.json
 .claude/scripts/.skills-last-sync
 .claude/session-state.json
