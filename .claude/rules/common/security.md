@@ -12,7 +12,7 @@
 - Log only anonymized identifiers (e.g., action type, command name) for debugging
 
 ## Telegram-Specific
-- Bot token MUST come from `BOT_TOKEN` env var — never from code or config files
+- Bot token MUST come from the `TELEGRAM_BOT_TOKEN` env var — never from code or config files
 - NEVER expose bot token in error messages, stack traces, or logs
 
 ## On Finding a Secret
