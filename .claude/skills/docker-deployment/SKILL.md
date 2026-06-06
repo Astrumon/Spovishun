@@ -1,8 +1,7 @@
 ---
 name: docker-deployment
-description: Use this skill when containerizing Kotlin applications, writing Dockerfiles, configuring docker-compose, deploying to cloud VMs, or working with GitHub Container Registry (ghcr.io). Triggers on questions about Docker, deployment, environment variables, Oracle Cloud, or image publishing.
+description: "Containerize Kotlin apps with multi-stage Dockerfile (installDist), docker-compose with dev profile, ghcr.io push workflow, and SSH deploy to low-RAM servers. Triggers: Dockerfile, docker-compose, containerize, deploy, ghcr.io, GitHub Container Registry, Oracle Cloud, докерфайл, контейнер, деплой."
 ---
-
 # Docker & Deployment (Kotlin Apps)
 
 You are an expert in containerizing Kotlin applications and setting up reliable deployments.
@@ -32,32 +31,32 @@ RUN ./gradlew installDist --no-daemon
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
-COPY --from=builder /app/build/install/spovishun/ ./
+COPY --from=builder /app/build/install/Spovishun/ ./
 
 RUN addgroup -S app && adduser -S app -G app
 USER app
 
-ENTRYPOINT ["./bin/spovishun"]
+ENTRYPOINT ["./bin/Spovishun"]
 ```
 
 ## docker-compose.yml (Prod — no local DB)
 
-For production, the bot connects to a cloud DB (Neon). No local postgres needed.
+For production, the bot connects to a cloud DB. No local postgres needed in prod.
 
 ```yaml
 services:
   bot:
-    image: ghcr.io/astrumon/spovishun:latest
-    container_name: spovishun-bot
+    image: :latest
+    container_name: Spovishun-bot
     env_file: .env
     restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
-    container_name: spovishun-db
+    container_name: Spovishun-db
     profiles: ["dev"]   # only starts with: docker compose --profile dev up
     environment:
-      POSTGRES_DB: spovishun_dev
+      POSTGRES_DB: Spovishun_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DEV_DATABASE_PASSWORD}
     ports:
@@ -65,7 +64,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d spovishun_dev"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Spovishun_dev"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -89,19 +88,19 @@ PROD_DATABASE_POOL_SIZE=5
 
 ## Deployment Workflow (low-RAM server)
 
-The production server (Oracle Cloud E2.1.Micro, 1 GB RAM) cannot run `gradle build` inside Docker.
-Strategy: **build locally → push to ghcr.io → server pulls and runs**.
+For servers that cannot run `gradle build` inside Docker.
+Strategy: **build locally → push to registry → server pulls and runs**.
 
 ### Build & Push (local machine)
 
 ```bash
-docker build -t ghcr.io/astrumon/spovishun:latest .
-docker push ghcr.io/astrumon/spovishun:latest
+docker build -t :latest .
+docker push :latest
 ```
 
 Requires prior login:
 ```bash
-echo <PAT> | docker login ghcr.io -u astrumon --password-stdin
+echo <PAT> | docker login ghcr.io -u <username> --password-stdin
 ```
 
 PAT scopes required: `write:packages`, `read:packages`.
@@ -110,8 +109,8 @@ Image name MUST be lowercase — ghcr.io enforces this.
 ### Deploy (on server)
 
 ```bash
-ssh -i ~/.ssh/oracle_key ubuntu@141.147.4.30
-cd ~/Spovishun
+ssh -i ~/.ssh/deploy_key ubuntu@
+cd ~/
 docker compose pull bot
 docker compose up -d
 ```
@@ -123,23 +122,19 @@ docker compose ps
 docker compose logs --tail=50 bot
 ```
 
-Expect in logs:
-- `Bot started successfully`
-- `Schema "public" is up to date` or `Applied X migration(s)`
-
 ## Updating the Bot
 
 Every new release:
 
 1. **Local:** build and push new image
    ```bash
-   docker build -t ghcr.io/astrumon/spovishun:latest .
-   docker push ghcr.io/astrumon/spovishun:latest
+   docker build -t :latest .
+   docker push :latest
    ```
 
 2. **Server:** pull and restart
    ```bash
-   cd ~/Spovishun
+   cd ~/
    docker compose pull bot
    docker compose up -d
    ```

@@ -1,17 +1,10 @@
 ---
 name: newepic
-description: >
-  Use this skill to create a new Epic page in the Spovishun Notion Epics database.
-  Triggers on: "новий епік", "створи епік", "new epic", "create epic", "додай епік".
-  An Epic groups multiple related tasks (typically 3+) under a single goal AND owns
-  the full research/specification body inline. Do NOT create a stub that links elsewhere.
-  For creating individual tasks (with optional link to an existing Epic), use `newtask`.
-  For decomposing a solution into many tasks under a new Epic, use `task-decomposer`.
+description: "Creates a new Epic record in the Notion Epics database. The Epic page owns its full research/spec body — no stubs. Covers MCP vs CLI path selection, section structure, and Goal property rules. Triggers: new epic, create epic, add epic, новий епік, створи епік, додай епік."
 ---
-
 # New Epic Skill
 
-Create a new Epic record in the Spovishun Epics database (under Documentation). The Epic page **is** the epic — it owns the full research/spec body. Never create a stub record that points to a separate page via `Related Notion task` — that field is for the originating *task* (e.g. `spovishun-74`), not for "see content over there".
+Create a new Epic record in the project's Epics database in Notion. The Epic page **is** the epic — it owns the full research/spec body. Never create a stub record that links to a separate page — the `Related task` field is for the originating task (e.g. `spovishun-74`), not for "see content over there".
 
 ---
 
@@ -21,7 +14,7 @@ Ask the user (if not already provided):
 1. **Name** — short, descriptive (e.g., "Claude Code Skills Plugin")
 2. **Goal** — 1–2 sentences for the Goal property (rollup-friendly)
 3. **Status** — `Planned` (default), `Active`, or `Completed`
-4. **Originating task** (optional) — URL of the research task that produced this epic (e.g. `spovishun-74`). Goes into `Related Notion task`. Leave blank if none.
+4. **Originating task** (optional) — URL of the research task that produced this epic. Goes into `Related task`. Leave blank if none.
 5. **Icon** (optional) — single emoji; default `🧩`
 6. **Body source** — one of:
    - existing Notion page or markdown file the user wants copied in,
@@ -34,16 +27,15 @@ If the user already supplied fields in their message, do not re-ask.
 
 ## Step 2: Compose the body
 
-Open `.claude/skills/_templates/epic-page.md` and use it as the section skeleton. The template lists required sections (TL;DR, § 1 Current state, § 7 Risks, § 8 Roadmap, § 9 Task decomposition) and optional ones.
+Use the section skeleton from the epic page template. Required sections: TL;DR, Current state, Risks, Roadmap, Task decomposition. Optional sections may be collapsed for small epics.
 
 Adapt sections to the initiative:
-- For a small epic (3–5 tasks) you may collapse §§ 3–6 into a single Architecture paragraph
-- For a research-heavy epic, keep all 11 sections as in the template
-- Body is written in **Notion-flavored markdown** (callouts, tables with `fit-page-width`, `<details>` toggles, `mermaid` blocks)
-- Primary language: Ukrainian, matching the rest of the workspace
+- For a small epic (3–5 tasks) you may collapse middle sections into a single Architecture paragraph
+- For a research-heavy epic, keep all sections
+- Body is written in **Notion-flavored markdown** (callouts, tables, `<details>` toggles, `mermaid` blocks)
 
 If the user provided a source page/file:
-- Notion page: fetch via `mcp__claude_ai_Notion__notion-fetch(id)` and reuse the markdown verbatim
+- Notion page: fetch via `notion-fetch(id)` and reuse the markdown verbatim
 - Local file: `Read` it directly
 
 Never write a one-liner body and stash the real content elsewhere.
@@ -55,14 +47,14 @@ Never write a one-liner body and stash the real content elsewhere.
 Use MCP so the full markdown body is parsed into native Notion blocks (callouts, tables, toggles all render correctly):
 
 ```
-mcp__claude_ai_Notion__notion-create-pages(
-  parent: { type: "data_source_id", data_source_id: "a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0" },
+notion-create-pages(
+  parent: { type: "database_id", database_id: "d0c0020049f74b0589979065d8cfe7d3" },
   pages: [{
     properties: {
       "Name": "<Name>",
       "Status": "<Status>",
       "Goal": "<Goal — short, for the property only>",
-      "Related Notion task": "<originating task URL, or omit>"
+      "Related task": "<originating task URL, or omit>"
     },
     icon: "<emoji, default 🧩>",
     content: "<full markdown body composed in Step 2>"
@@ -70,24 +62,26 @@ mcp__claude_ai_Notion__notion-create-pages(
 )
 ```
 
-Property names are case-sensitive: `Name`, `Status`, `Goal`, `Related Notion task`.
+Property names are case-sensitive: `Name`, `Status`, `Goal`, `Related task`.
 
-### Fallback (CLI — only for short / programmatic creates)
+⚠️ MCP `type: "database_id"` parent works only when the epics database has exactly **one** data source. For multi-source databases, fetch the live `data_source_id` first (`<data-source url="collection://...">`) and use `type: "data_source_id"`.
 
-If the body is just a short paragraph (no tables / callouts / toggles), the CLI path is fine:
+### Alternative path — CLI (since v1.4.0)
+
+The CLI now parses the markdown `content` into native Notion blocks (headings, lists, code, callouts, toggles, tables — see `scripts/notion/lib/markdown-to-blocks.js`). Long content is auto-chunked at the 2000-char `rich_text` limit. Use this path when you need scripted creation or want to pipe a file:
 
 ```bash
 echo '{
   "name": "<Name>",
   "goal": "<Goal>",
   "status": "<Status>",
-  "relatedNotionTask": "<URL or omit>",
+  "relatedTask": "<URL or omit>",
   "icon": "<emoji>",
-  "content": "<plain paragraph text>"
-}' | node scripts/notion/create-epic.js
+  "content": "<full markdown body — headings, lists, code, callouts, toggles all render>"
+}' | node .claude/scripts/notion/create-epic.js
 ```
 
-The CLI wraps `content` in a single paragraph block — it does NOT parse markdown. For rich bodies use MCP.
+⚠️ Notion API rejects pages whose initial `children` array exceeds 100 blocks per request. Bodies that produce more than 100 blocks must be split — the parser emits a stderr warning when this happens.
 
 ---
 
@@ -96,31 +90,22 @@ The CLI wraps `content` in a single paragraph block — it does NOT parse markdo
 Report:
 - Epic created: **<Name>** (with the Notion URL)
 - Status: `<Status>` · Icon: `<emoji>` · Body sections: `<list of major sections>`
-- Suggested next step: create tasks under this epic with `newtask` (the epic picker will list it), or run `task-decomposer` if you already have a Solution Decision.
+- Suggested next step: create tasks under this epic with `newtask`, or run `task-decomposer` if you already have a Solution Decision.
 
 ---
 
 ## Do NOT
 
-- Do NOT create a Stub Epic (short body + `Related Notion task` pointing to a "real" page elsewhere). The Epic page must own its content.
+- Do NOT create a Stub Epic (short body + `Related task` pointing to a "real" page elsewhere). The Epic page must own its content.
 - Do NOT create an Epic for a single isolated task — use `newtask` directly
 - Do NOT skip the Goal property — every Epic needs a clear "why"
-- Do NOT duplicate an existing Epic — run `node scripts/notion/list-epics.js --format=text` first if unsure
-- Do NOT use the CLI path for bodies with tables, callouts, or toggles — they will be flattened into raw text
+- Do NOT duplicate an existing Epic — run `node .claude/scripts/notion/list-epics.js --format=text` first if unsure
+- Do NOT split a single epic body into multiple create calls — keep one Epic page = one create call (the parser handles long bodies via rich_text chunking; only watch the 100-blocks-per-request cap)
 
 ---
 
 ## Related Skills
 
 - `newtask` — create an individual task; offers epic selection from the list
-- `task-decomposer` — break a solution into tasks; auto-creates an Epic if 3+ tasks (uses the same template)
+- `task-decomposer` — break a solution into tasks; auto-creates an Epic if 3+ tasks
 - `notion-spovishun-task-manager` — list, filter, and update epics/tasks
-
-## Key IDs
-
-| Resource | ID |
-|---|---|
-| Epics data source | `a8ac0d93-9d1f-4d34-aa2d-f31d3b3accd0` |
-| Epics database (compact) | `d0c0020049f74b0589979065d8cfe7d3` |
-| Epics group page | `3633462f68a981098385fa260e9ce132` |
-| Epic template | `.claude/skills/_templates/epic-page.md` |

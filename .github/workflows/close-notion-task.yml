@@ -31,6 +31,6 @@ jobs:
         if: steps.extract.outputs.task_n != ''
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DB_ID: 3193462f68a980d69ec9c7ccc6329b88
+          NOTION_DB_ID: 36f3462f68a981328625d728cac86ea3
           TASK_N: ${{ steps.extract.outputs.task_n }}
         run: node .github/scripts/close-notion-task.js

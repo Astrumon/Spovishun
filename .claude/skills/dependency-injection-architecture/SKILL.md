@@ -1,8 +1,7 @@
 ---
 name: dependency-injection-architecture
-description: Use this skill when designing or implementing dependency injection with Koin or Spring in Kotlin projects. Triggers on questions about DI containers, module structure, layered architecture, or adding new services/repositories.
+description: "Clean Architecture layering and Koin DI patterns for Kotlin apps. Enforces layer boundary rules, constructor injection, interface bindings, and profile-based module switching. Triggers: dependency injection, Koin, DI module, layer architecture, add new service, repository pattern, ін'єкція залежностей, Koin модуль, архітектура шарів."
 ---
-
 # Dependency Injection & Architecture (Kotlin)
 
 You are an expert in clean architecture and dependency injection for Kotlin applications.
@@ -10,7 +9,7 @@ You are an expert in clean architecture and dependency injection for Kotlin appl
 ## Layer Architecture
 
 ```
-presentation (commands, handlers)  ← handles input (Telegram commands)
+presentation (commands, handlers)  ← handles input
     ↓
 domain (services)                  ← business logic, orchestration
     ↓
@@ -26,7 +25,7 @@ common                             ← pure Kotlin utilities, zero project impor
 - Each layer only knows about the layer directly below it
 - Repositories return domain objects, not DB entities
 
-## Hard Rules per Layer (Spovishun)
+## Hard Rules per Layer
 - `domain/` — no Telegram SDK, no Exposed/JDBC, no Koin, no `Dispatchers.IO`
 - `data/` — no Telegram SDK, never call services
 - `common/` — pure Kotlin only, zero project imports
@@ -80,3 +79,16 @@ startKoin { modules(if (profile == "prod") prodModule else devModule) }
 - Implementation: `UserRepositoryImpl` (DB), `UserRepositoryMockImpl` (in-memory)
 - Module file: `DevRepositoryModule.kt`, `ProdRepositoryModule.kt`, `ServiceModule.kt`
 - Never use `UseCase` — use `Service` instead
+
+## Adding a New Service (Checklist)
+
+1. Define interface in `domain/`
+2. Implement in `data/` (or `domain/` if no DB access needed)
+3. Register in appropriate Koin module
+4. Inject in the consuming class via constructor
+5. Add MockImpl in `data/` for unit testing
+
+## Common Pitfalls
+- Circular dependencies — Koin will throw at startup; redesign with an intermediate service
+- `get()` inside `factory {}` re-resolves every call — use `single {}` for expensive objects
+- `by inject()` at field level creates late-init binding — prefer constructor injection for testability

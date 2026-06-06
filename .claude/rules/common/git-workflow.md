@@ -9,7 +9,7 @@ ALWAYS use Conventional Commits. Format: `type: short description`
 
 ## Branch Naming
 Format: `feature/spovishun-{N}-short-slug`
-- `{N}` = Notion task number
+- `{N}` = task number from your task tracker
 - slug = max 3 words, kebab-case, describes the change
 - NEVER branch directly from `main` — always from `develop`
 - NEVER work on `main` or `develop` directly

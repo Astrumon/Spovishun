@@ -57,6 +57,33 @@ Never call a `Service` directly from a `Command`.
 - **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`, `E2E_DATABASE_URL`.
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
+## Skills Source (generated — do not hand-edit)
+The contents of `.claude/` (skills, agents, rules, hooks, `_templates/`, `scripts/notion/`,
+`settings.json`) are **generated** by the [`spovishun-skills`](https://www.npmjs.com/package/spovishun-skills)
+plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they are overwritten on re-install.
+
+- **Config:** `spovishun-skills.config.yaml` (root, **gitignored** — carries real Notion IDs).
+  A sanitized template is committed as `spovishun-skills.config.example.yaml`.
+  Secrets stay in `.env`; the config only names the env var (`notion.token_env: NOTION_TOKEN`).
+- **Task board:** automation targets **Board v2 (Scrum)** — the "Tasks (v2)" DB. The active-task
+  picker filters to the Sprint stage (`notion.picker.stage_filter: "Sprint"`); `create-task.js`
+  defaults new tasks to `Stage: Backlog`. The board DB id lives in config (`notion.database_id`);
+  `.claude/scripts/notion/lib/constants.js` resolves it at runtime (env var → config, not hard-coded).
+- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.4.0`) then
+  `npx spovishun-skills install --target=claude` (or `npx spovishun-skills sync` to re-apply with the
+  existing config + lockfile). State is tracked in `spovishun-skills.lock.yaml` (committed).
+- **Validate:** export `NOTION_TOKEN` from `.env`, then `npx spovishun-skills doctor` → expect 0 errors.
+- **Project-owned (NOT plugin-managed), survive re-installs:**
+  - `.claude/rules/kotlin/spovishun-architecture.md` — Spovishun concretions (`ResultContainer`,
+    `safeDbQuery`/Exposed, Koin) that the generic installed `kotlin-style.md` omits.
+  - `.claude/scripts/notion/tests/` + `TEST-RESULTS.md` — the Notion CLI test suite (migrated from the
+    old root `scripts/notion/`). The scripts themselves are now plugin-managed; only these tests are
+    project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
+    (a bare directory arg fails on Node ≥ 22, which tries to load the dir as a module). Integration
+    tests skip themselves unless `NOTION_TOKEN` is set.
+  - Per-layer `domain|data|presentation/CLAUDE.md` and gitignored local state
+    (`settings.local.json`, `session-state.json`, learnings queue, `.claude/tmp/`).
+
 ## Agent Workflow
 - `kotlin-reviewer` — after implementing a feature (reviews Kotlin code quality, architecture, patterns, coroutines)
 - `database-reviewer` — after adding a table or migration (reviews DB schema and Exposed usage)
@@ -72,13 +99,13 @@ Never call a `Service` directly from a `Command`.
 
 | Use case | Preferred tool |
 |---|---|
-| Board overview | `node scripts/notion/get-board.js` (supports `--epic <name|id>`) |
-| Task by number or pageId | `node scripts/notion/get-task.js <N-or-pageId>` (includes `epic` + `blockedBy`) |
-| CLAUDE.md page | `node scripts/notion/get-claude-md.js` |
-| Create task | `node scripts/notion/create-task.js` (accepts `epicId`, `blockedBy`) or MCP `notion-create-pages` |
-| List epics | `node scripts/notion/list-epics.js` |
-| Create epic | `node scripts/notion/create-epic.js` or skill `newepic` |
-| Update status | `node scripts/notion/update-status.js` or MCP `notion-update-page` |
+| Board overview | `node .claude/scripts/notion/get-board.js` (supports `--epic <name|id>`) |
+| Task by number or pageId | `node .claude/scripts/notion/get-task.js spovishun-<N> \| <pageId>` (number must be the `spovishun-<N>` form, not a bare `<N>`; `--format json\|md`; includes `epic` + `blockedBy`) |
+| CLAUDE.md page | `node .claude/scripts/notion/get-claude-md.js` |
+| Create task | `node .claude/scripts/notion/create-task.js` (accepts `epicId`, `blockedBy`) or MCP `notion-create-pages` |
+| List epics | `node .claude/scripts/notion/list-epics.js` |
+| Create epic | `node .claude/scripts/notion/create-epic.js` or skill `newepic` |
+| Update status | `node .claude/scripts/notion/update-status.js` or MCP `notion-update-page` |
 | Semantic search across arbitrary Notion content | MCP `notion-search` (not replicable via scripts) |
 
 ## Idea Planning Pipeline

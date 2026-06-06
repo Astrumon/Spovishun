@@ -10,8 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const stateFile = path.join(__dirname, '..', 'session-state.json');
-const queueFile = path.join(__dirname, '..', 'learnings-queue.json');
+const stateFile = path.join(process.cwd(), '.claude', 'session-state.json');
+const queueFile = path.join(process.cwd(), '.claude', 'learnings-queue.json');
 
 try {
   const messages = [];
@@ -27,7 +27,7 @@ try {
     try {
       const queue = JSON.parse(fs.readFileSync(queueFile, 'utf8'));
       if (Array.isArray(queue) && queue.length > 5) {
-        messages.push(`📝 Learnings queue has ${queue.length} entries. Run /reflect to process.`);
+        messages.push(`Learnings queue has ${queue.length} entries. Run /reflect to process.`);
       }
     } catch (_) { /* ignore malformed queue */ }
   }

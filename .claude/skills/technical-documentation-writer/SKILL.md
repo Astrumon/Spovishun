@@ -82,45 +82,10 @@ For AI assistant context files, include:
 ### Architecture Document
 - Use C4 model levels: Context → Container → Component
 - Include decision rationale (ADRs — Architecture Decision Records)
-- For any component diagram, layer stack, data flow, or sequence: use the `diagram-design` skill to produce an HTML file, then follow [`diagram-design/references/notion-upload.md`](./../diagram-design/references/notion-upload.md) to screenshot and publish to Notion. Mermaid is a fallback only when no Notion publishing is needed.
+- For component diagrams, layer stacks, data flow, or sequence: prefer Mermaid embedded in the doc. For richer visuals destined for Notion or screenshots, render externally (Excalidraw, draw.io) and link the source.
 - List external dependencies with versions
 
 For changelogs, follow [Keep a Changelog](https://keepachangelog.com) format — see `changelog-generator` skill.
-
-### Feature Page (Notion Features category)
-
-Canonical structure is defined in `.claude/rules/common/feature-documentation.md`.
-Quick template for reference:
-
-```
-## Призначення
-1–3 sentences: what the feature does, who uses it, why it exists.
-
-## Версія
-v1.X.0 — introduced in [task link]
-
-## Команди / точки входу
-| Command / Trigger | Role required | Description |
-|---|---|---|
-| /command | member | One-line description |
-
-## Формат вводу
-(omit if no arguments)
-Argument shape, accepted values, example: `/command arg1 arg2`
-
-## Функціонал / поведінка
-- What happens step-by-step
-- Edge cases and side effects
-- Passive components (schedulers, auto-services) described here
-
-## Діаграма
-(optional — embed screenshot from diagram-design skill only for non-trivial flows)
-
-## Пов'язані фічі
-(optional — links to related Features records)
-```
-
-Rules: ≤ 250 words (excluding tables/diagram). No DI tables, no DB schema, no method signatures, no internal class names. See canonical rule for full forbidden list.
 
 ## Writing Principles
 - Start with "why", then "what", then "how"

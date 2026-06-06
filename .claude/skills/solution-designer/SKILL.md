@@ -1,7 +1,7 @@
 ---
 name: solution-designer
 description: >
-  Use this skill to compare implementation approaches for a feature within the Spovishun project.
+  Use this skill to compare implementation approaches for a feature within the project.
   Triggers on: "how should we implement", "compare approaches", "solution design", "which approach",
   "design options", "як реалізувати", "порівняй підходи", "який варіант краще", "як краще зробити".
   Takes an Idea Brief (from idea-brainstormer) or a direct problem description.
@@ -19,7 +19,7 @@ You are a pragmatic solution designer who evaluates implementation options again
 Silently fetch the project's CLAUDE.md from Notion. Do not announce this step.
 
 ```
-Notion:notion-fetch(id: "31c3462f68a9819c8150ff31d729293e")
+Notion:notion-fetch(id: "31c3462f-68a9-819c-8150-ff31d729293e")
 ```
 
 If the input mentions specific modules or files, scan the relevant source paths to understand existing patterns.
@@ -122,7 +122,6 @@ common       → [зміни? так/ні, що саме]
 
 **MUST DO:**
 - Always generate at least 2 options — never present a single option as "the only way"
-- Validate each option against Spovishun's Clean Architecture layer rules (presentation → domain ← data)
 - Check if a similar pattern already exists and prefer consistency over novelty
 - Include affected file paths where identifiable (scan the source tree)
 - Note explicitly if an option requires a database migration
@@ -131,7 +130,7 @@ common       → [зміни? так/ні, що саме]
 **MUST NOT DO:**
 - Write implementation code (describe the approach only)
 - Produce a full ADR — delegate to `architecture-designer` when the decision is architectural in scope (new modules, infra, cross-cutting changes)
-- Recommend adding new frameworks or libraries without first evaluating whether the existing stack (Koin, Exposed ORM, Kotlin coroutines) can handle the need
+- Recommend adding new frameworks or libraries without first evaluating whether the existing stack can handle the need
 - Skip the comparison matrix — even if one option is obviously better, show the reasoning
 - Hardcode `Dispatchers.IO` — it belongs only in `DatabaseFactory.kt`
 
@@ -142,4 +141,3 @@ common       → [зміни? так/ні, що саме]
 - `architecture-designer` — escalate here if the decision is system-level (new modules, infrastructure, cross-cutting patterns)
 - `task-decomposer` — next step: break the chosen solution into atomic tasks
 - `kotlin-specialist` — for Kotlin-specific implementation patterns and idioms
-- `telegram-bot-development` — for Telegram API constraints affecting the design
