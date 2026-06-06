@@ -1,0 +1,39 @@
+# spovishun-skills consumer config — TEMPLATE
+# Copy this file to `spovishun-skills.config.yaml` and fill in your Notion IDs.
+# `spovishun-skills.config.yaml` is gitignored — keep it local.
+# Secrets stay in .env (token_env names the var, never the value).
+project:
+  name: "Spovishun"
+  language: uk
+
+stack:
+  kotlin: true
+  postgres: true
+  telegram: true
+  notion: true
+  docker: true
+
+git:
+  branch_prefix: "feature/spovishun"
+  main_branch: "main"
+  dev_branch: "develop"
+
+notion:
+  token_env: "NOTION_TOKEN"
+  # Board v2 (Scrum) — "Tasks (v2)" database. Picker filters to the Sprint stage.
+  database_id: "<notion-tasks-database-id>"
+  picker:
+    stage_filter: "Sprint"
+  root_page_id: "<notion-root-page-id>"
+  docs_root_id: "<notion-docs-root-id>"
+  claude_md_page_id: "<notion-claude-md-page-id>"
+  epics_database_id: "<notion-epics-database-id>"
+  epics_group_page_id: "<notion-epics-group-page-id>"
+  categories:
+    architecture: "<notion-architecture-category-id>"
+    database: "<notion-database-category-id>"
+    testing: "<notion-testing-category-id>"
+    cicd: "<notion-cicd-category-id>"
+    features: "<notion-features-category-id>"
+    aitools: "<notion-aitools-category-id>"
+    epics: "<notion-epics-group-page-id>"
