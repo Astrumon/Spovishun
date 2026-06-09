@@ -17,6 +17,8 @@ mockk = "1.13.13"
 h2 = "2.3.232"
 okhttp = "4.12.0"
 okio = "3.9.0"
+ktlint-plugin = "14.2.0"
+detekt = "2.0.0-alpha.3"
 
 [libraries]
 
@@ -73,3 +75,5 @@ okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-plugin" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }

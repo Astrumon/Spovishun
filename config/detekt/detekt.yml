@@ -1,0 +1,45 @@
+# detekt configuration — static analysis only.
+# Formatting is delegated to ktlint (.editorconfig); the detekt-formatting rule set is
+# intentionally NOT loaded, so this file overrides only structural/code-smell thresholds.
+# buildUponDefaultConfig = true is set in build.gradle.kts, so unspecified rules keep defaults.
+
+complexity:
+  LongMethod:
+    # The project keeps functions short (Kotlin style rule: ~20 lines); 60 leaves headroom for DSLs.
+    allowedLines: 60
+  LongParameterList:
+    allowedFunctionParameters: 7
+    allowedConstructorParameters: 7
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    allowedFunctionsPerClass: 18
+    allowedFunctionsPerObject: 18
+  CyclomaticComplexMethod:
+    allowedComplexity: 18
+
+naming:
+  InvalidPackageDeclaration:
+    # The group prefix `com.ua.astrumon` is intentionally not mirrored in the directory tree
+    # (files live under src/main/kotlin/<layer>/...). Strip it before matching path to package.
+    rootPackage: 'com.ua.astrumon'
+  FunctionNaming:
+    # Test methods follow the project convention `should_doX_when_conditionY` (testing.md), which
+    # uses underscores; production code keeps camelCase. Exclude test source sets from this rule.
+    excludes: ['**/test/**', '**/integrationTest/**', '**/e2eTest/**']
+  ConstructorParameterNaming:
+    # Serialization DTOs in e2e tests mirror Telegram's snake_case JSON field names.
+    excludes: ['**/test/**', '**/integrationTest/**', '**/e2eTest/**']
+
+style:
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 4
+  ForbiddenComment:
+    # Allow TODO/FIXME during development; tracked separately on the board.
+    active: false

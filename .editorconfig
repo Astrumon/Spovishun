@@ -16,3 +16,6 @@ indent_size = 2
 
 [*.{kts,gradle}]
 indent_size = 4
+
+[*.{kt,kts}]
+ktlint_standard_multiline-expression-wrapping = disabled
