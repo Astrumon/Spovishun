@@ -18,17 +18,15 @@ sealed class ResultContainer<out T> {
     val isFailure: Boolean
         get() = this is Failure
 
-    fun getOrNull(): T? =
-        when (this) {
-            is Success -> data
-            is Failure -> null
-        }
+    fun getOrNull(): T? = when (this) {
+        is Success -> data
+        is Failure -> null
+    }
 
-    fun exceptionOrNull(): BaseException? =
-        when (this) {
-            is Success -> null
-            is Failure -> exception
-        }
+    fun exceptionOrNull(): BaseException? = when (this) {
+        is Success -> null
+        is Failure -> exception
+    }
 
     inline fun onSuccess(action: (T) -> Unit): ResultContainer<T> {
         if (this is Success) action(data)
@@ -40,45 +38,40 @@ sealed class ResultContainer<out T> {
         return this
     }
 
-    inline fun <R> map(transform: (T) -> R): ResultContainer<R> =
-        when (this) {
-            is Success -> Success(transform(data))
-            is Failure -> this
-        }
+    inline fun <R> map(transform: (T) -> R): ResultContainer<R> = when (this) {
+        is Success -> Success(transform(data))
+        is Failure -> this
+    }
 
-    inline fun <R> flatMap(transform: (T) -> ResultContainer<R>): ResultContainer<R> =
-        when (this) {
-            is Success -> transform(data)
-            is Failure -> this
-        }
+    inline fun <R> flatMap(transform: (T) -> ResultContainer<R>): ResultContainer<R> = when (this) {
+        is Success -> transform(data)
+        is Failure -> this
+    }
 
     inline fun <R> fold(
         onSuccess: (T) -> R,
         onFailure: (BaseException) -> R,
-    ): R =
-        when (this) {
-            is Success -> onSuccess(data)
-            is Failure -> onFailure(exception)
-        }
+    ): R = when (this) {
+        is Success -> onSuccess(data)
+        is Failure -> onFailure(exception)
+    }
 
-    fun getOrThrow(): T =
-        when (this) {
-            is Success -> data
-            is Failure -> throw exception
-        }
+    fun getOrThrow(): T = when (this) {
+        is Success -> data
+        is Failure -> throw exception
+    }
 
     companion object {
         fun <T> success(value: T): ResultContainer<T> = Success(value)
 
         fun failure(exception: BaseException): ResultContainer<Nothing> = Failure(exception)
 
-        inline fun <T> catching(block: () -> T): ResultContainer<T> =
-            try {
-                success(block())
-            } catch (e: BaseException) {
-                failure(e)
-            } catch (e: Exception) {
-                failure(DatabaseException("Unexpected error", e))
-            }
+        inline fun <T> catching(block: () -> T): ResultContainer<T> = try {
+            success(block())
+        } catch (e: BaseException) {
+            failure(e)
+        } catch (e: Exception) {
+            failure(DatabaseException("Unexpected error", e))
+        }
     }
 }

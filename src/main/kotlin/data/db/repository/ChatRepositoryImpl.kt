@@ -14,65 +14,60 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
 class ChatRepositoryImpl : ChatRepository {
-    override suspend fun findAllChatIds(): ResultContainer<List<Long>> =
-        safeDbQuery {
-            Chats.selectAll().map { it[Chats.chatId] }
-        }
+    override suspend fun findAllChatIds(): ResultContainer<List<Long>> = safeDbQuery {
+        Chats.selectAll().map { it[Chats.chatId] }
+    }
 
-    override suspend fun findById(chatId: Long): ResultContainer<Chat?> =
-        safeDbQuery {
-            Chats
-                .selectAll()
-                .where { Chats.chatId eq chatId }
-                .singleOrNull()
-                ?.toChat()
-        }
+    override suspend fun findById(chatId: Long): ResultContainer<Chat?> = safeDbQuery {
+        Chats
+            .selectAll()
+            .where { Chats.chatId eq chatId }
+            .singleOrNull()
+            ?.toChat()
+    }
 
     override suspend fun save(
         chatId: Long,
         title: String?,
         type: String?,
-    ): ResultContainer<Chat> =
-        safeDbQuery {
-            val existing = Chats
-                .selectAll()
-                .where { Chats.chatId eq chatId }
-                .singleOrNull()
-                ?.toChat()
+    ): ResultContainer<Chat> = safeDbQuery {
+        val existing = Chats
+            .selectAll()
+            .where { Chats.chatId eq chatId }
+            .singleOrNull()
+            ?.toChat()
 
-            if (existing != null) return@safeDbQuery existing
+        if (existing != null) return@safeDbQuery existing
 
-            Chats.insertIgnore {
-                it[this@insertIgnore.chatId] = chatId
-                it[this@insertIgnore.title] = title
-                it[this@insertIgnore.type] = type
-                it[this@insertIgnore.registeredAt] = Clock.System.now()
-            }
-
-            Chats
-                .selectAll()
-                .where { Chats.chatId eq chatId }
-                .singleOrNull()
-                ?.toChat()
-                ?: throw ResourceNotFoundException("Chat", chatId.toString())
+        Chats.insertIgnore {
+            it[this@insertIgnore.chatId] = chatId
+            it[this@insertIgnore.title] = title
+            it[this@insertIgnore.type] = type
+            it[this@insertIgnore.registeredAt] = Clock.System.now()
         }
+
+        Chats
+            .selectAll()
+            .where { Chats.chatId eq chatId }
+            .singleOrNull()
+            ?.toChat()
+            ?: throw ResourceNotFoundException("Chat", chatId.toString())
+    }
 
     override suspend fun setAnnouncementsEnabled(
         chatId: Long,
         enabled: Boolean,
-    ): ResultContainer<Unit> =
-        safeDbQuery {
-            Chats.update({ Chats.chatId eq chatId }) {
-                it[announcementsEnabled] = enabled
-            }
-            Unit
+    ): ResultContainer<Unit> = safeDbQuery {
+        Chats.update({ Chats.chatId eq chatId }) {
+            it[announcementsEnabled] = enabled
         }
+        Unit
+    }
 
-    override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> =
-        safeDbQuery {
-            Chats
-                .selectAll()
-                .where { Chats.announcementsEnabled eq true }
-                .map { it[Chats.chatId] }
-        }
+    override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> = safeDbQuery {
+        Chats
+            .selectAll()
+            .where { Chats.announcementsEnabled eq true }
+            .map { it[Chats.chatId] }
+    }
 }

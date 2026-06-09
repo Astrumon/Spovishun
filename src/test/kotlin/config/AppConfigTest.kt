@@ -5,12 +5,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AppConfigTest {
-    private fun parseAllowedChatIds(value: String?): Set<Long> =
-        value
-            ?.split(",")
-            ?.mapNotNull { it.trim().toLongOrNull() }
-            ?.toSet()
-            .orEmpty()
+    private fun parseAllowedChatIds(value: String?): Set<Long> = value
+        ?.split(",")
+        ?.mapNotNull { it.trim().toLongOrNull() }
+        ?.toSet()
+        .orEmpty()
 
     @Test
     fun `parseAllowedChatIds should return empty set for null`() {

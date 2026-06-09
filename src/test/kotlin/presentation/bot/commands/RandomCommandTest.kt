@@ -47,53 +47,49 @@ class RandomCommandTest {
     }
 
     @Test
-    fun `should call pickRandomAll when no args given`() =
-        runTest {
-            val update = buildUpdate("/random")
-            coEvery { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-                CommandResponse.Success("🎲 Випало: @alice")
+    fun `should call pickRandomAll when no args given`() = runTest {
+        val update = buildUpdate("/random")
+        coEvery { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            CommandResponse.Success("🎲 Випало: @alice")
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
-            coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲 Випало: @alice", ParseMode.HTML) }
-        }
-
-    @Test
-    fun `should call pickRandomFromGroup with lowercase key when group arg given`() =
-        runTest {
-            val update = buildUpdate("/random Devs")
-            coEvery { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "devs") } returns
-                CommandResponse.Success("🎲 Випало: @bob")
-
-            command.execute(bot, update)
-
-            coVerify { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "devs") }
-            coVerify(exactly = 0) { randomController.pickRandomAll(any(), any(), any(), any(), any()) }
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲 Випало: @bob", ParseMode.HTML) }
-        }
+        coVerify { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲 Випало: @alice", ParseMode.HTML) }
+    }
 
     @Test
-    fun `should send group not found HTML when group does not exist`() =
-        runTest {
-            val update = buildUpdate("/random ghost")
-            coEvery { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "ghost") } returns
-                CommandResponse.NotFound("Група", "ghost", listOf("devs", "qa"))
+    fun `should call pickRandomFromGroup with lowercase key when group arg given`() = runTest {
+        val update = buildUpdate("/random Devs")
+        coEvery { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "devs") } returns
+            CommandResponse.Success("🎲 Випало: @bob")
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("не знайдено") && it.contains("devs") }, ParseMode.HTML) }
-        }
+        coVerify { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "devs") }
+        coVerify(exactly = 0) { randomController.pickRandomAll(any(), any(), any(), any(), any()) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲 Випало: @bob", ParseMode.HTML) }
+    }
 
     @Test
-    fun `should return early when message is null`() =
-        runTest {
-            val update = Update(updateId = 1L, message = null)
+    fun `should send group not found HTML when group does not exist`() = runTest {
+        val update = buildUpdate("/random ghost")
+        coEvery { randomController.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "ghost") } returns
+            CommandResponse.NotFound("Група", "ghost", listOf("devs", "qa"))
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { randomController.pickRandomAll(any(), any(), any(), any(), any()) }
-            coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
-        }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("не знайдено") && it.contains("devs") }, ParseMode.HTML) }
+    }
+
+    @Test
+    fun `should return early when message is null`() = runTest {
+        val update = Update(updateId = 1L, message = null)
+
+        command.execute(bot, update)
+
+        coVerify(exactly = 0) { randomController.pickRandomAll(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
+    }
 }

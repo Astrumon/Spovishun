@@ -24,11 +24,10 @@ class BirthdayController(
         )
     }
 
-    suspend fun clearOwnBirthday(userId: Long): CommandResponse =
-        birthdayService.clearBirthday(userId).fold(
-            onSuccess = { CommandResponse.Success(BotMessages.Birthday.cleared) },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
-        )
+    suspend fun clearOwnBirthday(userId: Long): CommandResponse = birthdayService.clearBirthday(userId).fold(
+        onSuccess = { CommandResponse.Success(BotMessages.Birthday.cleared) },
+        onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+    )
 
     suspend fun setBirthdayForOther(
         chatId: Long,

@@ -48,99 +48,95 @@ class MessageHandlerTest {
     }
 
     @Test
-    fun `handleIncomingMessage should auto-register user`() =
-        runTest {
-            // Given
-            val update = createUpdate()
-            val member = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
-            coEvery {
-                autoRegisterService.ensureUserRegistered(
-                    chatId,
-                    userId,
-                    "alice",
-                    "Alice",
-                    MemberRole.MEMBER,
-                    null,
-                    "group",
-                )
-            } returns ResultContainer.success(member)
+    fun `handleIncomingMessage should auto-register user`() = runTest {
+        // Given
+        val update = createUpdate()
+        val member = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
+        coEvery {
+            autoRegisterService.ensureUserRegistered(
+                chatId,
+                userId,
+                "alice",
+                "Alice",
+                MemberRole.MEMBER,
+                null,
+                "group",
+            )
+        } returns ResultContainer.success(member)
 
-            // When
-            messageHandler.handleIncomingMessage(bot, update)
+        // When
+        messageHandler.handleIncomingMessage(bot, update)
 
-            // Then
-            coVerify {
-                autoRegisterService.ensureUserRegistered(
-                    chatId,
-                    userId,
-                    "alice",
-                    "Alice",
-                    MemberRole.MEMBER,
-                    null,
-                    "group",
-                )
-            }
+        // Then
+        coVerify {
+            autoRegisterService.ensureUserRegistered(
+                chatId,
+                userId,
+                "alice",
+                "Alice",
+                MemberRole.MEMBER,
+                null,
+                "group",
+            )
         }
+    }
 
     @Test
-    fun `handleIncomingMessage should use user_id when username is null`() =
-        runTest {
-            // Given
-            val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
-            val update = createUpdate(fromUser = user)
-            val member = MemberWithChat(1L, userId, "user_$userId", "Alice", MemberRole.MEMBER, null)
-            coEvery {
-                autoRegisterService.ensureUserRegistered(
-                    chatId,
-                    userId,
-                    "user_$userId",
-                    "Alice",
-                    MemberRole.MEMBER,
-                    null,
-                    "group",
-                )
-            } returns ResultContainer.success(member)
+    fun `handleIncomingMessage should use user_id when username is null`() = runTest {
+        // Given
+        val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
+        val update = createUpdate(fromUser = user)
+        val member = MemberWithChat(1L, userId, "user_$userId", "Alice", MemberRole.MEMBER, null)
+        coEvery {
+            autoRegisterService.ensureUserRegistered(
+                chatId,
+                userId,
+                "user_$userId",
+                "Alice",
+                MemberRole.MEMBER,
+                null,
+                "group",
+            )
+        } returns ResultContainer.success(member)
 
-            // When
-            messageHandler.handleIncomingMessage(bot, update)
+        // When
+        messageHandler.handleIncomingMessage(bot, update)
 
-            // Then
-            coVerify {
-                autoRegisterService.ensureUserRegistered(
-                    chatId,
-                    userId,
-                    "user_$userId",
-                    "Alice",
-                    MemberRole.MEMBER,
-                    null,
-                    "group",
-                )
-            }
+        // Then
+        coVerify {
+            autoRegisterService.ensureUserRegistered(
+                chatId,
+                userId,
+                "user_$userId",
+                "Alice",
+                MemberRole.MEMBER,
+                null,
+                "group",
+            )
         }
+    }
 
     @Test
-    fun `handleIncomingMessage should return early when message is null`() =
-        runTest {
-            // Given
-            val update = Update(updateId = 1L, message = null)
+    fun `handleIncomingMessage should return early when message is null`() = runTest {
+        // Given
+        val update = Update(updateId = 1L, message = null)
 
-            // When
-            messageHandler.handleIncomingMessage(bot, update)
+        // When
+        messageHandler.handleIncomingMessage(bot, update)
 
-            // Then
-            coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
-        }
+        // Then
+        coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
+    }
 
     @Test
-    fun `handleIncomingMessage should return early when user is null`() =
-        runTest {
-            // Given
-            val update = createUpdate(fromUser = null)
+    fun `handleIncomingMessage should return early when user is null`() = runTest {
+        // Given
+        val update = createUpdate(fromUser = null)
 
-            // When
-            messageHandler.handleIncomingMessage(bot, update)
+        // When
+        messageHandler.handleIncomingMessage(bot, update)
 
-            // Then
-            coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
-        }
+        // Then
+        coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
+    }
 }

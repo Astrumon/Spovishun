@@ -43,25 +43,23 @@ class RemoveUserFromGroupCommandTest {
     }
 
     @Test
-    fun `should pass args to controller`() =
-        runTest {
-            val update = createUpdate(text = "/removefromgroup devs @bob")
-            coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns
-                CommandResponse.Success("bob видалено з devs")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should pass args to controller`() = runTest {
+        val update = createUpdate(text = "/removefromgroup devs @bob")
+        coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns
+            CommandResponse.Success("bob видалено з devs")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) }
-        }
+        coVerify { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) }
+    }
 
     @Test
-    fun `should return early when user is null`() =
-        runTest {
-            val update = createUpdate(fromUser = null)
+    fun `should return early when user is null`() = runTest {
+        val update = createUpdate(fromUser = null)
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { groupController.removeUserFromGroup(any(), any(), any()) }
-        }
+        coVerify(exactly = 0) { groupController.removeUserFromGroup(any(), any(), any()) }
+    }
 }

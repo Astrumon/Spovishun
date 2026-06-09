@@ -139,12 +139,11 @@ class TelegramHelperBot(
     }
 
     /** Returns raw JSON of all recent updates (no filtering) — for diagnostics only. */
-    suspend fun getAllUpdatesRaw(): String =
-        client
-            .get("$baseUrl/getUpdates") {
-                parameter("offset", updateOffset)
-                parameter("timeout", 5)
-            }.bodyAsText()
+    suspend fun getAllUpdatesRaw(): String = client
+        .get("$baseUrl/getUpdates") {
+            parameter("offset", updateOffset)
+            parameter("timeout", 5)
+        }.bodyAsText()
 
     fun close() {
         client.close()

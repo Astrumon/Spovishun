@@ -43,25 +43,23 @@ class AddUserToGroupCommandTest {
     }
 
     @Test
-    fun `should pass args to controller`() =
-        runTest {
-            val update = createUpdate(text = "/addtogroup devs @bob")
-            coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns
-                CommandResponse.Success("bob додано до devs")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should pass args to controller`() = runTest {
+        val update = createUpdate(text = "/addtogroup devs @bob")
+        coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns
+            CommandResponse.Success("bob додано до devs")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) }
-        }
+        coVerify { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) }
+    }
 
     @Test
-    fun `should return early when user is null`() =
-        runTest {
-            val update = createUpdate(fromUser = null)
+    fun `should return early when user is null`() = runTest {
+        val update = createUpdate(fromUser = null)
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { groupController.addUserToGroup(any(), any(), any()) }
-        }
+        coVerify(exactly = 0) { groupController.addUserToGroup(any(), any(), any()) }
+    }
 }

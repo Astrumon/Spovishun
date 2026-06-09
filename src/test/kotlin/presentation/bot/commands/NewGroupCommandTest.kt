@@ -45,50 +45,46 @@ class NewGroupCommandTest {
     }
 
     @Test
-    fun `should pass args to controller and prefix success with checkmark`() =
-        runTest {
-            val update = createUpdate(text = "/newgroup devs")
-            coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns
-                CommandResponse.Success("Група <b>devs</b> створена!")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should pass args to controller and prefix success with checkmark`() = runTest {
+        val update = createUpdate(text = "/newgroup devs")
+        coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns
+            CommandResponse.Success("Група <b>devs</b> створена!")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.createGroup(chatId, userId, listOf("devs")) }
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("✅") }, ParseMode.HTML) }
-        }
-
-    @Test
-    fun `should send access denied message when access denied`() =
-        runTest {
-            val update = createUpdate(text = "/newgroup devs")
-            coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns CommandResponse.AccessDenied("moderator")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
-
-            command.execute(bot, update)
-
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("🚫") }, ParseMode.HTML) }
-        }
+        coVerify { groupController.createGroup(chatId, userId, listOf("devs")) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("✅") }, ParseMode.HTML) }
+    }
 
     @Test
-    fun `should pass empty args when no arguments`() =
-        runTest {
-            val update = createUpdate(text = "/newgroup")
-            coEvery { groupController.createGroup(chatId, userId, emptyList()) } returns CommandResponse.Error("usage")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should send access denied message when access denied`() = runTest {
+        val update = createUpdate(text = "/newgroup devs")
+        coEvery { groupController.createGroup(chatId, userId, listOf("devs")) } returns CommandResponse.AccessDenied("moderator")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.createGroup(chatId, userId, emptyList()) }
-        }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("🚫") }, ParseMode.HTML) }
+    }
 
     @Test
-    fun `should return early when user is null`() =
-        runTest {
-            val update = createUpdate(fromUser = null)
+    fun `should pass empty args when no arguments`() = runTest {
+        val update = createUpdate(text = "/newgroup")
+        coEvery { groupController.createGroup(chatId, userId, emptyList()) } returns CommandResponse.Error("usage")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { groupController.createGroup(any(), any(), any()) }
-        }
+        coVerify { groupController.createGroup(chatId, userId, emptyList()) }
+    }
+
+    @Test
+    fun `should return early when user is null`() = runTest {
+        val update = createUpdate(fromUser = null)
+
+        command.execute(bot, update)
+
+        coVerify(exactly = 0) { groupController.createGroup(any(), any(), any()) }
+    }
 }

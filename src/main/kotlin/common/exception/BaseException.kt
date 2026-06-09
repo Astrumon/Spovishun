@@ -8,12 +8,11 @@ abstract class BaseException(
 ) : Exception(message, cause) {
     abstract val category: ErrorCategory
 
-    fun toErrorResponse(): ErrorResponse =
-        ErrorResponse(
-            code = errorCode,
-            message = userMessage,
-            category = category.name.lowercase(),
-        )
+    fun toErrorResponse(): ErrorResponse = ErrorResponse(
+        code = errorCode,
+        message = userMessage,
+        category = category.name.lowercase(),
+    )
 }
 
 enum class ErrorCategory {

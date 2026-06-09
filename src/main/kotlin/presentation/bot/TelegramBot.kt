@@ -20,34 +20,33 @@ class TelegramBot(
 ) {
     private val logger = LoggerFactory.getLogger(TelegramBot::class.java)
 
-    fun create(token: String) =
-        bot {
-            this.token = token
+    fun create(token: String) = bot {
+        this.token = token
 
-            dispatch {
-                commandRegistry.commands.forEach { cmd ->
-                    command(cmd.name) {
-                        val chatId = update.message?.chat?.id
-                        if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@command
-                        logger.info("Command '{}' invoked", cmd.name)
-                        cmd.execute(bot, update)
-                    }
-                }
-
-                message(Filter.Text) {
-                    messageHandler.handleIncomingMessage(bot, update)
-                }
-
-                callbackQuery {
-                    val chatId = update.callbackQuery
-                        ?.message
-                        ?.chat
-                        ?.id
-                    if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@callbackQuery
-                    pingCallbackHandler.handle(bot, update)
+        dispatch {
+            commandRegistry.commands.forEach { cmd ->
+                command(cmd.name) {
+                    val chatId = update.message?.chat?.id
+                    if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@command
+                    logger.info("Command '{}' invoked", cmd.name)
+                    cmd.execute(bot, update)
                 }
             }
+
+            message(Filter.Text) {
+                messageHandler.handleIncomingMessage(bot, update)
+            }
+
+            callbackQuery {
+                val chatId = update.callbackQuery
+                    ?.message
+                    ?.chat
+                    ?.id
+                if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@callbackQuery
+                pingCallbackHandler.handle(bot, update)
+            }
         }
+    }
 
     fun verifyIdentity(
         bot: Bot,

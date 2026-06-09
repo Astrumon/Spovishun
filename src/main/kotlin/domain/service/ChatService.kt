@@ -11,14 +11,13 @@ class ChatService(
         chatId: Long,
         title: String?,
         type: String?,
-    ): ResultContainer<Chat> =
-        chatRepository.findById(chatId).flatMap { existing ->
-            if (existing != null) {
-                ResultContainer.success(existing)
-            } else {
-                chatRepository.save(chatId, title, type)
-            }
+    ): ResultContainer<Chat> = chatRepository.findById(chatId).flatMap { existing ->
+        if (existing != null) {
+            ResultContainer.success(existing)
+        } else {
+            chatRepository.save(chatId, title, type)
         }
+    }
 
     suspend fun getAllChatIds(): ResultContainer<List<Long>> = chatRepository.findAllChatIds()
 

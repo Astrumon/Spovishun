@@ -210,10 +210,9 @@ abstract class BaseE2ETest {
         username: String,
         firstName: String,
         role: MemberRole = MemberRole.MEMBER,
-    ): MemberWithChat =
-        runBlocking {
-            autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
-        }
+    ): MemberWithChat = runBlocking {
+        autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
+    }
 
     protected fun allMembers() = runBlocking { memberService.getAllMembersInChat(testChatId).getOrThrow() }
 

@@ -46,25 +46,23 @@ class ShowGroupsCommandTest {
     }
 
     @Test
-    fun `should call controller and send message body`() =
-        runTest {
-            val update = createUpdate()
-            coEvery { groupController.getGroups(chatId, any(), MemberRole.MEMBER) } returns CommandResponse.Success("groups list")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should call controller and send message body`() = runTest {
+        val update = createUpdate()
+        coEvery { groupController.getGroups(chatId, any(), MemberRole.MEMBER) } returns CommandResponse.Success("groups list")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.getGroups(chatId, any(), MemberRole.MEMBER) }
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), "groups list", ParseMode.HTML) }
-        }
+        coVerify { groupController.getGroups(chatId, any(), MemberRole.MEMBER) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "groups list", ParseMode.HTML) }
+    }
 
     @Test
-    fun `should return early when user is null`() =
-        runTest {
-            val update = createUpdate(fromUser = null)
+    fun `should return early when user is null`() = runTest {
+        val update = createUpdate(fromUser = null)
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { groupController.getGroups(any(), any(), any()) }
-        }
+        coVerify(exactly = 0) { groupController.getGroups(any(), any(), any()) }
+    }
 }

@@ -9,20 +9,18 @@ abstract class BaseController(
     protected suspend fun requireModeratorAccess(
         chatId: Long,
         userId: Long,
-    ): CommandResponse.AccessDenied? =
-        if (!memberService.hasModeratorAccess(chatId, userId)) {
-            CommandResponse.AccessDenied("moderator")
-        } else {
-            null
-        }
+    ): CommandResponse.AccessDenied? = if (!memberService.hasModeratorAccess(chatId, userId)) {
+        CommandResponse.AccessDenied("moderator")
+    } else {
+        null
+    }
 
     protected suspend fun requireAdminAccess(
         chatId: Long,
         userId: Long,
-    ): CommandResponse.AccessDenied? =
-        if (!memberService.hasAdminAccess(chatId, userId)) {
-            CommandResponse.AccessDenied("admin")
-        } else {
-            null
-        }
+    ): CommandResponse.AccessDenied? = if (!memberService.hasAdminAccess(chatId, userId)) {
+        CommandResponse.AccessDenied("admin")
+    } else {
+        null
+    }
 }

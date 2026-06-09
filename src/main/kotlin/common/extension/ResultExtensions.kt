@@ -7,23 +7,21 @@ import com.ua.astrumon.common.result.ResultContainer
 inline fun <T> ResultContainer<T>.validate(
     predicate: (T) -> Boolean,
     errorProvider: () -> BaseException,
-): ResultContainer<T> =
-    flatMap { value ->
-        if (predicate(value)) {
-            ResultContainer.success(value)
-        } else {
-            ResultContainer.failure(errorProvider())
-        }
+): ResultContainer<T> = flatMap { value ->
+    if (predicate(value)) {
+        ResultContainer.success(value)
+    } else {
+        ResultContainer.failure(errorProvider())
     }
+}
 
-inline fun <T> ResultContainer<T>.validateNotNull(errorProvider: () -> BaseException): ResultContainer<T> =
-    flatMap { value ->
-        if (value != null) {
-            ResultContainer.success(value)
-        } else {
-            ResultContainer.failure(errorProvider())
-        }
+inline fun <T> ResultContainer<T>.validateNotNull(errorProvider: () -> BaseException): ResultContainer<T> = flatMap { value ->
+    if (value != null) {
+        ResultContainer.success(value)
+    } else {
+        ResultContainer.failure(errorProvider())
     }
+}
 
 suspend fun <T> List<ResultContainer<T>>.collectAll(): ResultContainer<List<T>> {
     val successes = mutableListOf<T>()

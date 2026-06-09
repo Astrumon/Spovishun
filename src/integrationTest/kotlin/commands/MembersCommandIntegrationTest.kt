@@ -11,56 +11,53 @@ import kotlin.test.assertTrue
 
 class MembersCommandIntegrationTest : BaseIntegrationTest() {
     @Test
-    fun `members command should auto-register caller and show them in the list`() =
-        runTest {
-            val update = buildUpdate("/members")
+    fun `members command should auto-register caller and show them in the list`() = runTest {
+        val update = buildUpdate("/members")
 
-            membersCommand.execute(bot, update)
+        membersCommand.execute(bot, update)
 
-            // Caller is auto-registered by MembersController before listing members
-            val member = memberService.getMemberByUsername(testUsername).getOrThrow()
-            assertTrue(member.userId == testUserId)
-            verify {
-                bot.sendMessage(
-                    ChatId.fromId(testChatId),
-                    match { it.contains("@$testUsername") },
-                    ParseMode.HTML,
-                )
-            }
+        // Caller is auto-registered by MembersController before listing members
+        val member = memberService.getMemberByUsername(testUsername).getOrThrow()
+        assertTrue(member.userId == testUserId)
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("@$testUsername") },
+                ParseMode.HTML,
+            )
         }
+    }
 
     @Test
-    fun `members with registered users should list their usernames`() =
-        runTest {
-            registerMember(userId = 1L, username = "alice")
-            registerMember(userId = 2L, username = "bob")
-            val update = buildUpdate("/members")
+    fun `members with registered users should list their usernames`() = runTest {
+        registerMember(userId = 1L, username = "alice")
+        registerMember(userId = 2L, username = "bob")
+        val update = buildUpdate("/members")
 
-            membersCommand.execute(bot, update)
+        membersCommand.execute(bot, update)
 
-            verify {
-                bot.sendMessage(
-                    ChatId.fromId(testChatId),
-                    match { it.contains("@alice") && it.contains("@bob") },
-                    ParseMode.HTML,
-                )
-            }
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("@alice") && it.contains("@bob") },
+                ParseMode.HTML,
+            )
         }
+    }
 
     @Test
-    fun `members response should contain role badges for non-default roles`() =
-        runTest {
-            registerMember(userId = 1L, username = "alice", role = MemberRole.ADMIN)
-            val update = buildUpdate("/members")
+    fun `members response should contain role badges for non-default roles`() = runTest {
+        registerMember(userId = 1L, username = "alice", role = MemberRole.ADMIN)
+        val update = buildUpdate("/members")
 
-            membersCommand.execute(bot, update)
+        membersCommand.execute(bot, update)
 
-            verify {
-                bot.sendMessage(
-                    ChatId.fromId(testChatId),
-                    match { it.contains("@alice") },
-                    ParseMode.HTML,
-                )
-            }
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("@alice") },
+                ParseMode.HTML,
+            )
         }
+    }
 }

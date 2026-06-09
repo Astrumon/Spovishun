@@ -15,60 +15,56 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 
 class GroupRepositoryImpl : GroupRepository {
-    override suspend fun getAllGroups(chatId: Long): ResultContainer<List<Group>> =
-        safeDbQuery {
-            Groups.selectAll().where { Groups.chatId eq chatId }.map { it.toGroup() }
-        }
+    override suspend fun getAllGroups(chatId: Long): ResultContainer<List<Group>> = safeDbQuery {
+        Groups.selectAll().where { Groups.chatId eq chatId }.map { it.toGroup() }
+    }
 
     override suspend fun findGroupByKey(
         chatId: Long,
         key: String,
-    ): ResultContainer<Group> =
-        safeDbQuery {
-            Groups
-                .selectAll()
-                .where { (Groups.chatId eq chatId) and (Groups.name eq key) }
-                .singleOrNull()
-                ?.toGroup()
-                ?: throw ResourceNotFoundException("Group", key)
-        }
+    ): ResultContainer<Group> = safeDbQuery {
+        Groups
+            .selectAll()
+            .where { (Groups.chatId eq chatId) and (Groups.name eq key) }
+            .singleOrNull()
+            ?.toGroup()
+            ?: throw ResourceNotFoundException("Group", key)
+    }
 
     override suspend fun createGroup(
         chatId: Long,
         name: String,
-    ): ResultContainer<Group> =
-        safeDbQuery {
-            val existing = Groups
-                .selectAll()
-                .where { (Groups.chatId eq chatId) and (Groups.name eq name) }
-                .singleOrNull()
-            if (existing != null) {
-                throw DuplicateResourceException("Group", name)
-            }
-
-            val insertedId = Groups.insert {
-                it[Groups.chatId] = chatId
-                it[Groups.name] = name
-            } get Groups.id
-
-            Group(
-                id = insertedId.value,
-                chatId = chatId,
-                name = name,
-                memberUsernames = emptyList(),
-            )
+    ): ResultContainer<Group> = safeDbQuery {
+        val existing = Groups
+            .selectAll()
+            .where { (Groups.chatId eq chatId) and (Groups.name eq name) }
+            .singleOrNull()
+        if (existing != null) {
+            throw DuplicateResourceException("Group", name)
         }
+
+        val insertedId = Groups.insert {
+            it[Groups.chatId] = chatId
+            it[Groups.name] = name
+        } get Groups.id
+
+        Group(
+            id = insertedId.value,
+            chatId = chatId,
+            name = name,
+            memberUsernames = emptyList(),
+        )
+    }
 
     override suspend fun deleteGroup(
         chatId: Long,
         key: String,
-    ): ResultContainer<Unit> =
-        safeDbQuery {
-            val deletedCount = Groups.deleteWhere {
-                (Groups.chatId eq chatId) and (Groups.name eq key)
-            }
-            if (deletedCount == 0) {
-                throw ResourceNotFoundException("Group", key)
-            }
+    ): ResultContainer<Unit> = safeDbQuery {
+        val deletedCount = Groups.deleteWhere {
+            (Groups.chatId eq chatId) and (Groups.name eq key)
         }
+        if (deletedCount == 0) {
+            throw ResourceNotFoundException("Group", key)
+        }
+    }
 }

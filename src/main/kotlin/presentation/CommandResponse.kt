@@ -33,11 +33,10 @@ fun CommandResponse.toText(
     onError: (String) -> String = { BotMessages.Error.prefixed(it) },
     onAccessDenied: (String) -> String = { BotMessages.Error.accessDenied(it) },
     onNotFound: (CommandResponse.NotFound) -> String = { BotMessages.Error.notFound },
-): String =
-    when (this) {
-        is CommandResponse.Success -> "$successPrefix$message"
-        is CommandResponse.Error -> onError(message)
-        is CommandResponse.AccessDenied -> onAccessDenied(reason)
-        is CommandResponse.NotFound -> onNotFound(this)
-        is CommandResponse.Silent -> ""
-    }
+): String = when (this) {
+    is CommandResponse.Success -> "$successPrefix$message"
+    is CommandResponse.Error -> onError(message)
+    is CommandResponse.AccessDenied -> onAccessDenied(reason)
+    is CommandResponse.NotFound -> onNotFound(this)
+    is CommandResponse.Silent -> ""
+}

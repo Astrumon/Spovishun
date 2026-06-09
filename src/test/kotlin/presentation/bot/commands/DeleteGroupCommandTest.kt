@@ -45,26 +45,24 @@ class DeleteGroupCommandTest {
     }
 
     @Test
-    fun `should pass args to controller and prefix success`() =
-        runTest {
-            val update = createUpdate(text = "/delgroup devs")
-            coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns
-                CommandResponse.Success("Група <b>devs</b> видалена.")
-            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should pass args to controller and prefix success`() = runTest {
+        val update = createUpdate(text = "/delgroup devs")
+        coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns
+            CommandResponse.Success("Група <b>devs</b> видалена.")
+        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify { groupController.deleteGroup(chatId, userId, listOf("devs")) }
-            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("🗑") }, ParseMode.HTML) }
-        }
+        coVerify { groupController.deleteGroup(chatId, userId, listOf("devs")) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("🗑") }, ParseMode.HTML) }
+    }
 
     @Test
-    fun `should return early when user is null`() =
-        runTest {
-            val update = createUpdate(fromUser = null)
+    fun `should return early when user is null`() = runTest {
+        val update = createUpdate(fromUser = null)
 
-            command.execute(bot, update)
+        command.execute(bot, update)
 
-            coVerify(exactly = 0) { groupController.deleteGroup(any(), any(), any()) }
-        }
+        coVerify(exactly = 0) { groupController.deleteGroup(any(), any(), any()) }
+    }
 }

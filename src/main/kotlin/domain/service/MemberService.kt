@@ -20,50 +20,47 @@ class MemberService(
         username: String,
         firstName: String,
         role: MemberRole = MemberRole.MEMBER,
-    ): ResultContainer<MemberWithChat> =
-        memberRepository
-            .saveOrUpdate(userId, username, firstName)
-            .flatMap { member ->
-                memberChatRepository
-                    .existsByMemberIdAndChatId(member.id, chatId)
-                    .flatMap { exists ->
-                        if (exists) {
-                            ResultContainer.failure(
-                                com.ua.astrumon.common.exception
-                                    .DuplicateResourceException("Member", username),
-                            )
-                        } else {
-                            memberChatRepository
-                                .save(member.id, chatId, role, Clock.System.now())
-                                .map { memberChat -> member.toMemberWithChat(memberChat) }
-                        }
+    ): ResultContainer<MemberWithChat> = memberRepository
+        .saveOrUpdate(userId, username, firstName)
+        .flatMap { member ->
+            memberChatRepository
+                .existsByMemberIdAndChatId(member.id, chatId)
+                .flatMap { exists ->
+                    if (exists) {
+                        ResultContainer.failure(
+                            com.ua.astrumon.common.exception
+                                .DuplicateResourceException("Member", username),
+                        )
+                    } else {
+                        memberChatRepository
+                            .save(member.id, chatId, role, Clock.System.now())
+                            .map { memberChat -> member.toMemberWithChat(memberChat) }
                     }
-            }
-
-    suspend fun getMemberByUsername(username: String): ResultContainer<Member> =
-        memberRepository
-            .findByUsername(username)
-            .flatMap { member ->
-                if (member != null) {
-                    ResultContainer.success(member)
-                } else {
-                    ResultContainer.failure(ResourceNotFoundException("Member", username))
                 }
+        }
+
+    suspend fun getMemberByUsername(username: String): ResultContainer<Member> = memberRepository
+        .findByUsername(username)
+        .flatMap { member ->
+            if (member != null) {
+                ResultContainer.success(member)
+            } else {
+                ResultContainer.failure(ResourceNotFoundException("Member", username))
             }
+        }
 
     suspend fun getMemberWithChatByUsername(
         chatId: Long,
         username: String,
-    ): ResultContainer<MemberWithChat> =
-        memberRepository
-            .findMemberWithChatByChatIdAndUsername(chatId, username)
-            .flatMap { memberWithChat ->
-                if (memberWithChat != null) {
-                    ResultContainer.success(memberWithChat)
-                } else {
-                    ResultContainer.failure(ResourceNotFoundException("Member", username))
-                }
+    ): ResultContainer<MemberWithChat> = memberRepository
+        .findMemberWithChatByChatIdAndUsername(chatId, username)
+        .flatMap { memberWithChat ->
+            if (memberWithChat != null) {
+                ResultContainer.success(memberWithChat)
+            } else {
+                ResultContainer.failure(ResourceNotFoundException("Member", username))
             }
+        }
 
     suspend fun getMemberChatByUserId(
         chatId: Long,
@@ -92,25 +89,23 @@ class MemberService(
     suspend fun updateMemberUsername(
         currentUsername: String,
         newUsername: String,
-    ): ResultContainer<Member> =
-        getMemberByUsername(currentUsername)
-            .flatMap { member ->
-                if (currentUsername == newUsername) {
-                    ResultContainer.success(member)
-                } else {
-                    memberRepository.saveOrUpdate(member.userId, newUsername, member.firstName)
-                }
+    ): ResultContainer<Member> = getMemberByUsername(currentUsername)
+        .flatMap { member ->
+            if (currentUsername == newUsername) {
+                ResultContainer.success(member)
+            } else {
+                memberRepository.saveOrUpdate(member.userId, newUsername, member.firstName)
             }
+        }
 
     suspend fun setMemberRole(
         chatId: Long,
         userId: Long,
         role: MemberRole,
-    ): ResultContainer<MemberChat> =
-        getMemberChatByUserId(chatId, userId)
-            .flatMap { memberChat ->
-                memberChatRepository.updateRole(memberChat.memberId, chatId, role)
-            }
+    ): ResultContainer<MemberChat> = getMemberChatByUserId(chatId, userId)
+        .flatMap { memberChat ->
+            memberChatRepository.updateRole(memberChat.memberId, chatId, role)
+        }
 
     suspend fun getAllMembersInChat(chatId: Long): ResultContainer<List<MemberWithChat>> =
         memberRepository.findAllMembersWithChatByChatId(chatId)
@@ -118,24 +113,21 @@ class MemberService(
     suspend fun hasModeratorAccess(
         chatId: Long,
         userId: Long,
-    ): Boolean =
-        getMemberChatByUserId(chatId, userId)
-            .fold(onSuccess = { it.role >= MemberRole.MODERATOR }, onFailure = { false })
+    ): Boolean = getMemberChatByUserId(chatId, userId)
+        .fold(onSuccess = { it.role >= MemberRole.MODERATOR }, onFailure = { false })
 
     suspend fun hasAdminAccess(
         chatId: Long,
         userId: Long,
-    ): Boolean =
-        getMemberChatByUserId(chatId, userId)
-            .fold(onSuccess = { it.role == MemberRole.ADMIN }, onFailure = { false })
+    ): Boolean = getMemberChatByUserId(chatId, userId)
+        .fold(onSuccess = { it.role == MemberRole.ADMIN }, onFailure = { false })
 
-    private fun Member.toMemberWithChat(memberChat: MemberChat) =
-        MemberWithChat(
-            id = id,
-            userId = userId,
-            username = username,
-            firstName = firstName,
-            role = memberChat.role,
-            joinedAt = memberChat.joinedAt,
-        )
+    private fun Member.toMemberWithChat(memberChat: MemberChat) = MemberWithChat(
+        id = id,
+        userId = userId,
+        username = username,
+        firstName = firstName,
+        role = memberChat.role,
+        joinedAt = memberChat.joinedAt,
+    )
 }

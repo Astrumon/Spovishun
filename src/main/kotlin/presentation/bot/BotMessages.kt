@@ -83,23 +83,21 @@ object BotMessages {
         fun headerAll(
             crabs: String,
             extra: String,
-        ): String =
-            if (extra.isEmpty()) {
-                format("ping.header.all_no_extra", crabs)
-            } else {
-                format("ping.header.all_with_extra", crabs, extra)
-            }
+        ): String = if (extra.isEmpty()) {
+            format("ping.header.all_no_extra", crabs)
+        } else {
+            format("ping.header.all_with_extra", crabs, extra)
+        }
 
         fun headerGroup(
             groupName: String,
             crabs: String,
             extra: String,
-        ): String =
-            if (extra.isEmpty()) {
-                format("ping.header.group_no_extra", groupName, crabs)
-            } else {
-                format("ping.header.group_with_extra", groupName, crabs, extra)
-            }
+        ): String = if (extra.isEmpty()) {
+            format("ping.header.group_no_extra", groupName, crabs)
+        } else {
+            format("ping.header.group_with_extra", groupName, crabs, extra)
+        }
 
         val menuPrompt: String get() = get("ping.menuPrompt")
         val noGroups: String get() = get("ping.noGroups")

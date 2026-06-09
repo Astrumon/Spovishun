@@ -12,29 +12,27 @@ class BotAdminUtils {
         bot: Bot,
         chatId: Long,
         userId: Long,
-    ): Boolean =
-        try {
-            val chatMemberResponse = bot.getChatMember(ChatId.fromId(chatId), userId)
-            if (chatMemberResponse.isSuccess) {
-                val chatMember = chatMemberResponse.get()
-                chatMember.status in listOf("creator", "administrator")
-            } else {
-                logger.debug("Failed to get chat member status")
-                false
-            }
-        } catch (e: Exception) {
-            logger.warn("Error checking admin status: ${e::class.simpleName}")
+    ): Boolean = try {
+        val chatMemberResponse = bot.getChatMember(ChatId.fromId(chatId), userId)
+        if (chatMemberResponse.isSuccess) {
+            val chatMember = chatMemberResponse.get()
+            chatMember.status in listOf("creator", "administrator")
+        } else {
+            logger.debug("Failed to get chat member status")
             false
         }
+    } catch (e: Exception) {
+        logger.warn("Error checking admin status: ${e::class.simpleName}")
+        false
+    }
 
     fun getMemberRole(
         bot: Bot,
         chatId: Long,
         userId: Long,
-    ): MemberRole =
-        if (isUserAdmin(bot, chatId, userId)) {
-            MemberRole.ADMIN
-        } else {
-            MemberRole.MEMBER
-        }
+    ): MemberRole = if (isUserAdmin(bot, chatId, userId)) {
+        MemberRole.ADMIN
+    } else {
+        MemberRole.MEMBER
+    }
 }

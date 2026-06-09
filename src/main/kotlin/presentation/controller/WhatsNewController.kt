@@ -12,24 +12,22 @@ class WhatsNewController(
     private val chatService: ChatService,
     private val memberService: MemberService,
 ) {
-    suspend fun showLatest(): CommandResponse =
-        releaseNotesService.getAll().fold(
-            onSuccess = { notes ->
-                val text = ReleaseNotesFormatter.formatLatest(notes)
-                    ?: return@fold CommandResponse.Silent
-                CommandResponse.Success(text)
-            },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
-        )
+    suspend fun showLatest(): CommandResponse = releaseNotesService.getAll().fold(
+        onSuccess = { notes ->
+            val text = ReleaseNotesFormatter.formatLatest(notes)
+                ?: return@fold CommandResponse.Silent
+            CommandResponse.Success(text)
+        },
+        onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+    )
 
-    suspend fun showHistory(): CommandResponse =
-        releaseNotesService.getAll().fold(
-            onSuccess = { notes ->
-                if (notes.isEmpty()) return@fold CommandResponse.Silent
-                CommandResponse.Success(ReleaseNotesFormatter.formatHistory(notes))
-            },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
-        )
+    suspend fun showHistory(): CommandResponse = releaseNotesService.getAll().fold(
+        onSuccess = { notes ->
+            if (notes.isEmpty()) return@fold CommandResponse.Silent
+            CommandResponse.Success(ReleaseNotesFormatter.formatHistory(notes))
+        },
+        onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+    )
 
     suspend fun setAnnouncements(
         chatId: Long,

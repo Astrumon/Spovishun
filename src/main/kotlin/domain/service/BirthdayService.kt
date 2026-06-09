@@ -17,26 +17,24 @@ class BirthdayService(
     suspend fun setBirthday(
         userId: Long,
         birthday: BirthDate,
-    ): ResultContainer<Member> =
-        memberRepository.findByUserId(userId).flatMap { member ->
-            if (member == null) {
-                ResultContainer.failure(ResourceNotFoundException("Member", userId.toString()))
-            } else {
-                memberRepository.updateBirthday(userId, birthday)
-            }
+    ): ResultContainer<Member> = memberRepository.findByUserId(userId).flatMap { member ->
+        if (member == null) {
+            ResultContainer.failure(ResourceNotFoundException("Member", userId.toString()))
+        } else {
+            memberRepository.updateBirthday(userId, birthday)
         }
+    }
 
     suspend fun setBirthdayForUsername(
         username: String,
         birthday: BirthDate,
-    ): ResultContainer<Member> =
-        memberRepository.findByUsername(username).flatMap { member ->
-            if (member == null) {
-                ResultContainer.failure(ResourceNotFoundException("Member", username))
-            } else {
-                memberRepository.updateBirthday(member.userId, birthday)
-            }
+    ): ResultContainer<Member> = memberRepository.findByUsername(username).flatMap { member ->
+        if (member == null) {
+            ResultContainer.failure(ResourceNotFoundException("Member", username))
+        } else {
+            memberRepository.updateBirthday(member.userId, birthday)
         }
+    }
 
     suspend fun clearBirthday(userId: Long): ResultContainer<Member> = memberRepository.updateBirthday(userId, null)
 

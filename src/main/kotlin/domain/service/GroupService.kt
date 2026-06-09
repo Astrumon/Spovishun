@@ -52,18 +52,17 @@ class GroupService(
     suspend fun getGroupByKey(
         chatId: Long,
         key: String,
-    ): ResultContainer<GroupWithMembers> =
-        groupRepository.findGroupByKey(chatId, key).flatMap { group ->
-            groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
-                GroupWithMembers(
-                    id = group.id,
-                    chatId = chatId,
-                    key = group.name,
-                    name = group.name,
-                    members = members,
-                )
-            }
+    ): ResultContainer<GroupWithMembers> = groupRepository.findGroupByKey(chatId, key).flatMap { group ->
+        groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
+            GroupWithMembers(
+                id = group.id,
+                chatId = chatId,
+                key = group.name,
+                name = group.name,
+                members = members,
+            )
         }
+    }
 }
 
 data class GroupWithMembers(
