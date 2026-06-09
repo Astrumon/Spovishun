@@ -19,7 +19,6 @@ import kotlin.test.assertTrue
  * because registration goes through [autoRegisterService] directly.
  */
 class MultiChatUserE2ETest : BaseE2ETest() {
-
     // Synthetic second chat — no real Telegram group required; only DB-level testing
     private val secondChatId: Long get() = testChatId - 1L
 
@@ -36,13 +35,14 @@ class MultiChatUserE2ETest : BaseE2ETest() {
 
         // Register same user in the second chat
         runBlocking {
-            autoRegisterService.ensureUserRegistered(
-                chatId = secondChatId,
-                userId = userId,
-                username = "multichatuser",
-                firstName = "MultiChat",
-                userRole = MemberRole.MEMBER,
-            ).getOrThrow()
+            autoRegisterService
+                .ensureUserRegistered(
+                    chatId = secondChatId,
+                    userId = userId,
+                    username = "multichatuser",
+                    firstName = "MultiChat",
+                    userRole = MemberRole.MEMBER,
+                ).getOrThrow()
         }
 
         val inChatA = allMembers()
@@ -62,13 +62,14 @@ class MultiChatUserE2ETest : BaseE2ETest() {
         registerMember(userBoth, "bothchats", "BothChats")
 
         runBlocking {
-            autoRegisterService.ensureUserRegistered(
-                chatId = secondChatId,
-                userId = userBoth,
-                username = "bothchats",
-                firstName = "BothChats",
-                userRole = MemberRole.MEMBER,
-            ).getOrThrow()
+            autoRegisterService
+                .ensureUserRegistered(
+                    chatId = secondChatId,
+                    userId = userBoth,
+                    username = "bothchats",
+                    firstName = "BothChats",
+                    userRole = MemberRole.MEMBER,
+                ).getOrThrow()
         }
 
         val inChatB = runBlocking { memberService.getAllMembersInChat(secondChatId).getOrThrow() }
@@ -83,13 +84,14 @@ class MultiChatUserE2ETest : BaseE2ETest() {
         registerMember(userId, "rolediffuser", "RoleDiff", MemberRole.ADMIN)
 
         runBlocking {
-            autoRegisterService.ensureUserRegistered(
-                chatId = secondChatId,
-                userId = userId,
-                username = "rolediffuser",
-                firstName = "RoleDiff",
-                userRole = MemberRole.MEMBER,
-            ).getOrThrow()
+            autoRegisterService
+                .ensureUserRegistered(
+                    chatId = secondChatId,
+                    userId = userId,
+                    username = "rolediffuser",
+                    firstName = "RoleDiff",
+                    userRole = MemberRole.MEMBER,
+                ).getOrThrow()
         }
 
         val inChatA = allMembers().first { it.userId == userId }
@@ -106,13 +108,14 @@ class MultiChatUserE2ETest : BaseE2ETest() {
         registerMember(userId, "persistuser", "Persist")
 
         runBlocking {
-            autoRegisterService.ensureUserRegistered(
-                chatId = secondChatId,
-                userId = userId,
-                username = "persistuser",
-                firstName = "Persist",
-                userRole = MemberRole.MEMBER,
-            ).getOrThrow()
+            autoRegisterService
+                .ensureUserRegistered(
+                    chatId = secondChatId,
+                    userId = userId,
+                    username = "persistuser",
+                    firstName = "Persist",
+                    userRole = MemberRole.MEMBER,
+                ).getOrThrow()
         }
 
         // Simulate what @AfterTest does for chat A
@@ -121,7 +124,7 @@ class MultiChatUserE2ETest : BaseE2ETest() {
         val inChatB = runBlocking { memberService.getAllMembersInChat(secondChatId).getOrThrow() }
         assertTrue(
             inChatB.any { it.userId == userId },
-            "User must still be in chat B after chat A cleanup"
+            "User must still be in chat B after chat A cleanup",
         )
     }
 }

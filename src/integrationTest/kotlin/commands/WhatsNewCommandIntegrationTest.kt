@@ -12,7 +12,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
-
     private val releaseNotesService = ReleaseNotesService()
     private lateinit var whatsNewCommand: WhatsNewCommand
 
@@ -24,6 +23,13 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `whatsnew should reply with latest version entry`() = runTest {
+        // Derive the expected version from the same source the controller reads, so the
+        // assertion never goes stale on a version bump.
+        val latestVersion = releaseNotesService
+            .getAll()
+            .getOrThrow()
+            .first()
+            .version
         val update = buildUpdate("/whatsnew")
 
         whatsNewCommand.execute(bot, update)
@@ -31,8 +37,8 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
-                match { it.contains("1.4.0") },
-                ParseMode.HTML
+                match { it.contains(latestVersion) },
+                ParseMode.HTML,
             )
         }
     }
@@ -47,7 +53,7 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("1.4.0") && it.contains("1.0.0") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -62,7 +68,7 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("•") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

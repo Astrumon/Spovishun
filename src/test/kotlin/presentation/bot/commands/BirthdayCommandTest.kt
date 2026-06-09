@@ -21,7 +21,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class BirthdayCommandTest {
-
     private val birthdayController: BirthdayController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: BirthdayCommand

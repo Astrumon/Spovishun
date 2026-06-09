@@ -17,15 +17,19 @@ fun Project.registerAppTasks() {
         description = "Generate version info file"
         doLast {
             val f = file("src/main/kotlin/common/util/VersionInfo.kt")
-            f.writeText("""
+            // Output must satisfy ktlint (blank line before the function, trailing newline).
+            f.writeText(
+                """
                 package com.ua.astrumon.common.util
 
                 object VersionInfo {
                     const val VERSION = "$version"
                     const val BOT_NAME = "Spovishun"
+
                     fun getFullVersion(): String = BOT_NAME + " v" + VERSION
                 }
-            """.trimIndent())
+                """.trimIndent() + "\n",
+            )
             println("Generated VersionInfo.kt with version: $version")
         }
     }

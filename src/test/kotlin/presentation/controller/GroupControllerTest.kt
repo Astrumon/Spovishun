@@ -6,7 +6,6 @@ import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberChat
@@ -16,6 +15,7 @@ import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.GroupWithMembers
 import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.GroupController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -27,7 +27,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class GroupControllerTest {
-
     private val groupService: GroupService = mockk()
     private val memberService: MemberService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
@@ -44,7 +43,8 @@ class GroupControllerTest {
     fun setup() {
         clearAllMocks()
         groupController = GroupController(groupService, memberService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(adminMemberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.success(adminMemberWithChat)
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true
         coEvery { memberService.hasAdminAccess(chatId, userId) } returns true
     }
@@ -57,7 +57,7 @@ class GroupControllerTest {
         val regularWithChat = MemberWithChat(3L, 111L, "charlie", "Charlie", MemberRole.MEMBER, null)
         val groups = listOf(
             GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice", "bob", "charlie")),
-            GroupWithMembers(2L, chatId, "qa", "qa", emptyList())
+            GroupWithMembers(2L, chatId, "qa", "qa", emptyList()),
         )
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
         coEvery { memberService.getMemberWithChatByUsername(chatId, "alice") } returns ResultContainer.success(adminMemberWithChat)
@@ -79,7 +79,7 @@ class GroupControllerTest {
         val groups = listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("unknown")))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
         coEvery { memberService.getMemberWithChatByUsername(chatId, "unknown") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "unknown")
+            ResourceNotFoundException("Member", "unknown"),
         )
 
         val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
@@ -142,7 +142,7 @@ class GroupControllerTest {
     @Test
     fun `createGroup should return error when group already exists`() = runTest {
         coEvery { groupService.createGroup(chatId, "devs") } returns ResultContainer.failure(
-            DuplicateResourceException("Group", "devs")
+            DuplicateResourceException("Group", "devs"),
         )
 
         val result = groupController.createGroup(chatId, userId, listOf("devs"))
@@ -186,7 +186,7 @@ class GroupControllerTest {
     @Test
     fun `deleteGroup should return NotFound when group does not exist`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.failure(
-            ResourceNotFoundException("Group", "devs")
+            ResourceNotFoundException("Group", "devs"),
         )
 
         val result = groupController.deleteGroup(chatId, userId, listOf("devs"))
@@ -233,7 +233,7 @@ class GroupControllerTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", emptyList())
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
-            ValidationException("Invalid user")
+            ValidationException("Invalid user"),
         )
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob"))
@@ -246,7 +246,7 @@ class GroupControllerTest {
     @Test
     fun `addUserToGroup should return NotFound when group does not exist`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.failure(
-            ResourceNotFoundException("Group", "devs")
+            ResourceNotFoundException("Group", "devs"),
         )
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob"))
@@ -260,7 +260,7 @@ class GroupControllerTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", listOf("bob"))
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
-            DuplicateResourceException("Member", "bob")
+            DuplicateResourceException("Member", "bob"),
         )
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob"))
@@ -275,7 +275,7 @@ class GroupControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "alice") } returns ResultContainer.success(Unit)
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
-            ValidationException("Not registered")
+            ValidationException("Not registered"),
         )
 
         val result = groupController.addUserToGroup(chatId, userId, listOf("devs", "@alice", "@bob"))
@@ -322,7 +322,7 @@ class GroupControllerTest {
     @Test
     fun `removeUserFromGroup should return NotFound when group does not exist`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.failure(
-            ResourceNotFoundException("Group", "devs")
+            ResourceNotFoundException("Group", "devs"),
         )
 
         val result = groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob"))
@@ -335,7 +335,7 @@ class GroupControllerTest {
         val groupWithMembers = GroupWithMembers(1L, chatId, "devs", "devs", emptyList())
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.removeMemberFromGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
-            BusinessException("Member not in group")
+            BusinessException("Member not in group"),
         )
 
         val result = groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob"))
@@ -351,7 +351,7 @@ class GroupControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(groupWithMembers)
         coEvery { groupService.removeMemberFromGroup(chatId, "devs", "alice") } returns ResultContainer.success(Unit)
         coEvery { groupService.removeMemberFromGroup(chatId, "devs", "bob") } returns ResultContainer.failure(
-            BusinessException("Member not in group")
+            BusinessException("Member not in group"),
         )
 
         val result = groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@alice", "@bob"))
@@ -371,7 +371,7 @@ class GroupControllerTest {
         val targetMemberChat = MemberChat(2L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(targetMember)
         coEvery { memberService.setMemberRole(chatId, 789L, MemberRole.MODERATOR) } returns ResultContainer.success(
-            targetMemberChat.copy(role = MemberRole.MODERATOR)
+            targetMemberChat.copy(role = MemberRole.MODERATOR),
         )
 
         val result = groupController.grantRole(chatId, userId, listOf("@bob", "moderator"))
@@ -394,7 +394,7 @@ class GroupControllerTest {
     @Test
     fun `grantRole should report not found user in success message`() = runTest {
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "bob")
+            ResourceNotFoundException("Member", "bob"),
         )
 
         val result = groupController.grantRole(chatId, userId, listOf("@bob", "moderator"))
@@ -430,8 +430,10 @@ class GroupControllerTest {
         val bobChat = MemberChat(3L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(bob)
-        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) } returns ResultContainer.success(aliceChat.copy(role = MemberRole.MODERATOR))
-        coEvery { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) } returns ResultContainer.success(bobChat.copy(role = MemberRole.MODERATOR))
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.MODERATOR) } returns
+            ResultContainer.success(aliceChat.copy(role = MemberRole.MODERATOR))
+        coEvery { memberService.setMemberRole(chatId, 102L, MemberRole.MODERATOR) } returns
+            ResultContainer.success(bobChat.copy(role = MemberRole.MODERATOR))
 
         val result = groupController.grantRole(chatId, userId, listOf("@alice,@bob", "moderator"))
 
@@ -448,9 +450,10 @@ class GroupControllerTest {
         val alice = Member(2L, 101L, "alice", "Alice")
         val aliceChat = MemberChat(2L, chatId, MemberRole.MEMBER, null)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(alice)
-        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.ADMIN) } returns ResultContainer.success(aliceChat.copy(role = MemberRole.ADMIN))
+        coEvery { memberService.setMemberRole(chatId, 101L, MemberRole.ADMIN) } returns
+            ResultContainer.success(aliceChat.copy(role = MemberRole.ADMIN))
         coEvery { memberService.getMemberByUsername("unknown") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "unknown")
+            ResourceNotFoundException("Member", "unknown"),
         )
 
         val result = groupController.grantRole(chatId, userId, listOf("@alice,@unknown", "admin"))

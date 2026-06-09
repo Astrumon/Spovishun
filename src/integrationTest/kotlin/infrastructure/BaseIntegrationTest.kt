@@ -5,6 +5,7 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
+import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.data.db.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.db.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
@@ -35,12 +36,10 @@ import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
-import com.ua.astrumon.config.AppConfig
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
@@ -49,7 +48,6 @@ import kotlin.test.BeforeTest
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseIntegrationTest {
-
     // Real DB-backed repositories
     private val memberRepo = MemberRepositoryImpl()
     private val memberChatRepo = MemberChatRepositoryImpl()
@@ -114,6 +112,10 @@ abstract class BaseIntegrationTest {
     @BeforeTest
     fun setUpBase() {
         assumeTrue(IntegrationDbConfig.isConfigured, "E2E_DATABASE_URL not set — skipping integration tests")
+        // Pre-clean as well as post-clean: guarantees a clean slate even if a prior run left
+        // stale rows for testChatId (e.g. a crashed test that never reached tearDown). Without
+        // this, the first test to run could observe leaked members and pick the wrong one.
+        runBlocking { cleaner.cleanupByChatId(testChatId) }
         clearAllMocks()
 
         memberService = MemberService(memberRepo, memberChatRepo)
@@ -125,9 +127,10 @@ abstract class BaseIntegrationTest {
         botAdminUtils = mockk()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
         every { botAdminUtils.isUserAdmin(any(), any(), any()) } returns false
-        every { bot.getChat(any()) } returns com.github.kotlintelegrambot.types.TelegramBotResult.Success(
-            Chat(id = testChatId, type = "supergroup")
-        )
+        every { bot.getChat(any()) } returns
+            TelegramBotResult.Success(
+                Chat(id = testChatId, type = "supergroup"),
+            )
 
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)
@@ -166,7 +169,7 @@ abstract class BaseIntegrationTest {
         username: String = testUsername,
         firstName: String = testFirstName,
         chatId: Long = testChatId,
-        chatType: String = "supergroup"
+        chatType: String = "supergroup",
     ): Update {
         val user = User(id = userId, isBot = false, firstName = firstName, username = username)
         val chat = Chat(id = chatId, type = chatType)
@@ -179,6 +182,6 @@ abstract class BaseIntegrationTest {
         username: String = testUsername,
         firstName: String = testFirstName,
         chatId: Long = testChatId,
-        role: MemberRole = MemberRole.MEMBER
+        role: MemberRole = MemberRole.MEMBER,
     ): MemberWithChat = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, role).getOrThrow()
 }

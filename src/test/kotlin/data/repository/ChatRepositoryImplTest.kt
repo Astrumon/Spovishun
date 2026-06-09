@@ -16,7 +16,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ChatRepositoryImplTest {
-
     private val repository = ChatRepositoryImpl()
 
     @BeforeTest

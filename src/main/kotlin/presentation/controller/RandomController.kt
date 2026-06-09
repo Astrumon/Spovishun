@@ -49,8 +49,10 @@ class RandomController(
 
         val groupResult = groupService.getGroupByKey(chatId, key)
         if (groupResult.isFailure) {
-            val availableKeys = groupService.getAllGroupsWithMembers(chatId)
-                .getOrNull()?.map { it.key } ?: emptyList()
+            val availableKeys = groupService
+                .getAllGroupsWithMembers(chatId)
+                .getOrNull()
+                ?.map { it.key } ?: emptyList()
             return CommandResponse.NotFound("Група", key, availableKeys)
         }
 

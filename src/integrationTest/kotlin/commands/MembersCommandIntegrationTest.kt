@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class MembersCommandIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `members command should auto-register caller and show them in the list`() = runTest {
         val update = buildUpdate("/members")
@@ -24,7 +23,7 @@ class MembersCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@$testUsername") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -41,7 +40,7 @@ class MembersCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@alice") && it.contains("@bob") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -57,7 +56,7 @@ class MembersCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@alice") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

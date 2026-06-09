@@ -21,7 +21,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class DeleteGroupCommandTest {
-
     private val groupController: GroupController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: DeleteGroupCommand
@@ -36,7 +35,10 @@ class DeleteGroupCommandTest {
         command = DeleteGroupCommand(groupController)
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/delgroup"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/delgroup",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)
@@ -45,7 +47,8 @@ class DeleteGroupCommandTest {
     @Test
     fun `should pass args to controller and prefix success`() = runTest {
         val update = createUpdate(text = "/delgroup devs")
-        coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns CommandResponse.Success("Група <b>devs</b> видалена.")
+        coEvery { groupController.deleteGroup(chatId, userId, listOf("devs")) } returns
+            CommandResponse.Success("Група <b>devs</b> видалена.")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
         command.execute(bot, update)

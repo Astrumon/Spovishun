@@ -8,7 +8,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class PingCommandIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `pingAll with no registered members should send empty list message`() = runTest {
         val update = buildUpdate("/all")
@@ -19,7 +18,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 any<String>(),
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -37,7 +36,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@alice") && it.contains("@bob") && it.contains("@carol") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -53,7 +52,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("standup time") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -73,7 +72,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@alice") && it.contains("@bob") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -90,7 +89,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("devs") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

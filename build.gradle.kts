@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
     application
 }
 
@@ -72,6 +74,28 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+// ktlint owns code formatting (indentation, imports, syntax). Rules come from .editorconfig.
+ktlint {
+    version.set("1.5.0")
+    // Build scripts (*.kts) are checked together with source sets.
+}
+
+// detekt owns static analysis (code smells, complexity, structure) — NOT formatting,
+// which is delegated to ktlint to avoid running the same rules twice (detekt-formatting omitted).
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("config/detekt/detekt.yml"))
+    baseline = file("config/detekt/baseline.xml")
+    source.setFrom(
+        files(
+            "src/main/kotlin",
+            "src/test/kotlin",
+            "src/integrationTest/kotlin",
+            "src/e2eTest/kotlin",
+        ),
+    )
 }
 
 application {

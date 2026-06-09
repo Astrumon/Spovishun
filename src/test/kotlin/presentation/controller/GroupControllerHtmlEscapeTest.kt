@@ -20,7 +20,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GroupControllerHtmlEscapeTest {
-
     private val groupService: GroupService = mockk()
     private val memberService: MemberService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()

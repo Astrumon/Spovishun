@@ -23,7 +23,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class ShowGroupsCommandTest {
-
     private val groupController: GroupController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)

@@ -21,7 +21,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class BirthdayServiceTest {
-
     private val memberRepository: MemberRepository = mockk()
     private val memberChatRepository: MemberChatRepository = mockk()
     private val birthdayGreetingRepository: BirthdayGreetingRepository = mockk()

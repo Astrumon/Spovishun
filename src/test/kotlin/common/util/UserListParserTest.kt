@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class UserListParserTest {
-
     @Test
     fun `parseUserList should handle comma-separated format`() {
         val result = UserListParser.parseUserList("@user1,@user2,@user3")

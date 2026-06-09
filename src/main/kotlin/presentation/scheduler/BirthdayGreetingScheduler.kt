@@ -41,7 +41,10 @@ class BirthdayGreetingScheduler(
         }
     }
 
-    private suspend fun runJobIfNotYetSent(bot: Bot, today: LocalDate) {
+    private suspend fun runJobIfNotYetSent(
+        bot: Bot,
+        today: LocalDate,
+    ) {
         val birthDates = mutableListOf(BirthDate(today.dayOfMonth, today.monthValue))
         if (today.monthValue == 2 && today.dayOfMonth == 28 && !today.isLeapYear) {
             birthDates.add(BirthDate(29, 2))
@@ -49,18 +52,24 @@ class BirthdayGreetingScheduler(
         birthDates.forEach { greetBirthday(bot, it, today.year) }
     }
 
-    private suspend fun greetBirthday(bot: Bot, birthday: BirthDate, year: Int) {
+    private suspend fun greetBirthday(
+        bot: Bot,
+        birthday: BirthDate,
+        year: Int,
+    ) {
         val members = birthdayService.getMembersWithBirthday(birthday).fold(
             onSuccess = { it },
-            onFailure = { emptyList() }
+            onFailure = { emptyList() },
         )
         for (member in members) {
             try {
-                val alreadyGreeted = birthdayService.wasGreetedThisYear(member.id, year)
+                val alreadyGreeted = birthdayService
+                    .wasGreetedThisYear(member.id, year)
                     .fold(onSuccess = { it }, onFailure = { true })
                 if (alreadyGreeted) continue
 
-                val chatIds = birthdayService.findChatIdsForMember(member.id)
+                val chatIds = birthdayService
+                    .findChatIdsForMember(member.id)
                     .fold(onSuccess = { it }, onFailure = { emptyList() })
                 if (chatIds.isEmpty()) continue
 

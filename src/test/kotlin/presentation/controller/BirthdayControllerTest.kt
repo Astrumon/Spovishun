@@ -18,7 +18,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class BirthdayControllerTest {
-
     private val birthdayService: BirthdayService = mockk()
     private val memberService: MemberService = mockk()
     private lateinit var controller: BirthdayController

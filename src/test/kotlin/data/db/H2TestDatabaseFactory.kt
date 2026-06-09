@@ -49,11 +49,10 @@ object H2TestDatabaseFactory {
     }
 }
 
-suspend fun <T> h2DbQuery(block: () -> T): T =
-    withContext(Dispatchers.IO) {
-        try {
-            transaction { block() }
-        } catch (e: Exception) {
-            throw DatabaseException("H2 test database query failed", e)
-        }
+suspend fun <T> h2DbQuery(block: () -> T): T = withContext(Dispatchers.IO) {
+    try {
+        transaction { block() }
+    } catch (e: Exception) {
+        throw DatabaseException("H2 test database query failed", e)
     }
+}

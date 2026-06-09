@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
+    <ID>LoopWithTooManyJumpStatements:TelegramHelperBot.kt:TelegramHelperBot$for</ID>
+    <ID>MagicNumber:BaseE2ETest.kt:BaseE2ETest$30L</ID>
+    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
+    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
+    <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$12</ID>
+    <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$25</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$29</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$1800000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$30000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$60000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$600000</ID>
+    <ID>MagicNumber:GroupCommandE2ETest.kt:GroupCommandE2ETest$996L</ID>
+    <ID>MagicNumber:GroupCommandE2ETest.kt:GroupCommandE2ETest$997L</ID>
+    <ID>MagicNumber:TelegramHelperBot.kt:TelegramHelperBot$5</ID>
+    <ID>MagicNumber:TelegramHelperBot.kt:TelegramHelperBot$500</ID>
+    <ID>NestedBlockDepth:StartCommand.kt:StartCommand$override suspend fun execute</ID>
+    <ID>ReturnCount:BirthdayController.kt:BirthdayController$suspend fun setBirthdayForOther: CommandResponse</ID>
+    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
+    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
+    <ID>ReturnCount:PingCallbackHandler.kt:PingCallbackHandler$suspend fun handle</ID>
+    <ID>ReturnCount:PingGroupCommand.kt:PingGroupCommand$override suspend fun execute</ID>
+    <ID>SwallowedException:BaseIntegrationTest.kt:BaseIntegrationTest$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BaseIntegrationTest.kt:BaseIntegrationTest$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BotAdminUtils.kt:BotAdminUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DatabaseFactory.kt:DatabaseFactory$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DatabaseFactory.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ResultContainer.kt:ResultContainer.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:StartCommand.kt:StartCommand$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TelegramBot.kt:TelegramBot$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -18,7 +18,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupServiceTest {
-
     private val groupRepository: GroupRepository = mockk()
     private val groupMemberRepository: GroupMemberRepository = mockk()
     private lateinit var groupService: GroupService
@@ -35,7 +34,7 @@ class GroupServiceTest {
         val chatId = 123L
         val groups = listOf(
             Group(1L, chatId, "devs", emptyList()),
-            Group(2L, chatId, "admins", emptyList())
+            Group(2L, chatId, "admins", emptyList()),
         )
         val members1 = listOf("alice", "bob")
         val members2 = listOf("charlie")
@@ -51,7 +50,7 @@ class GroupServiceTest {
         assertTrue(result.isSuccess)
         val groupWithMembers = result.getOrThrow()
         assertEquals(2, groupWithMembers.size)
-        
+
         val devsGroup = groupWithMembers.find { it.key == "devs" }
         assertEquals(members1, devsGroup?.members)
 

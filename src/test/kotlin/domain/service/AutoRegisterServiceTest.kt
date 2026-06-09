@@ -1,15 +1,14 @@
 package domain.service
 
 import com.ua.astrumon.common.exception.DatabaseException
-import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.domain.cache.ChatCache
+import com.ua.astrumon.domain.cache.UserCache
 import com.ua.astrumon.domain.model.Chat
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
-import com.ua.astrumon.domain.cache.ChatCache
-import com.ua.astrumon.domain.cache.UserCache
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.ChatService
 import com.ua.astrumon.domain.service.MemberService
@@ -26,7 +25,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AutoRegisterServiceTest {
-
     private val memberService: MemberService = mockk()
     private val chatService: ChatService = mockk()
     private lateinit var userCache: UserCache
@@ -40,8 +38,12 @@ class AutoRegisterServiceTest {
     private val userRole = MemberRole.MEMBER
 
     private val memberWithChat = MemberWithChat(
-        id = 1L, userId = userId, username = username, firstName = firstName,
-        role = userRole, joinedAt = null,
+        id = 1L,
+        userId = userId,
+        username = username,
+        firstName = firstName,
+        role = userRole,
+        joinedAt = null,
     )
 
     @BeforeTest
@@ -51,7 +53,7 @@ class AutoRegisterServiceTest {
         chatCache = ChatCache()
         autoRegisterService = AutoRegisterService(memberService, chatService, userCache, chatCache)
         coEvery { chatService.ensureChat(any(), any(), any()) } returns ResultContainer.success(
-            Chat(chatId, null, null, Clock.System.now())
+            Chat(chatId, null, null, Clock.System.now()),
         )
     }
 
@@ -70,7 +72,8 @@ class AutoRegisterServiceTest {
     fun `ensureUserRegistered should create new member when not in this chat`() = runTest {
         val notFoundError = ResourceNotFoundException("Member", username)
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(notFoundError)
-        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns ResultContainer.success(memberWithChat)
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
+            ResultContainer.success(memberWithChat)
 
         val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
@@ -94,7 +97,8 @@ class AutoRegisterServiceTest {
         val notFoundError = ResourceNotFoundException("Member", username)
         val dbError = DatabaseException("DB down")
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(notFoundError)
-        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns ResultContainer.failure(dbError)
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
+            ResultContainer.failure(dbError)
 
         val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
@@ -120,7 +124,8 @@ class AutoRegisterServiceTest {
         val adminMemberWithChat = memberWithChat.copy(role = adminRole)
         val notFoundError = ResourceNotFoundException("Member", username)
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(notFoundError)
-        coEvery { memberService.createMember(chatId, userId, username, firstName, role = adminRole) } returns ResultContainer.success(adminMemberWithChat)
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = adminRole) } returns
+            ResultContainer.success(adminMemberWithChat)
 
         val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, adminRole)
 
@@ -139,7 +144,7 @@ class AutoRegisterServiceTest {
     @Test
     fun `isUserRegistered should return false when member does not exist`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", username)
+            ResourceNotFoundException("Member", username),
         )
 
         assertFalse(autoRegisterService.isUserRegistered(chatId, username))
@@ -148,7 +153,7 @@ class AutoRegisterServiceTest {
     @Test
     fun `isUserRegistered should return false when lookup fails`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(
-            DatabaseException("DB error")
+            DatabaseException("DB error"),
         )
 
         assertFalse(autoRegisterService.isUserRegistered(chatId, username))
@@ -171,7 +176,8 @@ class AutoRegisterServiceTest {
     fun `ensureUserRegistered should populate cache after creating a new member`() = runTest {
         val notFoundError = ResourceNotFoundException("Member", username)
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(notFoundError)
-        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns ResultContainer.success(memberWithChat)
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
+            ResultContainer.success(memberWithChat)
 
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)

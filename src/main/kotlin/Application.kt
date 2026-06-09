@@ -44,7 +44,7 @@ object Application : KoinComponent {
                 configModule,
                 repositoryModule,
                 serviceModule,
-                presentationModule
+                presentationModule,
             )
         }
     }
@@ -53,5 +53,3 @@ object Application : KoinComponent {
         DatabaseFactory.initialize(config)
     }
 }
-
-

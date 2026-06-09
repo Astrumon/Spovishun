@@ -23,7 +23,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class RegisterCommandTest {
-
     private val registrationController: RegistrationController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -42,7 +41,7 @@ class RegisterCommandTest {
 
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
-        chatIdVal: Long = chatId
+        chatIdVal: Long = chatId,
     ): Update {
         val chat = Chat(id = chatIdVal, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser)

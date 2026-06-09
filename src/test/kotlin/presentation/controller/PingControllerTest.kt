@@ -21,7 +21,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class PingControllerTest {
-
     private val memberService: MemberService = mockk()
     private val groupService: GroupService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
@@ -36,7 +35,8 @@ class PingControllerTest {
     fun setup() {
         clearAllMocks()
         pingController = PingController(memberService, groupService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.success(memberWithChat)
     }
 
     // --- pingAll ---
@@ -45,7 +45,7 @@ class PingControllerTest {
     fun `pingAll should return Success with mentions for all members`() = runTest {
         val members = listOf(
             MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.MEMBER, null),
-            MemberWithChat(2L, 789L, "bob", "Bob", MemberRole.MEMBER, null)
+            MemberWithChat(2L, 789L, "bob", "Bob", MemberRole.MEMBER, null),
         )
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(members)
 
@@ -59,7 +59,7 @@ class PingControllerTest {
     @Test
     fun `pingAll should include extra text in header`() = runTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(
-            listOf(MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.MEMBER, null))
+            listOf(MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.MEMBER, null)),
         )
 
         val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("standup", "time"))
@@ -106,7 +106,7 @@ class PingControllerTest {
     @Test
     fun `pingGroupById should return NotFound when group id does not exist`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(
-            listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")))
+            listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice"))),
         )
 
         val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 999L)
@@ -119,7 +119,7 @@ class PingControllerTest {
         val group = GroupWithMembers(1L, chatId, "devs", "devs", listOf("ghost"))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
         coEvery { memberService.getMemberByUsername("ghost") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "ghost")
+            ResourceNotFoundException("Member", "ghost"),
         )
 
         val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L)
@@ -157,7 +157,7 @@ class PingControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(member)
         coEvery { memberService.getMemberByUsername("bob") } returns ResultContainer.success(
-            Member(2L, 789L, "bob", "Bob")
+            Member(2L, 789L, "bob", "Bob"),
         )
 
         val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))
@@ -190,10 +190,10 @@ class PingControllerTest {
     @Test
     fun `pingGroup should return NotFound with available groups when group does not exist`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "unknown") } returns ResultContainer.failure(
-            ResourceNotFoundException("Group", "unknown")
+            ResourceNotFoundException("Group", "unknown"),
         )
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(
-            listOf(GroupWithMembers(1L, chatId, "devs", "devs", emptyList()))
+            listOf(GroupWithMembers(1L, chatId, "devs", "devs", emptyList())),
         )
 
         val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("unknown"))
@@ -209,7 +209,7 @@ class PingControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group)
         coEvery { memberService.getMemberByUsername("alice") } returns ResultContainer.success(member)
         coEvery { memberService.getMemberByUsername("ghost") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "ghost")
+            ResourceNotFoundException("Member", "ghost"),
         )
 
         val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))
@@ -224,7 +224,7 @@ class PingControllerTest {
         val group = GroupWithMembers(1L, chatId, "devs", "devs", listOf("ghost"))
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group)
         coEvery { memberService.getMemberByUsername("ghost") } returns ResultContainer.failure(
-            ResourceNotFoundException("Member", "ghost")
+            ResourceNotFoundException("Member", "ghost"),
         )
 
         val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))

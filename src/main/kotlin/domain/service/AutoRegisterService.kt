@@ -24,13 +24,14 @@ class AutoRegisterService(
         firstName: String,
         userRole: MemberRole,
         chatTitle: String? = null,
-        chatType: String? = null
+        chatType: String? = null,
     ): ResultContainer<MemberWithChat> {
         if (!chatCache.isKnown(chatId)) {
-            chatService.ensureChat(chatId, chatTitle, chatType)
+            chatService
+                .ensureChat(chatId, chatTitle, chatType)
                 .fold(
                     onSuccess = { chatCache.markKnown(chatId) },
-                    onFailure = { error -> logger.error("Failed to ensure chat registration: ${error::class.simpleName}") }
+                    onFailure = { error -> logger.error("Failed to ensure chat registration: ${error::class.simpleName}") },
                 )
         }
 
@@ -44,7 +45,8 @@ class AutoRegisterService(
             return ResultContainer.success(cached)
         }
 
-        return memberService.getMemberWithChatByUsername(chatId, username)
+        return memberService
+            .getMemberWithChatByUsername(chatId, username)
             .fold(
                 onSuccess = { memberWithChat ->
                     logger.debug("User already registered")
@@ -54,23 +56,26 @@ class AutoRegisterService(
                 onFailure = { error ->
                     if (error is ResourceNotFoundException) {
                         logger.info("Auto-registering new user")
-                        memberService.createMember(chatId, userId, username, firstName, role = userRole)
+                        memberService
+                            .createMember(chatId, userId, username, firstName, role = userRole)
                             .onSuccess { created ->
                                 logger.info("Auto-registered user successfully")
                                 userCache.put(chatId, username, created)
-                            }
-                            .onFailure { createError ->
+                            }.onFailure { createError ->
                                 logger.error("Failed to auto-register user: ${createError::class.simpleName}")
                             }
                     } else {
                         logger.error("Member lookup failed: ${error::class.simpleName}")
                         ResultContainer.failure(error)
                     }
-                }
+                },
             )
     }
 
-    suspend fun isUserRegistered(chatId: Long, username: String): Boolean {
+    suspend fun isUserRegistered(
+        chatId: Long,
+        username: String,
+    ): Boolean {
         if (userCache.get(chatId, username) != null) return true
         return memberService.getMemberWithChatByUsername(chatId, username).isSuccess
     }

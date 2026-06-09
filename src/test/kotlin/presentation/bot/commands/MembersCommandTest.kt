@@ -23,7 +23,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class MembersCommandTest {
-
     private val membersController: MembersController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -42,7 +41,7 @@ class MembersCommandTest {
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
         chatIdVal: Long = chatId,
-        text: String = "/members"
+        text: String = "/members",
     ): Update {
         val chat = Chat(id = chatIdVal, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
@@ -65,7 +64,8 @@ class MembersCommandTest {
     fun `invoke should use user_id as username when username is null`() = runTest {
         val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
         val update = createUpdate(fromUser = user)
-        coEvery { membersController.getMembers(chatId, match { it.username == "user_$userId" }, MemberRole.MEMBER) } returns CommandResponse.Success("ok")
+        coEvery { membersController.getMembers(chatId, match { it.username == "user_$userId" }, MemberRole.MEMBER) } returns
+            CommandResponse.Success("ok")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
         membersCommand.execute(bot, update)

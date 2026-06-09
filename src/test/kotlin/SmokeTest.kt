@@ -7,7 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class SmokeTest {
-
     @BeforeTest
     fun setup() {
         clearAllMocks()

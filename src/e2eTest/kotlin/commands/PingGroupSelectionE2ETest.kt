@@ -17,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class PingGroupSelectionE2ETest : BaseE2ETest() {
-
     @Test
     fun `ping with no args shows group selection menu when groups exist`() {
         registerMember(userId = helperBotId, username = "helper_bot", firstName = "HelperBot")

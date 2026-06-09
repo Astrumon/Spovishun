@@ -22,7 +22,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MemberServiceTest {
-
     private val memberRepository: MemberRepository = mockk()
     private val memberChatRepository: MemberChatRepository = mockk()
     private lateinit var memberService: MemberService
@@ -35,7 +34,15 @@ class MemberServiceTest {
 
     private val member = Member(id = memberId, userId = userId, username = username, firstName = firstName)
     private val memberChat = MemberChat(memberId = memberId, chatId = chatId, role = MemberRole.MEMBER, joinedAt = null)
-    private val memberWithChat = MemberWithChat(id = memberId, userId = userId, username = username, firstName = firstName, role = MemberRole.MEMBER, joinedAt = null)
+    private val memberWithChat =
+        MemberWithChat(
+            id = memberId,
+            userId = userId,
+            username = username,
+            firstName = firstName,
+            role = MemberRole.MEMBER,
+            joinedAt = null,
+        )
 
     @BeforeTest
     fun setup() {
@@ -207,7 +214,8 @@ class MemberServiceTest {
 
     @Test
     fun `getMemberWithChatByUsername should return memberWithChat when found`() = runTest {
-        coEvery { memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
+        coEvery { memberRepository.findMemberWithChatByChatIdAndUsername(chatId, username) } returns
+            ResultContainer.success(memberWithChat)
 
         val result = memberService.getMemberWithChatByUsername(chatId, username)
 

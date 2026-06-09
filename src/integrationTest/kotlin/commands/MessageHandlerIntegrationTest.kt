@@ -1,9 +1,5 @@
 package commands
 
-import com.github.kotlintelegrambot.entities.Chat
-import com.github.kotlintelegrambot.entities.Message
-import com.github.kotlintelegrambot.entities.Update
-import com.github.kotlintelegrambot.entities.User
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -12,7 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MessageHandlerIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `text message from new user should register them in the repository`() = runTest {
         val update = buildUpdate("Hello world")

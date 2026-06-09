@@ -8,7 +8,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class RandomCommandIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `random with only invoker registered should mention the invoker`() = runTest {
         val update = buildUpdate("/random")
@@ -19,7 +18,7 @@ class RandomCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("@$testUsername") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -32,11 +31,14 @@ class RandomCommandIntegrationTest : BaseIntegrationTest() {
 
         randomCommand.execute(bot, update)
 
+        // /random auto-registers the invoker, so the candidate pool is {invoker, alice, bob};
+        // assert the pick is one of those registered members (not just alice/bob).
+        val candidates = listOf(testUsername, "alice", "bob")
         verify {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
-                match { it.contains("@alice") || it.contains("@bob") },
-                ParseMode.HTML
+                match { message -> candidates.any { message.contains("@$it") } },
+                ParseMode.HTML,
             )
         }
     }
@@ -51,7 +53,7 @@ class RandomCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("не знайдено") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

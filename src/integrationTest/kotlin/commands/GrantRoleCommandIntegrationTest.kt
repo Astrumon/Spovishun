@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `grantrole as non-admin should be denied`() = runTest {
         registerMember(role = MemberRole.MODERATOR)
@@ -22,7 +21,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Лише адміни") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -34,7 +33,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         val update = buildUpdate(
             "/grantrole @alice moderator",
             userId = testAdminId,
-            username = testAdminUsername
+            username = testAdminUsername,
         )
 
         grantRoleCommand.execute(bot, update)
@@ -45,7 +44,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("alice") && it.contains("moderator") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -56,7 +55,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         val update = buildUpdate(
             "/grantrole @nobody admin",
             userId = testAdminId,
-            username = testAdminUsername
+            username = testAdminUsername,
         )
 
         grantRoleCommand.execute(bot, update)
@@ -65,7 +64,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Не знайдено") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -78,7 +77,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         val update = buildUpdate(
             "/grantrole @alice,@bob moderator",
             userId = testAdminId,
-            username = testAdminUsername
+            username = testAdminUsername,
         )
 
         grantRoleCommand.execute(bot, update)
@@ -89,7 +88,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("alice") && it.contains("bob") && it.contains("moderator") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -101,7 +100,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         val update = buildUpdate(
             "/grantrole @alice,@nobody moderator",
             userId = testAdminId,
-            username = testAdminUsername
+            username = testAdminUsername,
         )
 
         grantRoleCommand.execute(bot, update)
@@ -111,7 +110,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("alice") && it.contains("Не знайдено") && it.contains("nobody") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -123,7 +122,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
         val update = buildUpdate(
             "/grantrole @alice superadmin",
             userId = testAdminId,
-            username = testAdminUsername
+            username = testAdminUsername,
         )
 
         grantRoleCommand.execute(bot, update)
@@ -132,7 +131,7 @@ class GrantRoleCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Невідома роль") || it.contains("superadmin") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

@@ -16,3 +16,9 @@ indent_size = 2
 
 [*.{kts,gradle}]
 indent_size = 4
+
+[*.{kt,kts}]
+ktlint_standard_multiline-expression-wrapping = disabled
+# Keep an expression body on the same line as the signature `=` (do not force a newline
+# under `=` when the parameter list is multiline).
+ktlint_function_signature_body_expression_wrapping = default

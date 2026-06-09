@@ -7,11 +7,11 @@ import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.config.AppConfig
-import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
+import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -22,7 +22,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class MessageHandlerTest {
-
     private val autoRegisterService: AutoRegisterService = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val config: AppConfig = mockk(relaxed = true)
@@ -41,7 +40,7 @@ class MessageHandlerTest {
 
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
-        chatIdVal: Long = chatId
+        chatIdVal: Long = chatId,
     ): Update {
         val chat = Chat(id = chatIdVal, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = "hello")
@@ -61,7 +60,7 @@ class MessageHandlerTest {
                 "Alice",
                 MemberRole.MEMBER,
                 null,
-                "group"
+                "group",
             )
         } returns ResultContainer.success(member)
 
@@ -77,7 +76,7 @@ class MessageHandlerTest {
                 "Alice",
                 MemberRole.MEMBER,
                 null,
-                "group"
+                "group",
             )
         }
     }
@@ -96,7 +95,7 @@ class MessageHandlerTest {
                 "Alice",
                 MemberRole.MEMBER,
                 null,
-                "group"
+                "group",
             )
         } returns ResultContainer.success(member)
 
@@ -112,7 +111,7 @@ class MessageHandlerTest {
                 "Alice",
                 MemberRole.MEMBER,
                 null,
-                "group"
+                "group",
             )
         }
     }

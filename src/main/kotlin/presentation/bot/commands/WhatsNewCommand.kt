@@ -10,10 +10,12 @@ import com.ua.astrumon.presentation.toText
 class WhatsNewCommand(
     private val controller: WhatsNewController,
 ) : BotCommand {
-
     override val name = "whatsnew"
 
-    override suspend fun execute(bot: Bot, update: Update) {
+    override suspend fun execute(
+        bot: Bot,
+        update: Update,
+    ) {
         val (chatId, userId, args) = update.messageContext() ?: return
         val response = when (args.firstOrNull()) {
             "\$h" -> controller.showHistory()

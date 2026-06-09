@@ -7,7 +7,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ReleaseNotesServiceTest {
-
     private val service = ReleaseNotesService()
 
     @Test

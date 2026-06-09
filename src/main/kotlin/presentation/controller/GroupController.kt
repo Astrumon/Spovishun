@@ -13,19 +13,23 @@ import com.ua.astrumon.domain.service.GroupService
 import com.ua.astrumon.domain.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
+
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
     private val autoRegisterService: AutoRegisterService,
 ) : BaseController(memberService) {
-
-    suspend fun getGroups(chatId: Long, member: Member, userRole: MemberRole): CommandResponse {
+    suspend fun getGroups(
+        chatId: Long,
+        member: Member,
+        userRole: MemberRole,
+    ): CommandResponse {
         autoRegisterService.ensureUserRegistered(
             chatId = chatId,
             userId = member.userId,
             username = member.username,
             firstName = member.firstName,
-            userRole = userRole
+            userRole = userRole,
         )
 
         return groupService.getAllGroupsWithMembers(chatId).fold(
@@ -37,7 +41,8 @@ class GroupController(
                     groups.forEach { group ->
                         val names = if (group.members.isNotEmpty()) {
                             group.members.map { username ->
-                                val badge = memberService.getMemberWithChatByUsername(chatId, username)
+                                val badge = memberService
+                                    .getMemberWithChatByUsername(chatId, username)
                                     .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
                                 "@${username.escapeHtml()}$badge"
                             }
@@ -49,11 +54,15 @@ class GroupController(
                     CommandResponse.Success(lines.joinToString("\n"))
                 }
             },
-            onFailure = { CommandResponse.Error(it.userMessage) }
+            onFailure = { CommandResponse.Error(it.userMessage) },
         )
     }
 
-    suspend fun createGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun createGroup(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
@@ -71,11 +80,15 @@ class GroupController(
                     is DuplicateResourceException -> CommandResponse.Error(BotMessages.Group.exists(name.escapeHtml()))
                     else -> CommandResponse.Error(exception.userMessage)
                 }
-            }
+            },
         )
     }
 
-    suspend fun deleteGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun deleteGroup(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
@@ -84,22 +97,28 @@ class GroupController(
 
         val key = args[0].lowercase()
 
-        return groupService.getGroupByKey(chatId, key).flatMap { group ->
-            groupService.deleteGroup(chatId, key).map { group.name }
-        }.fold(
-            onSuccess = { groupName ->
-                CommandResponse.Success(BotMessages.Group.deleted(groupName.escapeHtml()))
-            },
-            onFailure = { exception ->
-                when (exception) {
-                    is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
-                    else -> CommandResponse.Error(exception.userMessage)
-                }
-            }
-        )
+        return groupService
+            .getGroupByKey(chatId, key)
+            .flatMap { group ->
+                groupService.deleteGroup(chatId, key).map { group.name }
+            }.fold(
+                onSuccess = { groupName ->
+                    CommandResponse.Success(BotMessages.Group.deleted(groupName.escapeHtml()))
+                },
+                onFailure = { exception ->
+                    when (exception) {
+                        is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
+                        else -> CommandResponse.Error(exception.userMessage)
+                    }
+                },
+            )
     }
 
-    suspend fun addUserToGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun addUserToGroup(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
@@ -120,7 +139,7 @@ class GroupController(
                     is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
                     else -> CommandResponse.Error(exception.userMessage)
                 }
-            }
+            },
         )
 
         val succeeded = mutableListOf<String>()
@@ -141,7 +160,7 @@ class GroupController(
                         else -> BotMessages.Group.failureError
                     }
                     failed.add("@${username.escapeHtml()}" to reason)
-                }
+                },
             )
         }
 
@@ -151,7 +170,11 @@ class GroupController(
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 
-    suspend fun removeUserFromGroup(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun removeUserFromGroup(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.isEmpty()) {
@@ -172,7 +195,7 @@ class GroupController(
                     is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
                     else -> CommandResponse.Error(exception.userMessage)
                 }
-            }
+            },
         )
 
         val succeeded = mutableListOf<String>()
@@ -185,7 +208,7 @@ class GroupController(
         for (username in parsed.valid) {
             groupService.removeMemberFromGroup(chatId, key, username).fold(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
-                onFailure = { failed.add("@${username.escapeHtml()}") }
+                onFailure = { failed.add("@${username.escapeHtml()}") },
             )
         }
 
@@ -195,7 +218,11 @@ class GroupController(
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 
-    suspend fun grantRole(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun grantRole(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireAdminAccess(chatId, userId)?.let { return it }
 
         if (args.size < 2) return CommandResponse.Error(BotMessages.Group.usageGrant)
@@ -214,11 +241,12 @@ class GroupController(
         }
 
         for (username in parsed.valid) {
-            memberService.getMemberByUsername(username)
+            memberService
+                .getMemberByUsername(username)
                 .flatMap { member -> memberService.setMemberRole(chatId, member.userId, role) }
                 .fold(
                     onSuccess = { succeeded.add("@${username.escapeHtml()}") },
-                    onFailure = { failed.add("@${username.escapeHtml()}") }
+                    onFailure = { failed.add("@${username.escapeHtml()}") },
                 )
         }
 

@@ -10,7 +10,6 @@ import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -18,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class WhatsNewControllerTest {
-
     private val releaseNotesService: ReleaseNotesService = mockk()
     private val chatService: ChatService = mockk()
     private val memberService: MemberService = mockk()

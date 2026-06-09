@@ -6,7 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class MembersCommandE2ETest : BaseE2ETest() {
-
     @Test
     fun `members command auto-registers sender when no prior members exist`() {
         dispatch("/members")

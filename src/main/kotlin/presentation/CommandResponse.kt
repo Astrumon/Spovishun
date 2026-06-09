@@ -3,10 +3,24 @@ package com.ua.astrumon.presentation
 import com.ua.astrumon.presentation.bot.BotMessages
 
 sealed class CommandResponse {
-    data class Success(val message: String) : CommandResponse()
-    data class AccessDenied(val reason: String) : CommandResponse()
-    data class NotFound(val resource: String, val identifier: String, val available: List<String> = emptyList()) : CommandResponse()
-    data class Error(val message: String) : CommandResponse()
+    data class Success(
+        val message: String,
+    ) : CommandResponse()
+
+    data class AccessDenied(
+        val reason: String,
+    ) : CommandResponse()
+
+    data class NotFound(
+        val resource: String,
+        val identifier: String,
+        val available: List<String> = emptyList(),
+    ) : CommandResponse()
+
+    data class Error(
+        val message: String,
+    ) : CommandResponse()
+
     data object Silent : CommandResponse()
 }
 

@@ -11,7 +11,36 @@ Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Expo
 ./gradlew integrationTest    # in-process tests (MockImpl repos)
 ./gradlew e2eTest            # real Telegram API (skips if env vars unset)
 ./gradlew generateMigration  # interactive: create next versioned migration file
+./gradlew ktlintFormat       # auto-fix formatting (run before committing)
+./gradlew ktlintCheck        # verify formatting — CI hard gate
+./gradlew detekt             # static analysis — CI non-blocking (see Linting)
 ```
+
+## Linting & Static Analysis
+Two tools with split responsibility — never overlapping:
+- **ktlint** (`org.jlleitschuh.gradle.ktlint`) owns **formatting**: indentation, import order/wildcards, syntax.
+  Rules come from `.editorconfig`. It is the single formatting authority — `detekt-formatting` is
+  intentionally NOT enabled (would run the same rules twice). ktlint is a **hard CI gate**.
+- **detekt** (`dev.detekt`, 2.0 alpha) owns **code structure/smells**: complexity, return count, magic
+  numbers, generic catches. Config in `config/detekt/detekt.yml` (`buildUponDefaultConfig = true`).
+  Pre-existing findings are captured in `config/detekt/baseline.xml`; new code is held to the standard.
+  detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha supports Kotlin 2.3 /
+  Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once detekt 2.0 is stable.
+
+Workflow: run `./gradlew ktlintFormat` before committing; regenerate the baseline with
+`./gradlew detektBaseline` only when intentionally accepting new debt (review the diff).
+
+### Pre-commit hook (ktlint)
+A version-controlled hook at `.githooks/pre-commit` runs ktlint over the **staged** Kotlin files on
+every commit: it auto-fixes what it can and re-stages, and **blocks the commit** (printing each
+problem as `file:line`) on anything ktlint cannot fix automatically (e.g. wildcard imports).
+Enable it once per clone:
+```bash
+git config core.hooksPath .githooks
+```
+It only formats staged content (unstaged changes are stashed during the run), so partial commits are
+safe. The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `val x = call(…)`
+on one line); all other `ktlint_official` rules apply.
 
 ## Source Structure
 ```

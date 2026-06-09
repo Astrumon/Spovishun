@@ -19,8 +19,9 @@ import org.jetbrains.exposed.sql.selectAll
  *
  * Safety: refuses to run against a URL that looks like production.
  */
-class TestDatabaseCleaner(private val databaseUrl: String) {
-
+class TestDatabaseCleaner(
+    private val databaseUrl: String,
+) {
     private val prodUrlPatterns = listOf("neon.tech", "neon-", "prod")
 
     init {
@@ -34,7 +35,8 @@ class TestDatabaseCleaner(private val databaseUrl: String) {
 
     suspend fun cleanupByChatId(chatId: Long) {
         dbQuery {
-            val groupIds = Groups.selectAll()
+            val groupIds = Groups
+                .selectAll()
                 .where { Groups.chatId eq chatId }
                 .map { it[Groups.id] }
             if (groupIds.isNotEmpty()) {
@@ -43,14 +45,16 @@ class TestDatabaseCleaner(private val databaseUrl: String) {
 
             Groups.deleteWhere { Groups.chatId eq chatId }
 
-            val memberIds = MemberChats.selectAll()
+            val memberIds = MemberChats
+                .selectAll()
                 .where { MemberChats.chatId eq chatId }
                 .map { it[MemberChats.memberId] }
 
             MemberChats.deleteWhere { MemberChats.chatId eq chatId }
 
             if (memberIds.isNotEmpty()) {
-                val membersWithOtherChats = MemberChats.selectAll()
+                val membersWithOtherChats = MemberChats
+                    .selectAll()
                     .where { MemberChats.memberId inList memberIds }
                     .map { it[MemberChats.memberId] }
                     .toSet()
