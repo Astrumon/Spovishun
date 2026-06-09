@@ -5,6 +5,7 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
+import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.data.db.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.db.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
@@ -126,9 +127,10 @@ abstract class BaseIntegrationTest {
         botAdminUtils = mockk()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
         every { botAdminUtils.isUserAdmin(any(), any(), any()) } returns false
-        every { bot.getChat(any()) } returns com.github.kotlintelegrambot.types.TelegramBotResult.Success(
-            Chat(id = testChatId, type = "supergroup"),
-        )
+        every { bot.getChat(any()) } returns
+            TelegramBotResult.Success(
+                Chat(id = testChatId, type = "supergroup"),
+            )
 
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)

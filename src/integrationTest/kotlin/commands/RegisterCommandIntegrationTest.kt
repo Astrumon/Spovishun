@@ -1,7 +1,11 @@
 package commands
 
+import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.ChatId
+import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.github.kotlintelegrambot.entities.Update
+import com.github.kotlintelegrambot.entities.User
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -46,23 +50,21 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
     fun `register with null username should store user_id fallback`() = runTest {
         val update = buildUpdate("/register", username = null.toString())
         // Build update with actual null username
-        val user = com.github.kotlintelegrambot.entities.User(
+        val user = User(
             id = testUserId,
             isBot = false,
             firstName = testFirstName,
             username = null,
         )
-        val chat = com.github.kotlintelegrambot.entities
-            .Chat(id = testChatId, type = "supergroup")
-        val message = com.github.kotlintelegrambot.entities.Message(
+        val chat = Chat(id = testChatId, type = "supergroup")
+        val message = Message(
             messageId = 1L,
             date = 0L,
             chat = chat,
             from = user,
             text = "/register",
         )
-        val nullUsernameUpdate = com.github.kotlintelegrambot.entities
-            .Update(updateId = 1L, message = message)
+        val nullUsernameUpdate = Update(updateId = 1L, message = message)
 
         registerCommand.execute(bot, nullUsernameUpdate)
 
