@@ -21,7 +21,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class BirthdayCommandTest {
-
     private val birthdayController: BirthdayController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: BirthdayCommand
@@ -44,81 +43,88 @@ class BirthdayCommandTest {
     }
 
     @Test
-    fun `execute should send usage message when args are empty`() = runTest {
-        val update = createUpdate("/birthday")
+    fun `execute should send usage message when args are empty`() =
+        runTest {
+            val update = createUpdate("/birthday")
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
-        coVerify(exactly = 0) { birthdayController.clearOwnBirthday(any()) }
-        coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), any(), ParseMode.HTML) }
-    }
-
-    @Test
-    fun `execute should call clearOwnBirthday when arg is off`() = runTest {
-        coEvery { birthdayController.clearOwnBirthday(userId) } returns CommandResponse.Success("cleared")
-        val update = createUpdate("/birthday off")
-
-        command.execute(bot, update)
-
-        coVerify { birthdayController.clearOwnBirthday(userId) }
-        coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
-    }
+            coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
+            coVerify(exactly = 0) { birthdayController.clearOwnBirthday(any()) }
+            coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), any(), ParseMode.HTML) }
+        }
 
     @Test
-    fun `execute should call clearOwnBirthday case-insensitively`() = runTest {
-        coEvery { birthdayController.clearOwnBirthday(userId) } returns CommandResponse.Success("cleared")
-        val update = createUpdate("/birthday OFF")
+    fun `execute should call clearOwnBirthday when arg is off`() =
+        runTest {
+            coEvery { birthdayController.clearOwnBirthday(userId) } returns CommandResponse.Success("cleared")
+            val update = createUpdate("/birthday off")
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { birthdayController.clearOwnBirthday(userId) }
-    }
-
-    @Test
-    fun `execute should call setOwnBirthday when single date arg`() = runTest {
-        coEvery { birthdayController.setOwnBirthday(userId, "25.12") } returns CommandResponse.Success("saved")
-        val update = createUpdate("/birthday 25.12")
-
-        command.execute(bot, update)
-
-        coVerify { birthdayController.setOwnBirthday(userId, "25.12") }
-        coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
-    }
+            coVerify { birthdayController.clearOwnBirthday(userId) }
+            coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
+        }
 
     @Test
-    fun `execute should call setBirthdayForOther when date and username args provided`() = runTest {
-        coEvery { birthdayController.setBirthdayForOther(chatId, userId, listOf("25.12", "@bob")) } returns
-            CommandResponse.Success("saved")
-        val update = createUpdate("/birthday 25.12 @bob")
+    fun `execute should call clearOwnBirthday case-insensitively`() =
+        runTest {
+            coEvery { birthdayController.clearOwnBirthday(userId) } returns CommandResponse.Success("cleared")
+            val update = createUpdate("/birthday OFF")
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { birthdayController.setBirthdayForOther(chatId, userId, listOf("25.12", "@bob")) }
-        coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
-    }
-
-    @Test
-    fun `execute should return early when message is null`() = runTest {
-        val update = Update(updateId = 1L, message = null)
-
-        command.execute(bot, update)
-
-        coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
-        coVerify(exactly = 0) { birthdayController.clearOwnBirthday(any()) }
-        coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-    }
+            coVerify { birthdayController.clearOwnBirthday(userId) }
+        }
 
     @Test
-    fun `execute should send reply after controller response`() = runTest {
-        coEvery { birthdayController.setOwnBirthday(userId, "01.01") } returns
-            CommandResponse.Success("День народження збережено: <b>01.01</b>.")
-        val update = createUpdate("/birthday 01.01")
+    fun `execute should call setOwnBirthday when single date arg`() =
+        runTest {
+            coEvery { birthdayController.setOwnBirthday(userId, "25.12") } returns CommandResponse.Success("saved")
+            val update = createUpdate("/birthday 25.12")
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("01.01") }, ParseMode.HTML) }
-    }
+            coVerify { birthdayController.setOwnBirthday(userId, "25.12") }
+            coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
+        }
+
+    @Test
+    fun `execute should call setBirthdayForOther when date and username args provided`() =
+        runTest {
+            coEvery { birthdayController.setBirthdayForOther(chatId, userId, listOf("25.12", "@bob")) } returns
+                CommandResponse.Success("saved")
+            val update = createUpdate("/birthday 25.12 @bob")
+
+            command.execute(bot, update)
+
+            coVerify { birthdayController.setBirthdayForOther(chatId, userId, listOf("25.12", "@bob")) }
+            coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
+        }
+
+    @Test
+    fun `execute should return early when message is null`() =
+        runTest {
+            val update = Update(updateId = 1L, message = null)
+
+            command.execute(bot, update)
+
+            coVerify(exactly = 0) { birthdayController.setOwnBirthday(any(), any()) }
+            coVerify(exactly = 0) { birthdayController.clearOwnBirthday(any()) }
+            coVerify(exactly = 0) { birthdayController.setBirthdayForOther(any(), any(), any()) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+        }
+
+    @Test
+    fun `execute should send reply after controller response`() =
+        runTest {
+            coEvery { birthdayController.setOwnBirthday(userId, "01.01") } returns
+                CommandResponse.Success("День народження збережено: <b>01.01</b>.")
+            val update = createUpdate("/birthday 01.01")
+
+            command.execute(bot, update)
+
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("01.01") }, ParseMode.HTML) }
+        }
 }

@@ -20,7 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupMemberRepositoryImplTest {
-
     private val repository = GroupMemberRepositoryImpl()
     private val chatRepository = ChatRepositoryImpl()
     private val chatId = 100L
@@ -40,7 +39,10 @@ class GroupMemberRepositoryImplTest {
         chatRepository.save(chatId, null, null)
     }
 
-    private fun insertMember(username: String, userId: Long = username.hashCode().toLong()) {
+    private fun insertMember(
+        username: String,
+        userId: Long = username.hashCode().toLong(),
+    ) {
         transaction {
             Members.insert {
                 it[Members.userId] = userId
@@ -61,170 +63,183 @@ class GroupMemberRepositoryImplTest {
     }
 
     @Test
-    fun `addMemberToGroup should succeed when group and member exist`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertMember("alice")
+    fun `addMemberToGroup should succeed when group and member exist`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertMember("alice")
 
-        val result = repository.addMemberToGroup(chatId, "devs", "alice")
+            val result = repository.addMemberToGroup(chatId, "devs", "alice")
 
-        assertTrue(result.isSuccess)
-    }
-
-    @Test
-    fun `addMemberToGroup should return failure when group not exists`() = runTest {
-        insertMember("alice")
-
-        val result = repository.addMemberToGroup(chatId, "nonexistent", "alice")
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
+            assertTrue(result.isSuccess)
+        }
 
     @Test
-    fun `addMemberToGroup should return failure when member not exists`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
+    fun `addMemberToGroup should return failure when group not exists`() =
+        runTest {
+            insertMember("alice")
 
-        val result = repository.addMemberToGroup(chatId, "devs", "nonexistent")
+            val result = repository.addMemberToGroup(chatId, "nonexistent", "alice")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
-
-    @Test
-    fun `addMemberToGroup should return failure when member already in group`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertMember("alice")
-        repository.addMemberToGroup(chatId, "devs", "alice")
-
-        val result = repository.addMemberToGroup(chatId, "devs", "alice")
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is DuplicateResourceException)
-    }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
 
     @Test
-    fun `getGroupMembers should return empty list for group with no members`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
+    fun `addMemberToGroup should return failure when member not exists`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
 
-        val result = repository.getGroupMembers(chatId, "devs")
+            val result = repository.addMemberToGroup(chatId, "devs", "nonexistent")
 
-        assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow().isEmpty())
-    }
-
-    @Test
-    fun `getGroupMembers should return all members of group`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertMember("alice")
-        insertMember("bob")
-        repository.addMemberToGroup(chatId, "devs", "alice")
-        repository.addMemberToGroup(chatId, "devs", "bob")
-
-        val result = repository.getGroupMembers(chatId, "devs")
-
-        assertTrue(result.isSuccess)
-        val members = result.getOrThrow()
-        assertEquals(2, members.size)
-        assertEquals(setOf("alice", "bob"), members.toSet())
-    }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
 
     @Test
-    fun `getGroupMembers should return failure when group not exists`() = runTest {
-        val result = repository.getGroupMembers(chatId, "nonexistent")
+    fun `addMemberToGroup should return failure when member already in group`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertMember("alice")
+            repository.addMemberToGroup(chatId, "devs", "alice")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
+            val result = repository.addMemberToGroup(chatId, "devs", "alice")
 
-    @Test
-    fun `removeMemberFromGroup should succeed when member is in group`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertMember("alice")
-        repository.addMemberToGroup(chatId, "devs", "alice")
-
-        val result = repository.removeMemberFromGroup(chatId, "devs", "alice")
-
-        assertTrue(result.isSuccess)
-
-        val membersResult = repository.getGroupMembers(chatId, "devs")
-        assertTrue(membersResult.getOrThrow().isEmpty())
-    }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is DuplicateResourceException)
+        }
 
     @Test
-    fun `removeMemberFromGroup should return failure when group not exists`() = runTest {
-        insertMember("alice")
+    fun `getGroupMembers should return empty list for group with no members`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
 
-        val result = repository.removeMemberFromGroup(chatId, "nonexistent", "alice")
+            val result = repository.getGroupMembers(chatId, "devs")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
-
-    @Test
-    fun `removeMemberFromGroup should return failure when member not exists`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-
-        val result = repository.removeMemberFromGroup(chatId, "devs", "nonexistent")
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
+            assertTrue(result.isSuccess)
+            assertTrue(result.getOrThrow().isEmpty())
+        }
 
     @Test
-    fun `removeMemberFromGroup should return failure when member not in group`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertMember("alice")
+    fun `getGroupMembers should return all members of group`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertMember("alice")
+            insertMember("bob")
+            repository.addMemberToGroup(chatId, "devs", "alice")
+            repository.addMemberToGroup(chatId, "devs", "bob")
 
-        val result = repository.removeMemberFromGroup(chatId, "devs", "alice")
+            val result = repository.getGroupMembers(chatId, "devs")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is BusinessException)
-    }
-
-    @Test
-    fun `members should be independent across groups`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertGroup("ops")
-        insertMember("alice")
-        insertMember("bob")
-
-        repository.addMemberToGroup(chatId, "devs", "alice")
-        repository.addMemberToGroup(chatId, "devs", "bob")
-        repository.addMemberToGroup(chatId, "ops", "alice")
-
-        val devsResult = repository.getGroupMembers(chatId, "devs")
-        assertEquals(2, devsResult.getOrThrow().size)
-
-        val opsResult = repository.getGroupMembers(chatId, "ops")
-        assertEquals(1, opsResult.getOrThrow().size)
-        assertEquals("alice", opsResult.getOrThrow().first())
-    }
+            assertTrue(result.isSuccess)
+            val members = result.getOrThrow()
+            assertEquals(2, members.size)
+            assertEquals(setOf("alice", "bob"), members.toSet())
+        }
 
     @Test
-    fun `removing member from one group should not affect other groups`() = runTest {
-        ensureChat(chatId)
-        insertGroup("devs")
-        insertGroup("ops")
-        insertMember("alice")
+    fun `getGroupMembers should return failure when group not exists`() =
+        runTest {
+            val result = repository.getGroupMembers(chatId, "nonexistent")
 
-        repository.addMemberToGroup(chatId, "devs", "alice")
-        repository.addMemberToGroup(chatId, "ops", "alice")
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
 
-        repository.removeMemberFromGroup(chatId, "devs", "alice")
+    @Test
+    fun `removeMemberFromGroup should succeed when member is in group`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertMember("alice")
+            repository.addMemberToGroup(chatId, "devs", "alice")
 
-        val devsResult = repository.getGroupMembers(chatId, "devs")
-        assertTrue(devsResult.getOrThrow().isEmpty())
+            val result = repository.removeMemberFromGroup(chatId, "devs", "alice")
 
-        val opsResult = repository.getGroupMembers(chatId, "ops")
-        assertEquals(listOf("alice"), opsResult.getOrThrow())
-    }
+            assertTrue(result.isSuccess)
+
+            val membersResult = repository.getGroupMembers(chatId, "devs")
+            assertTrue(membersResult.getOrThrow().isEmpty())
+        }
+
+    @Test
+    fun `removeMemberFromGroup should return failure when group not exists`() =
+        runTest {
+            insertMember("alice")
+
+            val result = repository.removeMemberFromGroup(chatId, "nonexistent", "alice")
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
+
+    @Test
+    fun `removeMemberFromGroup should return failure when member not exists`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+
+            val result = repository.removeMemberFromGroup(chatId, "devs", "nonexistent")
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
+
+    @Test
+    fun `removeMemberFromGroup should return failure when member not in group`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertMember("alice")
+
+            val result = repository.removeMemberFromGroup(chatId, "devs", "alice")
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is BusinessException)
+        }
+
+    @Test
+    fun `members should be independent across groups`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertGroup("ops")
+            insertMember("alice")
+            insertMember("bob")
+
+            repository.addMemberToGroup(chatId, "devs", "alice")
+            repository.addMemberToGroup(chatId, "devs", "bob")
+            repository.addMemberToGroup(chatId, "ops", "alice")
+
+            val devsResult = repository.getGroupMembers(chatId, "devs")
+            assertEquals(2, devsResult.getOrThrow().size)
+
+            val opsResult = repository.getGroupMembers(chatId, "ops")
+            assertEquals(1, opsResult.getOrThrow().size)
+            assertEquals("alice", opsResult.getOrThrow().first())
+        }
+
+    @Test
+    fun `removing member from one group should not affect other groups`() =
+        runTest {
+            ensureChat(chatId)
+            insertGroup("devs")
+            insertGroup("ops")
+            insertMember("alice")
+
+            repository.addMemberToGroup(chatId, "devs", "alice")
+            repository.addMemberToGroup(chatId, "ops", "alice")
+
+            repository.removeMemberFromGroup(chatId, "devs", "alice")
+
+            val devsResult = repository.getGroupMembers(chatId, "devs")
+            assertTrue(devsResult.getOrThrow().isEmpty())
+
+            val opsResult = repository.getGroupMembers(chatId, "ops")
+            assertEquals(listOf("alice"), opsResult.getOrThrow())
+        }
 }

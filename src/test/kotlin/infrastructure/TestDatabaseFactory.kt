@@ -33,7 +33,8 @@ object TestDatabaseFactory {
         val ds = HikariDataSource(hikariConfig)
         Database.connect(ds)
 
-        val flyway = Flyway.configure()
+        val flyway = Flyway
+            .configure()
             .dataSource(ds)
             .locations("classpath:db/migration/postgresql")
             .cleanDisabled(false)

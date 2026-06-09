@@ -23,7 +23,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class RegisterCommandTest {
-
     private val registrationController: RegistrationController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -42,7 +41,7 @@ class RegisterCommandTest {
 
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
-        chatIdVal: Long = chatId
+        chatIdVal: Long = chatId,
     ): Update {
         val chat = Chat(id = chatIdVal, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser)
@@ -50,58 +49,63 @@ class RegisterCommandTest {
     }
 
     @Test
-    fun `invoke should delegate to controller and send success message with checkmark`() = runTest {
-        val update = createUpdate()
-        coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            CommandResponse.Success("Alice, зареєстровані в системі!")
+    fun `invoke should delegate to controller and send success message with checkmark`() =
+        runTest {
+            val update = createUpdate()
+            coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+                CommandResponse.Success("Alice, зареєстровані в системі!")
 
-        registerCommand.execute(bot, update)
+            registerCommand.execute(bot, update)
 
-        coVerify { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
-        coVerify {
-            bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("✅") && it.contains("зареєстровані") }, ParseMode.HTML)
+            coVerify { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+            coVerify {
+                bot.sendMessage(ChatId.fromId(chatId), match { it.startsWith("✅") && it.contains("зареєстровані") }, ParseMode.HTML)
+            }
         }
-    }
 
     @Test
-    fun `invoke should send already registered message`() = runTest {
-        val update = createUpdate()
-        coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            CommandResponse.Success("Alice, ви вже зареєстровані в системі.")
+    fun `invoke should send already registered message`() =
+        runTest {
+            val update = createUpdate()
+            coEvery { registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+                CommandResponse.Success("Alice, ви вже зареєстровані в системі.")
 
-        registerCommand.execute(bot, update)
+            registerCommand.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("вже зареєстровані") }, ParseMode.HTML) }
-    }
-
-    @Test
-    fun `invoke should use user_id as username when username is null`() = runTest {
-        val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
-        val update = createUpdate(fromUser = user)
-        coEvery { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) } returns
-            CommandResponse.Success("ok")
-
-        registerCommand.execute(bot, update)
-
-        coVerify { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
-    }
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("вже зареєстровані") }, ParseMode.HTML) }
+        }
 
     @Test
-    fun `invoke should return early when user is null`() = runTest {
-        val update = createUpdate(fromUser = null)
+    fun `invoke should use user_id as username when username is null`() =
+        runTest {
+            val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
+            val update = createUpdate(fromUser = user)
+            coEvery { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) } returns
+                CommandResponse.Success("ok")
 
-        registerCommand.execute(bot, update)
+            registerCommand.execute(bot, update)
 
-        coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-    }
+            coVerify { registrationController.register(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
+        }
 
     @Test
-    fun `invoke should return early when message is null`() = runTest {
-        val update = Update(updateId = 1L, message = null)
+    fun `invoke should return early when user is null`() =
+        runTest {
+            val update = createUpdate(fromUser = null)
 
-        registerCommand.execute(bot, update)
+            registerCommand.execute(bot, update)
 
-        coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
-    }
+            coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+        }
+
+    @Test
+    fun `invoke should return early when message is null`() =
+        runTest {
+            val update = Update(updateId = 1L, message = null)
+
+            registerCommand.execute(bot, update)
+
+            coVerify(exactly = 0) { registrationController.register(any(), any(), any(), any(), any<MemberRole>()) }
+        }
 }

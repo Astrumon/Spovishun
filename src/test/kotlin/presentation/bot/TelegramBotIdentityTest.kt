@@ -16,7 +16,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TelegramBotIdentityTest {
-
     private val commandRegistry: CommandRegistry = mockk(relaxed = true)
     private val messageHandler: MessageHandler = mockk(relaxed = true)
     private val config: AppConfig = mockk(relaxed = true)

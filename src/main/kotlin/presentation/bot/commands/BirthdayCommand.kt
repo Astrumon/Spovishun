@@ -9,10 +9,12 @@ import com.ua.astrumon.presentation.toText
 class BirthdayCommand(
     private val birthdayController: BirthdayController,
 ) : BotCommand {
-
     override val name = "birthday"
 
-    override suspend fun execute(bot: Bot, update: Update) {
+    override suspend fun execute(
+        bot: Bot,
+        update: Update,
+    ) {
         val (chatId, userId, args) = update.messageContext() ?: return
 
         if (args.isEmpty()) {
@@ -26,9 +28,12 @@ class BirthdayCommand(
             else -> birthdayController.setBirthdayForOther(chatId, userId, args)
         }
 
-        bot.reply(chatId, response.toText(
-            successPrefix = BotMessages.Success.prefix,
-            onAccessDenied = { BotMessages.Error.onlyAdminsModerators }
-        ))
+        bot.reply(
+            chatId,
+            response.toText(
+                successPrefix = BotMessages.Success.prefix,
+                onAccessDenied = { BotMessages.Error.onlyAdminsModerators },
+            ),
+        )
     }
 }

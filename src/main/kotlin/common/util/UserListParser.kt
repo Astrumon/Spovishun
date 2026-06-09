@@ -15,8 +15,8 @@ object UserListParser {
      * @param userList The string containing the user list
      * @return List of usernames without @ prefix
      */
-    fun parseUserList(userList: String): List<String> {
-        return userList
+    fun parseUserList(userList: String): List<String> =
+        userList
             // Handle comma-separated format
             .split(",")
             .map { it.trim() }
@@ -27,11 +27,9 @@ object UserListParser {
                 } else {
                     items
                 }
-            }
-            .filter { it.startsWith("@") }
+            }.filter { it.startsWith("@") }
             .map { it.trim().removePrefix("@") }
             .filter { it.isNotEmpty() }
-    }
 
     /**
      * Parses a single username from a string, removing the @ prefix if present.
@@ -40,7 +38,5 @@ object UserListParser {
      * @param username The username string, optionally with @ prefix
      * @return Username without @ prefix
      */
-    fun parseSingleUsername(username: String): String {
-        return username.trim().removePrefix("@")
-    }
+    fun parseSingleUsername(username: String): String = username.trim().removePrefix("@")
 }

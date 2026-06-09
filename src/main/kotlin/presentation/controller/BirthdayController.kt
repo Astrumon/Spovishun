@@ -13,22 +13,28 @@ class BirthdayController(
     private val birthdayService: BirthdayService,
     memberService: MemberService,
 ) : BaseController(memberService) {
-
-    suspend fun setOwnBirthday(userId: Long, dateToken: String): CommandResponse {
+    suspend fun setOwnBirthday(
+        userId: Long,
+        dateToken: String,
+    ): CommandResponse {
         val birthday = BirthDate.parse(dateToken) ?: return CommandResponse.Error(BotMessages.Birthday.invalidDate)
         return birthdayService.setBirthday(userId, birthday).fold(
             onSuccess = { CommandResponse.Success(BotMessages.Birthday.setSuccess(birthday.format())) },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) }
+            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
         )
     }
 
     suspend fun clearOwnBirthday(userId: Long): CommandResponse =
         birthdayService.clearBirthday(userId).fold(
             onSuccess = { CommandResponse.Success(BotMessages.Birthday.cleared) },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) }
+            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
         )
 
-    suspend fun setBirthdayForOther(chatId: Long, userId: Long, args: List<String>): CommandResponse {
+    suspend fun setBirthdayForOther(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+    ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         if (args.size < 2) return CommandResponse.Error(BotMessages.Birthday.usage)
@@ -42,11 +48,12 @@ class BirthdayController(
         return birthdayService.setBirthdayForUsername(username, birthday).fold(
             onSuccess = { CommandResponse.Success(BotMessages.Birthday.setSuccess(birthday.format())) },
             onFailure = { ex ->
-                if (ex is ResourceNotFoundException)
+                if (ex is ResourceNotFoundException) {
                     CommandResponse.Error(BotMessages.Birthday.userNotRegistered(username.escapeHtml()))
-                else
+                } else {
                     CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage))
-            }
+                }
+            },
         )
     }
 }

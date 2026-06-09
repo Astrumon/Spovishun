@@ -24,7 +24,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class ReleaseAnnouncerTest {
-
     private val releaseNotesService: ReleaseNotesService = mockk()
     private val botMetaService: BotMetaService = mockk()
     private val chatService: ChatService = mockk()
@@ -42,110 +41,116 @@ class ReleaseAnnouncerTest {
     }
 
     @Test
-    fun `should silently save version on first run when stored is null`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+    fun `should silently save version on first run when stored is null`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(null)
-        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(null)
+            coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
 
-        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-        scope.cancel()
-    }
-
-    @Test
-    fun `should do nothing when stored version equals current version`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
-
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(currentVersion)
-
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
-
-        coVerify(exactly = 0) { botMetaService.setLastNotifiedVersion(any()) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-        scope.cancel()
-    }
+            coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+            scope.cancel()
+        }
 
     @Test
-    fun `should broadcast to all chats when version changes and note found`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+    fun `should do nothing when stored version equals current version`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
-        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(currentVersion)
 
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
 
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) }
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
-        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
-        scope.cancel()
-    }
+            coVerify(exactly = 0) { botMetaService.setLastNotifiedVersion(any()) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+            scope.cancel()
+        }
 
     @Test
-    fun `should save version without broadcast when no release note found`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+    fun `should broadcast to all chats when version changes and note found`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
-            listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future")))
-        )
-        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
+            coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
+            coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
 
-        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-        scope.cancel()
-    }
-
-    @Test
-    fun `should continue to other chats when one sendMessage throws`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
-
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
-        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
-        every {
-            bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML)
-        } throws RuntimeException("Telegram error")
-
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
-
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
-        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
-        scope.cancel()
-    }
+            coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) }
+            coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
+            coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+            scope.cancel()
+        }
 
     @Test
-    fun `should advance version pointer without broadcast when getAll fails`() = runTest {
-        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+    fun `should save version without broadcast when no release note found`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
-        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns
-            ResultContainer.failure(DatabaseException("read error"))
-        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+                listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future"))),
+            )
+            coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
-        announcer.notifyIfNewVersion(bot)
-        testScheduler.runCurrent()
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
 
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
-        scope.cancel()
-    }
+            coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+            scope.cancel()
+        }
+
+    @Test
+    fun `should continue to other chats when one sendMessage throws`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
+            coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
+            coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+            every {
+                bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML)
+            } throws RuntimeException("Telegram error")
+
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
+
+            coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
+            coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+            scope.cancel()
+        }
+
+    @Test
+    fun `should advance version pointer without broadcast when getAll fails`() =
+        runTest {
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+            val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+            coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+            coEvery { releaseNotesService.getAll() } returns
+                ResultContainer.failure(DatabaseException("read error"))
+            coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+
+            announcer.notifyIfNewVersion(bot)
+            testScheduler.runCurrent()
+
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+            coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+            scope.cancel()
+        }
 }

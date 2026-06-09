@@ -10,7 +10,6 @@ import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -18,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class WhatsNewControllerTest {
-
     private val releaseNotesService: ReleaseNotesService = mockk()
     private val chatService: ChatService = mockk()
     private val memberService: MemberService = mockk()
@@ -40,122 +38,134 @@ class WhatsNewControllerTest {
     }
 
     @Test
-    fun `showLatest should return Success with first note content`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
+    fun `showLatest should return Success with first note content`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.showLatest()
+            val result = controller.showLatest()
 
-        assertTrue(result is CommandResponse.Success)
-        assertTrue(result.message.contains("2.0.0"))
-    }
-
-    @Test
-    fun `showLatest should not include older versions`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
-
-        val result = controller.showLatest()
-
-        assertTrue(result is CommandResponse.Success)
-        assertTrue(!result.message.contains("1.0.0"))
-    }
+            assertTrue(result is CommandResponse.Success)
+            assertTrue(result.message.contains("2.0.0"))
+        }
 
     @Test
-    fun `showLatest should return Silent when notes are empty`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
+    fun `showLatest should not include older versions`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.showLatest()
+            val result = controller.showLatest()
 
-        assertTrue(result is CommandResponse.Silent)
-    }
-
-    @Test
-    fun `showLatest should return Error when service fails`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns
-            ResultContainer.failure(DatabaseException("classpath read failed"))
-
-        val result = controller.showLatest()
-
-        assertTrue(result is CommandResponse.Error)
-    }
+            assertTrue(result is CommandResponse.Success)
+            assertTrue(!result.message.contains("1.0.0"))
+        }
 
     @Test
-    fun `showHistory should return Success with all versions`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
+    fun `showLatest should return Silent when notes are empty`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
 
-        val result = controller.showHistory()
+            val result = controller.showLatest()
 
-        assertTrue(result is CommandResponse.Success)
-        assertTrue(result.message.contains("2.0.0"))
-        assertTrue(result.message.contains("1.0.0"))
-    }
-
-    @Test
-    fun `showHistory should return Silent when notes are empty`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
-
-        val result = controller.showHistory()
-
-        assertTrue(result is CommandResponse.Silent)
-    }
+            assertTrue(result is CommandResponse.Silent)
+        }
 
     @Test
-    fun `showHistory should return Error when service fails`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns
-            ResultContainer.failure(DatabaseException("classpath read failed"))
+    fun `showLatest should return Error when service fails`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns
+                ResultContainer.failure(DatabaseException("classpath read failed"))
 
-        val result = controller.showHistory()
+            val result = controller.showLatest()
 
-        assertTrue(result is CommandResponse.Error)
-    }
-
-    @Test
-    fun `showLatest should return Success for single-entry list`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(notes.first()))
-
-        val result = controller.showLatest()
-
-        assertTrue(result is CommandResponse.Success)
-    }
+            assertTrue(result is CommandResponse.Error)
+        }
 
     @Test
-    fun `setAnnouncements should return AccessDenied when user is not admin`() = runTest {
-        coEvery { memberService.hasAdminAccess(chatId, memberId) } returns false
+    fun `showHistory should return Success with all versions`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.setAnnouncements(chatId, memberId, enabled = true)
+            val result = controller.showHistory()
 
-        assertTrue(result is CommandResponse.AccessDenied)
-    }
-
-    @Test
-    fun `setAnnouncements enabled should return Success when user is admin`() = runTest {
-        coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
-        coEvery { chatService.setAnnouncementsEnabled(chatId, true) } returns ResultContainer.success(Unit)
-
-        val result = controller.setAnnouncements(chatId, adminId, enabled = true)
-
-        assertTrue(result is CommandResponse.Success)
-        assertTrue((result as CommandResponse.Success).message.contains("увімкнено"))
-    }
+            assertTrue(result is CommandResponse.Success)
+            assertTrue(result.message.contains("2.0.0"))
+            assertTrue(result.message.contains("1.0.0"))
+        }
 
     @Test
-    fun `setAnnouncements disabled should return Success when user is admin`() = runTest {
-        coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
-        coEvery { chatService.setAnnouncementsEnabled(chatId, false) } returns ResultContainer.success(Unit)
+    fun `showHistory should return Silent when notes are empty`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
 
-        val result = controller.setAnnouncements(chatId, adminId, enabled = false)
+            val result = controller.showHistory()
 
-        assertTrue(result is CommandResponse.Success)
-        assertTrue((result as CommandResponse.Success).message.contains("вимкнено"))
-    }
+            assertTrue(result is CommandResponse.Silent)
+        }
 
     @Test
-    fun `setAnnouncements should return Error when chatService fails`() = runTest {
-        coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
-        coEvery { chatService.setAnnouncementsEnabled(chatId, true) } returns
-            ResultContainer.failure(DatabaseException("db error"))
+    fun `showHistory should return Error when service fails`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns
+                ResultContainer.failure(DatabaseException("classpath read failed"))
 
-        val result = controller.setAnnouncements(chatId, adminId, enabled = true)
+            val result = controller.showHistory()
 
-        assertTrue(result is CommandResponse.Error)
-    }
+            assertTrue(result is CommandResponse.Error)
+        }
+
+    @Test
+    fun `showLatest should return Success for single-entry list`() =
+        runTest {
+            coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(notes.first()))
+
+            val result = controller.showLatest()
+
+            assertTrue(result is CommandResponse.Success)
+        }
+
+    @Test
+    fun `setAnnouncements should return AccessDenied when user is not admin`() =
+        runTest {
+            coEvery { memberService.hasAdminAccess(chatId, memberId) } returns false
+
+            val result = controller.setAnnouncements(chatId, memberId, enabled = true)
+
+            assertTrue(result is CommandResponse.AccessDenied)
+        }
+
+    @Test
+    fun `setAnnouncements enabled should return Success when user is admin`() =
+        runTest {
+            coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
+            coEvery { chatService.setAnnouncementsEnabled(chatId, true) } returns ResultContainer.success(Unit)
+
+            val result = controller.setAnnouncements(chatId, adminId, enabled = true)
+
+            assertTrue(result is CommandResponse.Success)
+            assertTrue((result as CommandResponse.Success).message.contains("увімкнено"))
+        }
+
+    @Test
+    fun `setAnnouncements disabled should return Success when user is admin`() =
+        runTest {
+            coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
+            coEvery { chatService.setAnnouncementsEnabled(chatId, false) } returns ResultContainer.success(Unit)
+
+            val result = controller.setAnnouncements(chatId, adminId, enabled = false)
+
+            assertTrue(result is CommandResponse.Success)
+            assertTrue((result as CommandResponse.Success).message.contains("вимкнено"))
+        }
+
+    @Test
+    fun `setAnnouncements should return Error when chatService fails`() =
+        runTest {
+            coEvery { memberService.hasAdminAccess(chatId, adminId) } returns true
+            coEvery { chatService.setAnnouncementsEnabled(chatId, true) } returns
+                ResultContainer.failure(DatabaseException("db error"))
+
+            val result = controller.setAnnouncements(chatId, adminId, enabled = true)
+
+            assertTrue(result is CommandResponse.Error)
+        }
 }

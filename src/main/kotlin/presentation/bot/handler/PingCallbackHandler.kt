@@ -19,7 +19,10 @@ class PingCallbackHandler(
     private val pingController: PingController,
     private val botAdminUtils: BotAdminUtils,
 ) {
-    suspend fun handle(bot: Bot, update: Update) {
+    suspend fun handle(
+        bot: Bot,
+        update: Update,
+    ) {
         val callbackQuery = update.callbackQuery ?: return
         val data = callbackQuery.data ?: return
         if (!data.startsWith(PingCallback.PREFIX)) return
@@ -35,7 +38,7 @@ class PingCallbackHandler(
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 
         val text = pingController.pingGroupById(chatId, user.id, username, user.firstName, userRole, groupId).toText(
-            onNotFound = { BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") }
+            onNotFound = { BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") },
         )
 
         runCatching {

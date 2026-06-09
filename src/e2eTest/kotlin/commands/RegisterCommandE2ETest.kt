@@ -6,7 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RegisterCommandE2ETest : BaseE2ETest() {
-
     @Test
     fun `register command creates the sender in the repository`() {
         dispatch("/register")

@@ -8,8 +8,12 @@ import org.slf4j.LoggerFactory
 class BotAdminUtils {
     private val logger = LoggerFactory.getLogger(BotAdminUtils::class.java)
 
-    fun isUserAdmin(bot: Bot, chatId: Long, userId: Long): Boolean {
-        return try {
+    fun isUserAdmin(
+        bot: Bot,
+        chatId: Long,
+        userId: Long,
+    ): Boolean =
+        try {
             val chatMemberResponse = bot.getChatMember(ChatId.fromId(chatId), userId)
             if (chatMemberResponse.isSuccess) {
                 val chatMember = chatMemberResponse.get()
@@ -22,11 +26,15 @@ class BotAdminUtils {
             logger.warn("Error checking admin status: ${e::class.simpleName}")
             false
         }
-    }
 
-    fun getMemberRole(bot: Bot, chatId: Long, userId: Long): MemberRole = if (isUserAdmin(bot, chatId, userId)) {
-        MemberRole.ADMIN
-    } else {
-        MemberRole.MEMBER
-    }
+    fun getMemberRole(
+        bot: Bot,
+        chatId: Long,
+        userId: Long,
+    ): MemberRole =
+        if (isUserAdmin(bot, chatId, userId)) {
+            MemberRole.ADMIN
+        } else {
+            MemberRole.MEMBER
+        }
 }

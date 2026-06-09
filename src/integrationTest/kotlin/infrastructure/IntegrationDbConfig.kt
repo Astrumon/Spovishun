@@ -3,7 +3,10 @@ package infrastructure
 import io.github.cdimascio.dotenv.dotenv
 
 object IntegrationDbConfig {
-    private val env = dotenv { filename = ".env.e2e"; ignoreIfMissing = true }
+    private val env = dotenv {
+        filename = ".env.e2e"
+        ignoreIfMissing = true
+    }
 
     private fun get(key: String): String? = env[key]?.takeIf { it.isNotBlank() }
 

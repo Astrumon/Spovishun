@@ -1,26 +1,29 @@
 package com.ua.astrumon.presentation.controller
 
 import com.ua.astrumon.common.util.escapeHtml
-import com.ua.astrumon.presentation.CommandResponse
-import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.domain.model.Member
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.badge
 import com.ua.astrumon.domain.service.AutoRegisterService
 import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 
 class MembersController(
     memberService: MemberService,
     private val autoRegisterService: AutoRegisterService,
 ) : BaseController(memberService) {
-
-    suspend fun getMembers(chatId: Long, member: Member, userRole: MemberRole): CommandResponse {
+    suspend fun getMembers(
+        chatId: Long,
+        member: Member,
+        userRole: MemberRole,
+    ): CommandResponse {
         autoRegisterService.ensureUserRegistered(
             chatId = chatId,
             userId = member.userId,
             username = member.username,
             firstName = member.firstName,
-            userRole = userRole
+            userRole = userRole,
         )
 
         return memberService.getAllMembersInChat(chatId).fold(
@@ -40,7 +43,7 @@ class MembersController(
                     CommandResponse.Success(lines.joinToString("\n") + BotMessages.Member.totalSuffix(members.size))
                 }
             },
-            onFailure = { CommandResponse.Error(it.userMessage) }
+            onFailure = { CommandResponse.Error(it.userMessage) },
         )
     }
 }

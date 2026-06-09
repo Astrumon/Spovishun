@@ -1,8 +1,8 @@
 package com.ua.astrumon.data.db.repository
 
 import com.ua.astrumon.common.exception.ResourceNotFoundException
-import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.data.db.table.Chats
 import com.ua.astrumon.data.mapper.toChat
 import com.ua.astrumon.domain.model.Chat
@@ -21,16 +21,24 @@ class ChatRepositoryImpl : ChatRepository {
 
     override suspend fun findById(chatId: Long): ResultContainer<Chat?> =
         safeDbQuery {
-            Chats.selectAll()
+            Chats
+                .selectAll()
                 .where { Chats.chatId eq chatId }
-                .singleOrNull()?.toChat()
+                .singleOrNull()
+                ?.toChat()
         }
 
-    override suspend fun save(chatId: Long, title: String?, type: String?): ResultContainer<Chat> =
+    override suspend fun save(
+        chatId: Long,
+        title: String?,
+        type: String?,
+    ): ResultContainer<Chat> =
         safeDbQuery {
-            val existing = Chats.selectAll()
+            val existing = Chats
+                .selectAll()
                 .where { Chats.chatId eq chatId }
-                .singleOrNull()?.toChat()
+                .singleOrNull()
+                ?.toChat()
 
             if (existing != null) return@safeDbQuery existing
 
@@ -41,13 +49,18 @@ class ChatRepositoryImpl : ChatRepository {
                 it[this@insertIgnore.registeredAt] = Clock.System.now()
             }
 
-            Chats.selectAll()
+            Chats
+                .selectAll()
                 .where { Chats.chatId eq chatId }
-                .singleOrNull()?.toChat()
+                .singleOrNull()
+                ?.toChat()
                 ?: throw ResourceNotFoundException("Chat", chatId.toString())
         }
 
-    override suspend fun setAnnouncementsEnabled(chatId: Long, enabled: Boolean): ResultContainer<Unit> =
+    override suspend fun setAnnouncementsEnabled(
+        chatId: Long,
+        enabled: Boolean,
+    ): ResultContainer<Unit> =
         safeDbQuery {
             Chats.update({ Chats.chatId eq chatId }) {
                 it[announcementsEnabled] = enabled
@@ -57,7 +70,8 @@ class ChatRepositoryImpl : ChatRepository {
 
     override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> =
         safeDbQuery {
-            Chats.selectAll()
+            Chats
+                .selectAll()
                 .where { Chats.announcementsEnabled eq true }
                 .map { it[Chats.chatId] }
         }

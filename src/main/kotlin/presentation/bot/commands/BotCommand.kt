@@ -8,16 +8,31 @@ import com.github.kotlintelegrambot.entities.Update
 
 interface BotCommand {
     val name: String
-    suspend fun execute(bot: Bot, update: Update)
+
+    suspend fun execute(
+        bot: Bot,
+        update: Update,
+    )
 }
 
-internal data class MessageContext(val chatId: Long, val userId: Long, val args: List<String>)
+internal data class MessageContext(
+    val chatId: Long,
+    val userId: Long,
+    val args: List<String>,
+)
 
-internal fun Bot.reply(chatId: Long, text: String) {
+internal fun Bot.reply(
+    chatId: Long,
+    text: String,
+) {
     sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
 }
 
-internal fun Bot.replyWithKeyboard(chatId: Long, text: String, keyboard: InlineKeyboardMarkup) {
+internal fun Bot.replyWithKeyboard(
+    chatId: Long,
+    text: String,
+    keyboard: InlineKeyboardMarkup,
+) {
     sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML, replyMarkup = keyboard)
 }
 

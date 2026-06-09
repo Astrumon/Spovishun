@@ -24,7 +24,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class StartCommandTest {
-
     private val registrationController: RegistrationController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -45,108 +44,121 @@ class StartCommandTest {
         coEvery { registrationController.ensureUserRegistered(any(), any(), any(), any(), any()) } returns Unit
     }
 
-    private fun createUpdate(fromUser: User? = user, chatIdVal: Long = chatId, chatType: String = "private"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        chatIdVal: Long = chatId,
+        chatType: String = "private",
+    ): Update {
         val chat = Chat(id = chatIdVal, type = chatType)
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = "/start")
         return Update(updateId = 1L, message = message)
     }
 
     @Test
-    fun `invoke should delegate to controller and send welcome message`() = runTest {
-        val update = createUpdate()
+    fun `invoke should delegate to controller and send welcome message`() =
+        runTest {
+            val update = createUpdate()
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify { registrationController.start(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
-    }
-
-    @Test
-    fun `invoke should use user_id as username when username is null`() = runTest {
-        val noUsernameUser = User(id = userId, isBot = false, firstName = "Alice", username = null)
-        val update = createUpdate(fromUser = noUsernameUser)
-
-        startCommand.execute(bot, update)
-
-        coVerify { registrationController.start(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
-    }
+            coVerify { registrationController.start(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
+        }
 
     @Test
-    fun `invoke should return early when user is null`() = runTest {
-        val update = createUpdate(fromUser = null)
+    fun `invoke should use user_id as username when username is null`() =
+        runTest {
+            val noUsernameUser = User(id = userId, isBot = false, firstName = "Alice", username = null)
+            val update = createUpdate(fromUser = noUsernameUser)
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
-        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
-    }
-
-    @Test
-    fun `invoke should return early when message is null`() = runTest {
-        val update = Update(updateId = 1L, message = null)
-
-        startCommand.execute(bot, update)
-
-        coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
-    }
+            coVerify { registrationController.start(chatId, userId, "user_$userId", "Alice", MemberRole.MEMBER) }
+        }
 
     @Test
-    fun `invoke should sync admins for group chat`() = runTest {
-        val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
-        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "group"))
-        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
-            listOf(ChatMember(user = adminUser, status = "administrator"))
-        )
-        val update = createUpdate(chatType = "group")
+    fun `invoke should return early when user is null`() =
+        runTest {
+            val update = createUpdate(fromUser = null)
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
-    }
+            coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+        }
 
     @Test
-    fun `invoke should sync admins for supergroup chat`() = runTest {
-        val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
-        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
-        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
-            listOf(ChatMember(user = adminUser, status = "administrator"))
-        )
-        val update = createUpdate(chatType = "supergroup")
+    fun `invoke should return early when message is null`() =
+        runTest {
+            val update = Update(updateId = 1L, message = null)
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
-    }
+            coVerify(exactly = 0) { registrationController.start(any(), any(), any(), any(), any()) }
+        }
 
     @Test
-    fun `invoke should send registration invitation for group chat`() = runTest {
-        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "group"))
-        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
-        val update = createUpdate(chatType = "group")
+    fun `invoke should sync admins for group chat`() =
+        runTest {
+            val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
+            every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "group"))
+            every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
+                listOf(ChatMember(user = adminUser, status = "administrator")),
+            )
+            val update = createUpdate(chatType = "group")
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("Реєстрація учасників") }, ParseMode.HTML) }
-    }
-
-    @Test
-    fun `invoke should not send invitation for supergroup chat`() = runTest {
-        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
-        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
-        val update = createUpdate(chatType = "supergroup")
-
-        startCommand.execute(bot, update)
-
-        coVerify(exactly = 0) { bot.sendMessage(any(), match { it.contains("Реєстрація учасників") }, any()) }
-    }
+            coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
+        }
 
     @Test
-    fun `invoke should sanitize username with special characters`() = runTest {
-        val specialUser = User(id = userId, isBot = false, firstName = "Alice", username = "al!ce@#")
-        val update = createUpdate(fromUser = specialUser)
+    fun `invoke should sync admins for supergroup chat`() =
+        runTest {
+            val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
+            every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
+            every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
+                listOf(ChatMember(user = adminUser, status = "administrator")),
+            )
+            val update = createUpdate(chatType = "supergroup")
 
-        startCommand.execute(bot, update)
+            startCommand.execute(bot, update)
 
-        coVerify { registrationController.start(chatId, userId, "al_ce__", "Alice", MemberRole.MEMBER) }
-    }
+            coVerify { registrationController.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
+        }
+
+    @Test
+    fun `invoke should send registration invitation for group chat`() =
+        runTest {
+            every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "group"))
+            every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
+            val update = createUpdate(chatType = "group")
+
+            startCommand.execute(bot, update)
+
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("Реєстрація учасників") }, ParseMode.HTML) }
+        }
+
+    @Test
+    fun `invoke should not send invitation for supergroup chat`() =
+        runTest {
+            every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
+            every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(emptyList())
+            val update = createUpdate(chatType = "supergroup")
+
+            startCommand.execute(bot, update)
+
+            coVerify(exactly = 0) { bot.sendMessage(any(), match { it.contains("Реєстрація учасників") }, any()) }
+        }
+
+    @Test
+    fun `invoke should sanitize username with special characters`() =
+        runTest {
+            val specialUser = User(id = userId, isBot = false, firstName = "Alice", username = "al!ce@#")
+            val update = createUpdate(fromUser = specialUser)
+
+            startCommand.execute(bot, update)
+
+            coVerify { registrationController.start(chatId, userId, "al_ce__", "Alice", MemberRole.MEMBER) }
+        }
 }

@@ -17,7 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupRepositoryImplTest {
-
     private val repository = GroupRepositoryImpl()
     private val chatRepository = ChatRepositoryImpl()
 
@@ -36,124 +35,135 @@ class GroupRepositoryImplTest {
     }
 
     @Test
-    fun `createGroup should create and return group`() = runTest {
-        ensureChat(100L)
-        val result = repository.createGroup(100L, "devs")
+    fun `createGroup should create and return group`() =
+        runTest {
+            ensureChat(100L)
+            val result = repository.createGroup(100L, "devs")
 
-        assertTrue(result.isSuccess)
-        val group = result.getOrThrow()
-        assertEquals(100L, group.chatId)
-        assertEquals("devs", group.name)
-        assertTrue(group.memberUsernames.isEmpty())
-    }
-
-    @Test
-    fun `createGroup should return failure when duplicate name in same chat`() = runTest {
-        ensureChat(100L)
-        repository.createGroup(100L, "devs")
-
-        val result = repository.createGroup(100L, "devs")
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is DuplicateResourceException)
-    }
+            assertTrue(result.isSuccess)
+            val group = result.getOrThrow()
+            assertEquals(100L, group.chatId)
+            assertEquals("devs", group.name)
+            assertTrue(group.memberUsernames.isEmpty())
+        }
 
     @Test
-    fun `createGroup should allow same name in different chats`() = runTest {
-        ensureChat(100L)
-        ensureChat(200L)
-        val result1 = repository.createGroup(100L, "devs")
-        val result2 = repository.createGroup(200L, "devs")
+    fun `createGroup should return failure when duplicate name in same chat`() =
+        runTest {
+            ensureChat(100L)
+            repository.createGroup(100L, "devs")
 
-        assertTrue(result1.isSuccess)
-        assertTrue(result2.isSuccess)
-    }
+            val result = repository.createGroup(100L, "devs")
 
-    @Test
-    fun `findGroupByKey should return group when exists`() = runTest {
-        ensureChat(100L)
-        repository.createGroup(100L, "devs")
-
-        val result = repository.findGroupByKey(100L, "devs")
-
-        assertTrue(result.isSuccess)
-        val group = result.getOrThrow()
-        assertEquals("devs", group.name)
-        assertEquals(100L, group.chatId)
-    }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is DuplicateResourceException)
+        }
 
     @Test
-    fun `findGroupByKey should return failure when not exists`() = runTest {
-        val result = repository.findGroupByKey(100L, "nonexistent")
+    fun `createGroup should allow same name in different chats`() =
+        runTest {
+            ensureChat(100L)
+            ensureChat(200L)
+            val result1 = repository.createGroup(100L, "devs")
+            val result2 = repository.createGroup(200L, "devs")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
-
-    @Test
-    fun `findGroupByKey should not find group from different chat`() = runTest {
-        ensureChat(100L)
-        repository.createGroup(100L, "devs")
-
-        val result = repository.findGroupByKey(200L, "devs")
-
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
+            assertTrue(result1.isSuccess)
+            assertTrue(result2.isSuccess)
+        }
 
     @Test
-    fun `getAllGroups should return empty list when no groups`() = runTest {
-        val result = repository.getAllGroups(100L)
+    fun `findGroupByKey should return group when exists`() =
+        runTest {
+            ensureChat(100L)
+            repository.createGroup(100L, "devs")
 
-        assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow().isEmpty())
-    }
+            val result = repository.findGroupByKey(100L, "devs")
 
-    @Test
-    fun `getAllGroups should return only groups for given chatId`() = runTest {
-        ensureChat(100L)
-        ensureChat(200L)
-        repository.createGroup(100L, "devs")
-        repository.createGroup(100L, "ops")
-        repository.createGroup(200L, "other")
-
-        val result = repository.getAllGroups(100L)
-
-        assertTrue(result.isSuccess)
-        val groups = result.getOrThrow()
-        assertEquals(2, groups.size)
-        assertEquals(setOf("devs", "ops"), groups.map { it.name }.toSet())
-    }
+            assertTrue(result.isSuccess)
+            val group = result.getOrThrow()
+            assertEquals("devs", group.name)
+            assertEquals(100L, group.chatId)
+        }
 
     @Test
-    fun `deleteGroup should remove existing group`() = runTest {
-        ensureChat(100L)
-        repository.createGroup(100L, "devs")
+    fun `findGroupByKey should return failure when not exists`() =
+        runTest {
+            val result = repository.findGroupByKey(100L, "nonexistent")
 
-        val deleteResult = repository.deleteGroup(100L, "devs")
-        assertTrue(deleteResult.isSuccess)
-
-        val findResult = repository.findGroupByKey(100L, "devs")
-        assertTrue(findResult.isFailure)
-    }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
 
     @Test
-    fun `deleteGroup should return failure when group not exists`() = runTest {
-        val result = repository.deleteGroup(100L, "nonexistent")
+    fun `findGroupByKey should not find group from different chat`() =
+        runTest {
+            ensureChat(100L)
+            repository.createGroup(100L, "devs")
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
-    }
+            val result = repository.findGroupByKey(200L, "devs")
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
 
     @Test
-    fun `deleteGroup should not delete group from different chat`() = runTest {
-        ensureChat(100L)
-        repository.createGroup(100L, "devs")
+    fun `getAllGroups should return empty list when no groups`() =
+        runTest {
+            val result = repository.getAllGroups(100L)
 
-        val deleteResult = repository.deleteGroup(200L, "devs")
-        assertTrue(deleteResult.isFailure)
+            assertTrue(result.isSuccess)
+            assertTrue(result.getOrThrow().isEmpty())
+        }
 
-        val findResult = repository.findGroupByKey(100L, "devs")
-        assertTrue(findResult.isSuccess)
-    }
+    @Test
+    fun `getAllGroups should return only groups for given chatId`() =
+        runTest {
+            ensureChat(100L)
+            ensureChat(200L)
+            repository.createGroup(100L, "devs")
+            repository.createGroup(100L, "ops")
+            repository.createGroup(200L, "other")
+
+            val result = repository.getAllGroups(100L)
+
+            assertTrue(result.isSuccess)
+            val groups = result.getOrThrow()
+            assertEquals(2, groups.size)
+            assertEquals(setOf("devs", "ops"), groups.map { it.name }.toSet())
+        }
+
+    @Test
+    fun `deleteGroup should remove existing group`() =
+        runTest {
+            ensureChat(100L)
+            repository.createGroup(100L, "devs")
+
+            val deleteResult = repository.deleteGroup(100L, "devs")
+            assertTrue(deleteResult.isSuccess)
+
+            val findResult = repository.findGroupByKey(100L, "devs")
+            assertTrue(findResult.isFailure)
+        }
+
+    @Test
+    fun `deleteGroup should return failure when group not exists`() =
+        runTest {
+            val result = repository.deleteGroup(100L, "nonexistent")
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+        }
+
+    @Test
+    fun `deleteGroup should not delete group from different chat`() =
+        runTest {
+            ensureChat(100L)
+            repository.createGroup(100L, "devs")
+
+            val deleteResult = repository.deleteGroup(200L, "devs")
+            assertTrue(deleteResult.isFailure)
+
+            val findResult = repository.findGroupByKey(100L, "devs")
+            assertTrue(findResult.isSuccess)
+        }
 }

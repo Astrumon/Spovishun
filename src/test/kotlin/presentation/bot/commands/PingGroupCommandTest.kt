@@ -26,7 +26,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class PingGroupCommandTest {
-
     private val pingController: PingController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -44,79 +43,94 @@ class PingGroupCommandTest {
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/ping"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/ping",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)
     }
 
     @Test
-    fun `should delegate to controller and send message`() = runTest {
-        val update = createUpdate(text = "/ping devs")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) } returns
-            CommandResponse.Success("📣 🦞\n\n@alice @bob")
+    fun `should delegate to controller and send message`() =
+        runTest {
+            val update = createUpdate(text = "/ping devs")
+            coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) } returns
+                CommandResponse.Success("📣 🦞\n\n@alice @bob")
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "📣 🦞\n\n@alice @bob", ParseMode.HTML) }
-    }
-
-    @Test
-    fun `should send not found message with available groups`() = runTest {
-        val update = createUpdate(text = "/ping unknown")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("unknown")) } returns
-            CommandResponse.NotFound("Група", "unknown", listOf("devs", "qa"))
-
-        command.execute(bot, update)
-
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("не знайдено") && it.contains("devs") && it.contains("qa") }, ParseMode.HTML) }
-    }
+            coVerify { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) }
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), "📣 🦞\n\n@alice @bob", ParseMode.HTML) }
+        }
 
     @Test
-    fun `should show inline keyboard when no args and groups exist`() = runTest {
-        val groups = listOf(
-            GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")),
-            GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob")),
-        )
-        val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.success(groups)
+    fun `should send not found message with available groups`() =
+        runTest {
+            val update = createUpdate(text = "/ping unknown")
+            coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("unknown")) } returns
+                CommandResponse.NotFound("Група", "unknown", listOf("devs", "qa"))
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
-    }
-
-    @Test
-    fun `should send noGroups message when no args and groups list is empty`() = runTest {
-        val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.success(emptyList())
-
-        command.execute(bot, update)
-
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("ще немає груп") }, ParseMode.HTML) }
-    }
+            coVerify {
+                bot.sendMessage(
+                    ChatId.fromId(chatId),
+                    match { it.contains("не знайдено") && it.contains("devs") && it.contains("qa") },
+                    ParseMode.HTML,
+                )
+            }
+        }
 
     @Test
-    fun `should send error message when no args and listGroupsForMenu fails`() = runTest {
-        val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.failure(DatabaseException("db error"))
+    fun `should show inline keyboard when no args and groups exist`() =
+        runTest {
+            val groups = listOf(
+                GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")),
+                GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob")),
+            )
+            val update = createUpdate(text = "/ping")
+            coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+                ResultContainer.success(groups)
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Failed to load groups", ParseMode.HTML) }
-    }
+            coVerify { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+            coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
+        }
 
     @Test
-    fun `should return early when message is null`() = runTest {
-        val update = Update(updateId = 1L, message = null)
+    fun `should send noGroups message when no args and groups list is empty`() =
+        runTest {
+            val update = createUpdate(text = "/ping")
+            coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+                ResultContainer.success(emptyList())
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify(exactly = 0) { pingController.pingGroup(any(), any(), any(), any(), any(), any()) }
-    }
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("ще немає груп") }, ParseMode.HTML) }
+        }
+
+    @Test
+    fun `should send error message when no args and listGroupsForMenu fails`() =
+        runTest {
+            val update = createUpdate(text = "/ping")
+            coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+                ResultContainer.failure(DatabaseException("db error"))
+
+            command.execute(bot, update)
+
+            coVerify { bot.sendMessage(ChatId.fromId(chatId), "Failed to load groups", ParseMode.HTML) }
+        }
+
+    @Test
+    fun `should return early when message is null`() =
+        runTest {
+            val update = Update(updateId = 1L, message = null)
+
+            command.execute(bot, update)
+
+            coVerify(exactly = 0) { pingController.pingGroup(any(), any(), any(), any(), any(), any()) }
+        }
 }

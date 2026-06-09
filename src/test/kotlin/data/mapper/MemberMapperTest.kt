@@ -15,7 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class MemberMapperTest {
-
     @Test
     fun `toMember should map ResultRow to Member`() {
         val row = mockk<ResultRow>()

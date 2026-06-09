@@ -14,30 +14,45 @@ class BirthdayService(
     private val memberChatRepository: MemberChatRepository,
     private val birthdayGreetingRepository: BirthdayGreetingRepository,
 ) {
-    suspend fun setBirthday(userId: Long, birthday: BirthDate): ResultContainer<Member> =
+    suspend fun setBirthday(
+        userId: Long,
+        birthday: BirthDate,
+    ): ResultContainer<Member> =
         memberRepository.findByUserId(userId).flatMap { member ->
-            if (member == null) ResultContainer.failure(ResourceNotFoundException("Member", userId.toString()))
-            else memberRepository.updateBirthday(userId, birthday)
+            if (member == null) {
+                ResultContainer.failure(ResourceNotFoundException("Member", userId.toString()))
+            } else {
+                memberRepository.updateBirthday(userId, birthday)
+            }
         }
 
-    suspend fun setBirthdayForUsername(username: String, birthday: BirthDate): ResultContainer<Member> =
+    suspend fun setBirthdayForUsername(
+        username: String,
+        birthday: BirthDate,
+    ): ResultContainer<Member> =
         memberRepository.findByUsername(username).flatMap { member ->
-            if (member == null) ResultContainer.failure(ResourceNotFoundException("Member", username))
-            else memberRepository.updateBirthday(member.userId, birthday)
+            if (member == null) {
+                ResultContainer.failure(ResourceNotFoundException("Member", username))
+            } else {
+                memberRepository.updateBirthday(member.userId, birthday)
+            }
         }
 
-    suspend fun clearBirthday(userId: Long): ResultContainer<Member> =
-        memberRepository.updateBirthday(userId, null)
+    suspend fun clearBirthday(userId: Long): ResultContainer<Member> = memberRepository.updateBirthday(userId, null)
 
     suspend fun getMembersWithBirthday(birthday: BirthDate): ResultContainer<List<Member>> =
         memberRepository.findAllByBirthMd(birthday.toMmDd())
 
-    suspend fun wasGreetedThisYear(memberId: Long, year: Int): ResultContainer<Boolean> =
-        birthdayGreetingRepository.wasSent(memberId, year)
+    suspend fun wasGreetedThisYear(
+        memberId: Long,
+        year: Int,
+    ): ResultContainer<Boolean> = birthdayGreetingRepository.wasSent(memberId, year)
 
-    suspend fun recordGreetingSent(memberId: Long, year: Int, sentAt: Instant): ResultContainer<Unit> =
-        birthdayGreetingRepository.markSent(memberId, year, sentAt)
+    suspend fun recordGreetingSent(
+        memberId: Long,
+        year: Int,
+        sentAt: Instant,
+    ): ResultContainer<Unit> = birthdayGreetingRepository.markSent(memberId, year, sentAt)
 
-    suspend fun findChatIdsForMember(memberId: Long): ResultContainer<List<Long>> =
-        memberChatRepository.findChatIdsByMemberId(memberId)
+    suspend fun findChatIdsForMember(memberId: Long): ResultContainer<List<Long>> = memberChatRepository.findChatIdsByMemberId(memberId)
 }

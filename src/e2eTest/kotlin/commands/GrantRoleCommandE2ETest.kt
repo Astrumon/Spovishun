@@ -8,7 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class GrantRoleCommandE2ETest : BaseE2ETest() {
-
     @BeforeTest
     fun setUpAdminAndTarget() {
         registerMember(userId = helperBotId, username = "helper_bot", firstName = "HelperBot", role = MemberRole.ADMIN)

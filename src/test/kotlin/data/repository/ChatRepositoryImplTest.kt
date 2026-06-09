@@ -16,7 +16,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ChatRepositoryImplTest {
-
     private val repository = ChatRepositoryImpl()
 
     @BeforeTest
@@ -30,59 +29,64 @@ class ChatRepositoryImplTest {
     }
 
     @Test
-    fun `save should create and return chat`() = runTest {
-        val result = repository.save(100L, "Test Group", "group")
+    fun `save should create and return chat`() =
+        runTest {
+            val result = repository.save(100L, "Test Group", "group")
 
-        assertTrue(result.isSuccess)
-        val chat = result.getOrThrow()
-        assertEquals(100L, chat.chatId)
-        assertEquals("Test Group", chat.title)
-        assertEquals("group", chat.type)
-        assertNotNull(chat.registeredAt)
-    }
-
-    @Test
-    fun `save should return existing chat when already exists`() = runTest {
-        repository.save(100L, "Test Group", "group")
-
-        val result = repository.save(100L, "Different Title", "supergroup")
-
-        assertTrue(result.isSuccess)
-        val chat = result.getOrThrow()
-        assertEquals(100L, chat.chatId)
-        assertEquals("Test Group", chat.title)
-        assertEquals("group", chat.type)
-    }
+            assertTrue(result.isSuccess)
+            val chat = result.getOrThrow()
+            assertEquals(100L, chat.chatId)
+            assertEquals("Test Group", chat.title)
+            assertEquals("group", chat.type)
+            assertNotNull(chat.registeredAt)
+        }
 
     @Test
-    fun `findById should return chat when exists`() = runTest {
-        repository.save(100L, "Test Group", "group")
+    fun `save should return existing chat when already exists`() =
+        runTest {
+            repository.save(100L, "Test Group", "group")
 
-        val result = repository.findById(100L)
+            val result = repository.save(100L, "Different Title", "supergroup")
 
-        assertTrue(result.isSuccess)
-        val chat = result.getOrThrow()
-        assertNotNull(chat)
-        assertEquals(100L, chat.chatId)
-        assertEquals("Test Group", chat.title)
-    }
-
-    @Test
-    fun `findById should return null when not exists`() = runTest {
-        val result = repository.findById(999L)
-
-        assertTrue(result.isSuccess)
-        assertNull(result.getOrThrow())
-    }
+            assertTrue(result.isSuccess)
+            val chat = result.getOrThrow()
+            assertEquals(100L, chat.chatId)
+            assertEquals("Test Group", chat.title)
+            assertEquals("group", chat.type)
+        }
 
     @Test
-    fun `save should handle null title and type`() = runTest {
-        val result = repository.save(100L, null, null)
+    fun `findById should return chat when exists`() =
+        runTest {
+            repository.save(100L, "Test Group", "group")
 
-        assertTrue(result.isSuccess)
-        val chat = result.getOrThrow()
-        assertEquals(100L, chat.chatId)
-        assertNull(chat.title)
-        assertNull(chat.type)
-    }
+            val result = repository.findById(100L)
+
+            assertTrue(result.isSuccess)
+            val chat = result.getOrThrow()
+            assertNotNull(chat)
+            assertEquals(100L, chat.chatId)
+            assertEquals("Test Group", chat.title)
+        }
+
+    @Test
+    fun `findById should return null when not exists`() =
+        runTest {
+            val result = repository.findById(999L)
+
+            assertTrue(result.isSuccess)
+            assertNull(result.getOrThrow())
+        }
+
+    @Test
+    fun `save should handle null title and type`() =
+        runTest {
+            val result = repository.save(100L, null, null)
+
+            assertTrue(result.isSuccess)
+            val chat = result.getOrThrow()
+            assertEquals(100L, chat.chatId)
+            assertNull(chat.title)
+            assertNull(chat.type)
+        }
 }

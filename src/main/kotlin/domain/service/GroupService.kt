@@ -4,13 +4,13 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.model.Group
 import com.ua.astrumon.domain.repository.GroupMemberRepository
 import com.ua.astrumon.domain.repository.GroupRepository
+
 class GroupService(
     private val groupRepository: GroupRepository,
-    private val groupMemberRepository: GroupMemberRepository
+    private val groupMemberRepository: GroupMemberRepository,
 ) {
-
-    suspend fun getAllGroupsWithMembers(chatId: Long): ResultContainer<List<GroupWithMembers>> {
-        return groupRepository.getAllGroups(chatId).flatMap { groups ->
+    suspend fun getAllGroupsWithMembers(chatId: Long): ResultContainer<List<GroupWithMembers>> =
+        groupRepository.getAllGroups(chatId).flatMap { groups ->
             val groupsWithMembers = groups.map { group ->
                 groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
                     GroupWithMembers(
@@ -18,7 +18,7 @@ class GroupService(
                         chatId = chatId,
                         key = group.name,
                         name = group.name,
-                        members = members
+                        members = members,
                     )
                 }
             }
@@ -26,37 +26,44 @@ class GroupService(
                 groupsWithMembers.map { it.getOrThrow() }
             }
         }
-    }
 
-    suspend fun createGroup(chatId: Long, name: String): ResultContainer<Group> {
-        return groupRepository.createGroup(chatId, name)
-    }
+    suspend fun createGroup(
+        chatId: Long,
+        name: String,
+    ): ResultContainer<Group> = groupRepository.createGroup(chatId, name)
 
-    suspend fun deleteGroup(chatId: Long, key: String): ResultContainer<Unit> {
-        return groupRepository.deleteGroup(chatId, key)
-    }
+    suspend fun deleteGroup(
+        chatId: Long,
+        key: String,
+    ): ResultContainer<Unit> = groupRepository.deleteGroup(chatId, key)
 
-    suspend fun addMemberToGroup(chatId: Long, key: String, username: String): ResultContainer<Unit> {
-        return groupMemberRepository.addMemberToGroup(chatId, key, username)
-    }
+    suspend fun addMemberToGroup(
+        chatId: Long,
+        key: String,
+        username: String,
+    ): ResultContainer<Unit> = groupMemberRepository.addMemberToGroup(chatId, key, username)
 
-    suspend fun removeMemberFromGroup(chatId: Long, key: String, username: String): ResultContainer<Unit> {
-        return groupMemberRepository.removeMemberFromGroup(chatId, key, username)
-    }
+    suspend fun removeMemberFromGroup(
+        chatId: Long,
+        key: String,
+        username: String,
+    ): ResultContainer<Unit> = groupMemberRepository.removeMemberFromGroup(chatId, key, username)
 
-    suspend fun getGroupByKey(chatId: Long, key: String): ResultContainer<GroupWithMembers> {
-        return groupRepository.findGroupByKey(chatId, key).flatMap { group ->
+    suspend fun getGroupByKey(
+        chatId: Long,
+        key: String,
+    ): ResultContainer<GroupWithMembers> =
+        groupRepository.findGroupByKey(chatId, key).flatMap { group ->
             groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
                 GroupWithMembers(
                     id = group.id,
                     chatId = chatId,
                     key = group.name,
                     name = group.name,
-                    members = members
+                    members = members,
                 )
             }
         }
-    }
 }
 
 data class GroupWithMembers(
@@ -64,5 +71,5 @@ data class GroupWithMembers(
     val chatId: Long,
     val key: String,
     val name: String,
-    val members: List<String>
+    val members: List<String>,
 )

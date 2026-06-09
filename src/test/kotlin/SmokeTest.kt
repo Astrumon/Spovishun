@@ -7,7 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class SmokeTest {
-
     @BeforeTest
     fun setup() {
         clearAllMocks()
@@ -20,9 +19,10 @@ class SmokeTest {
     }
 
     @Test
-    fun `basic database query should execute without errors`() = runTest {
-        H2TestDatabaseFactory.initialize()
-        h2DbQuery { }
-        assertTrue(true)
-    }
+    fun `basic database query should execute without errors`() =
+        runTest {
+            H2TestDatabaseFactory.initialize()
+            h2DbQuery { }
+            assertTrue(true)
+        }
 }

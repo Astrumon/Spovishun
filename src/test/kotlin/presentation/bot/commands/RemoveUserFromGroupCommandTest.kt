@@ -2,9 +2,7 @@ package presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Chat
-import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Message
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
@@ -21,7 +19,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class RemoveUserFromGroupCommandTest {
-
     private val groupController: GroupController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: RemoveUserFromGroupCommand
@@ -36,29 +33,35 @@ class RemoveUserFromGroupCommandTest {
         command = RemoveUserFromGroupCommand(groupController)
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/removefromgroup"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/removefromgroup",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)
     }
 
     @Test
-    fun `should pass args to controller`() = runTest {
-        val update = createUpdate(text = "/removefromgroup devs @bob")
-        coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns CommandResponse.Success("bob видалено з devs")
-        every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
+    fun `should pass args to controller`() =
+        runTest {
+            val update = createUpdate(text = "/removefromgroup devs @bob")
+            coEvery { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) } returns
+                CommandResponse.Success("bob видалено з devs")
+            every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) }
-    }
+            coVerify { groupController.removeUserFromGroup(chatId, userId, listOf("devs", "@bob")) }
+        }
 
     @Test
-    fun `should return early when user is null`() = runTest {
-        val update = createUpdate(fromUser = null)
+    fun `should return early when user is null`() =
+        runTest {
+            val update = createUpdate(fromUser = null)
 
-        command.execute(bot, update)
+            command.execute(bot, update)
 
-        coVerify(exactly = 0) { groupController.removeUserFromGroup(any(), any(), any()) }
-    }
+            coVerify(exactly = 0) { groupController.removeUserFromGroup(any(), any(), any()) }
+        }
 }

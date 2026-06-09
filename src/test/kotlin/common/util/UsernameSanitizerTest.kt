@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class UsernameSanitizerTest {
-
     @Test
     fun `sanitizeUsername should return username unchanged when valid`() {
         assertEquals("alice", sanitizeUsername("alice", 1L))

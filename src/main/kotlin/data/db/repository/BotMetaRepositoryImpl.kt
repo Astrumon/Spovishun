@@ -12,13 +12,17 @@ import org.jetbrains.exposed.sql.upsert
 class BotMetaRepositoryImpl : BotMetaRepository {
     override suspend fun get(key: String): ResultContainer<String?> =
         safeDbQuery {
-            BotMeta.selectAll()
+            BotMeta
+                .selectAll()
                 .where { BotMeta.key eq key }
                 .singleOrNull()
                 ?.get(BotMeta.value)
         }
 
-    override suspend fun set(key: String, value: String): ResultContainer<Unit> =
+    override suspend fun set(
+        key: String,
+        value: String,
+    ): ResultContainer<Unit> =
         safeDbQuery {
             BotMeta.upsert(BotMeta.key) {
                 it[BotMeta.key] = key

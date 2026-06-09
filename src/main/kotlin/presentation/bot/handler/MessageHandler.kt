@@ -15,7 +15,10 @@ class MessageHandler(
 ) {
     private val logger = LoggerFactory.getLogger(MessageHandler::class.java)
 
-    suspend fun handleIncomingMessage(bot: Bot, update: Update) {
+    suspend fun handleIncomingMessage(
+        bot: Bot,
+        update: Update,
+    ) {
         val message = update.message ?: return
         val user = message.from ?: return
         val chatId = message.chat.id
@@ -27,18 +30,19 @@ class MessageHandler(
 
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 
-        autoRegisterService.ensureUserRegistered(
-            chatId = chatId,
-            userId = user.id,
-            username = username,
-            firstName = firstName,
-            chatTitle = message.chat.title,
-            chatType = message.chat.type,
-            userRole = userRole,
-        ).onSuccess {
-            logger.debug("Member auto-register succeeded")
-        }.onFailure { error ->
-            logger.error("Failed to auto-register member: ${error::class.simpleName}")
-        }
+        autoRegisterService
+            .ensureUserRegistered(
+                chatId = chatId,
+                userId = user.id,
+                username = username,
+                firstName = firstName,
+                chatTitle = message.chat.title,
+                chatType = message.chat.type,
+                userRole = userRole,
+            ).onSuccess {
+                logger.debug("Member auto-register succeeded")
+            }.onFailure { error ->
+                logger.error("Failed to auto-register member: ${error::class.simpleName}")
+            }
     }
 }

@@ -23,7 +23,7 @@ class PingController(
         username: String,
         firstName: String,
         userRole: MemberRole,
-        args: List<String>
+        args: List<String>,
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
@@ -101,7 +101,7 @@ class PingController(
         username: String,
         firstName: String,
         userRole: MemberRole,
-        args: List<String>
+        args: List<String>,
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 
@@ -113,8 +113,10 @@ class PingController(
         val groupResult = groupService.getGroupByKey(chatId, groupKey)
 
         if (groupResult.isFailure) {
-            val availableKeys = groupService.getAllGroupsWithMembers(chatId)
-                .getOrNull()?.map { it.key } ?: emptyList()
+            val availableKeys = groupService
+                .getAllGroupsWithMembers(chatId)
+                .getOrNull()
+                ?.map { it.key } ?: emptyList()
             return CommandResponse.NotFound("Група", groupKey, availableKeys)
         }
 
