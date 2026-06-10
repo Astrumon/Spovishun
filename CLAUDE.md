@@ -6,7 +6,7 @@ Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Expo
 ## Commands
 ```bash
 ./gradlew runDev             # PROFILE=dev — local PostgreSQL + Flyway migrations
-./gradlew runProd            # PROFILE=prod — cloud PostgreSQL (Neon) + Flyway migrations
+./gradlew runProd            # PROFILE=prod — prod PostgreSQL (Docker on Oracle Cloud VM) + Flyway migrations
 ./gradlew test               # unit tests
 ./gradlew integrationTest    # in-process tests (MockImpl repos)
 ./gradlew e2eTest            # real Telegram API (skips if env vars unset)
@@ -76,7 +76,7 @@ Never call a `Service` directly from a `Command`.
 **Role checks** — `MemberService.hasAdminAccess()` / `hasModeratorAccess()` query the DB.
 `BotAdminUtils` (`presentation/util/`) queries Telegram API only to derive initial role on first registration.
 
-**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 5 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, Neon PostgreSQL for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
+**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 5 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, self-hosted PostgreSQL 16 in docker-compose for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
