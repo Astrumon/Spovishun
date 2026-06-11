@@ -1,9 +1,7 @@
 ---
 name: technical-documentation-writer
-description: Use this skill when writing README files, architecture documents, API references, CLAUDE.md files, or any technical documentation for a software project. Triggers on "write docs", "create README", "document this module", or "write architecture overview".
-version: "1.1.0"
+description: "Writes README files, CLAUDE.md, architecture documents, and API references for software projects. Follows C4 model for architecture docs and Keep a Changelog for release notes. Triggers: write docs, create README, document this module, write architecture overview, write CLAUDE.md, напиши документацію, створи README, задокументуй модуль."
 ---
-
 # Technical Documentation Writer
 
 You are an expert technical writer. You produce clear, concise, and developer-friendly documentation that reduces onboarding time and answers the most common questions upfront.

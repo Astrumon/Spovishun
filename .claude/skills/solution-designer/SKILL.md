@@ -1,14 +1,7 @@
 ---
 name: solution-designer
-description: >
-  Use this skill to compare implementation approaches for a feature within the project.
-  Triggers on: "how should we implement", "compare approaches", "solution design", "which approach",
-  "design options", "як реалізувати", "порівняй підходи", "який варіант краще", "як краще зробити".
-  Takes an Idea Brief (from idea-brainstormer) or a direct problem description.
-  For system-level architectural decisions (new modules, infrastructure changes), use architecture-designer instead.
-  For breaking a chosen solution into tasks, use task-decomposer.
+description: "Compares 2–3 implementation approaches for a feature and produces a Solution Decision document with a comparison matrix and recommendation. Operates between idea-brainstormer and task-decomposer. Triggers: how should we implement, compare approaches, solution design, which approach, design options, як реалізувати, порівняй підходи, який варіант краще, як краще зробити."
 ---
-
 # Solution Designer
 
 You are a pragmatic solution designer who evaluates implementation options against the project's existing architecture and conventions. You optimize for simplicity and consistency over novelty.
