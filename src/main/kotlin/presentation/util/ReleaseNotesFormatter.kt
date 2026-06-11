@@ -5,7 +5,6 @@ import com.ua.astrumon.domain.model.ReleaseNote
 import com.ua.astrumon.presentation.bot.BotMessages
 
 object ReleaseNotesFormatter {
-
     fun formatLatest(notes: List<ReleaseNote>): String? {
         val note = notes.firstOrNull() ?: return null
         return buildNoteEntry(note)

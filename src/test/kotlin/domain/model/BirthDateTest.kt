@@ -7,7 +7,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class BirthDateTest {
-
     @Test
     fun `parse should return BirthDate for valid input`() {
         val result = BirthDate.parse("25.12")

@@ -17,7 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ChatServiceTest {
-
     private val chatRepository: ChatRepository = mockk()
     private lateinit var chatService: ChatService
 

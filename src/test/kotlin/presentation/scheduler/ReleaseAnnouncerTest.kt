@@ -24,7 +24,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class ReleaseAnnouncerTest {
-
     private val releaseNotesService: ReleaseNotesService = mockk()
     private val botMetaService: BotMetaService = mockk()
     private val chatService: ChatService = mockk()
@@ -98,7 +97,7 @@ class ReleaseAnnouncerTest {
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
-            listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future")))
+            listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future"))),
         )
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 

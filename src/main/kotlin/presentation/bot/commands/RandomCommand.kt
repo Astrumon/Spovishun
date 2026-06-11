@@ -13,13 +13,18 @@ class RandomCommand(
     private val randomController: RandomController,
     private val botAdminUtils: BotAdminUtils,
 ) : BotCommand {
-
     override val name = "random"
 
-    override suspend fun execute(bot: Bot, update: Update) {
+    override suspend fun execute(
+        bot: Bot,
+        update: Update,
+    ) {
         val chatId = update.message?.chat?.id ?: return
         val user = update.message?.from ?: return
-        val args = update.message?.text?.split(" ")?.drop(1) ?: emptyList()
+        val args = update.message
+            ?.text
+            ?.split(" ")
+            ?.drop(1) ?: emptyList()
 
         val username = sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)

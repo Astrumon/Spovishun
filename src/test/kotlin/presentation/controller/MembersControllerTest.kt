@@ -19,7 +19,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class MembersControllerTest {
-
     private val memberService: MemberService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var membersController: MembersController
@@ -35,7 +34,8 @@ class MembersControllerTest {
     fun setup() {
         clearAllMocks()
         membersController = MembersController(memberService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.success(memberWithChat)
     }
 
     @Test
@@ -52,7 +52,7 @@ class MembersControllerTest {
         val members = listOf(
             MemberWithChat(1L, 456L, "alice", "Alice", MemberRole.ADMIN, null),
             MemberWithChat(2L, 789L, "bob", "Bob", MemberRole.MODERATOR, null),
-            MemberWithChat(3L, 111L, "charlie", "Charlie", MemberRole.MEMBER, null)
+            MemberWithChat(3L, 111L, "charlie", "Charlie", MemberRole.MEMBER, null),
         )
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(members)
 
@@ -105,7 +105,8 @@ class MembersControllerTest {
         val adminMember = Member(1L, userId, "admin_alice", "Admin Alice")
         val adminMemberWithChat = MemberWithChat(1L, userId, "admin_alice", "Admin Alice", MemberRole.ADMIN, null)
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(adminMemberWithChat))
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), eq(MemberRole.ADMIN)) } returns ResultContainer.success(adminMemberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), eq(MemberRole.ADMIN)) } returns
+            ResultContainer.success(adminMemberWithChat)
 
         membersController.getMembers(chatId, adminMember, MemberRole.ADMIN)
 

@@ -16,13 +16,18 @@ class PingGroupCommand(
     private val pingController: PingController,
     private val botAdminUtils: BotAdminUtils,
 ) : BotCommand {
-
     override val name = "ping"
 
-    override suspend fun execute(bot: Bot, update: Update) {
+    override suspend fun execute(
+        bot: Bot,
+        update: Update,
+    ) {
         val chatId = update.message?.chat?.id ?: return
         val user = update.message?.from ?: return
-        val args = update.message?.text?.split(" ")?.drop(1) ?: emptyList()
+        val args = update.message
+            ?.text
+            ?.split(" ")
+            ?.drop(1) ?: emptyList()
 
         val username = sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
@@ -41,7 +46,7 @@ class PingGroupCommand(
             val keyboard = InlineKeyboardMarkup.create(
                 groups.map { group ->
                     listOf(InlineKeyboardButton.CallbackData(text = group.name, callbackData = "${PingCallback.PREFIX}${group.id}"))
-                }
+                },
             )
             bot.replyWithKeyboard(chatId, BotMessages.Ping.menuPrompt, keyboard)
             return

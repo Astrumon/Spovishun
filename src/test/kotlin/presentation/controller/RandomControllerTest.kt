@@ -20,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class RandomControllerTest {
-
     private val memberService: MemberService = mockk()
     private val groupService: GroupService = mockk()
     private val autoRegisterService: AutoRegisterService = mockk()
@@ -30,17 +29,22 @@ class RandomControllerTest {
     private val userId = 456L
     private val memberWithChat = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
 
-    private fun member(id: Long, username: String) =
-        MemberWithChat(id, id, username, username, MemberRole.MEMBER, null)
+    private fun member(
+        id: Long,
+        username: String,
+    ) = MemberWithChat(id, id, username, username, MemberRole.MEMBER, null)
 
-    private fun group(key: String, members: List<String>) =
-        GroupWithMembers(1L, chatId, key, key, members)
+    private fun group(
+        key: String,
+        members: List<String>,
+    ) = GroupWithMembers(1L, chatId, key, key, members)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
         controller = RandomController(memberService, groupService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.success(memberWithChat)
     }
 
     // --- pickRandomAll ---

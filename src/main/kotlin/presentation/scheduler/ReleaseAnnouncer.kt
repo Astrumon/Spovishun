@@ -35,7 +35,10 @@ class ReleaseAnnouncer(
         }
     }
 
-    private suspend fun broadcastNewVersion(bot: Bot, version: String) {
+    private suspend fun broadcastNewVersion(
+        bot: Bot,
+        version: String,
+    ) {
         val entry = findReleaseNote(version) ?: run {
             botMetaService.setLastNotifiedVersion(version)
             return
@@ -48,11 +51,16 @@ class ReleaseAnnouncer(
 
     private suspend fun findReleaseNote(version: String): ReleaseNote? {
         val notes = releaseNotesService.getAll().getOrNull() ?: return null
-        return notes.firstOrNull { it.version == version }
+        return notes
+            .firstOrNull { it.version == version }
             .also { if (it == null) logger.warn("No release_notes entry for $version — skipping broadcast") }
     }
 
-    private fun sendToAllChats(bot: Bot, chatIds: List<Long>, text: String) {
+    private fun sendToAllChats(
+        bot: Bot,
+        chatIds: List<Long>,
+        text: String,
+    ) {
         chatIds.forEach { id ->
             try {
                 bot.sendMessage(ChatId.fromId(id), text, parseMode = ParseMode.HTML)

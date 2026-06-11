@@ -23,7 +23,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class PingAllCommandTest {
-
     private val pingController: PingController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -41,7 +40,10 @@ class PingAllCommandTest {
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/all"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/all",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)

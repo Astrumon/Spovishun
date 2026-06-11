@@ -6,7 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class PingCommandE2ETest : BaseE2ETest() {
-
     @Test
     fun `all command auto-registers sender even when no prior members exist`() {
         dispatch("/all")

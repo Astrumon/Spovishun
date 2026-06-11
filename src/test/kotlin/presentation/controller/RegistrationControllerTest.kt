@@ -17,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class RegistrationControllerTest {
-
     private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var registrationController: RegistrationController
 
@@ -29,7 +28,8 @@ class RegistrationControllerTest {
     fun setup() {
         clearAllMocks()
         registrationController = RegistrationController(autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns ResultContainer.success(memberWithChat)
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
+            ResultContainer.success(memberWithChat)
     }
 
     // --- start ---

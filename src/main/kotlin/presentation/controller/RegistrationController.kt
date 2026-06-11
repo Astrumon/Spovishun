@@ -8,13 +8,19 @@ import com.ua.astrumon.presentation.bot.BotMessages
 class RegistrationController(
     private val autoRegisterService: AutoRegisterService,
 ) {
-    suspend fun start(chatId: Long, userId: Long, username: String, firstName: String, userRole: MemberRole): CommandResponse {
+    suspend fun start(
+        chatId: Long,
+        userId: Long,
+        username: String,
+        firstName: String,
+        userRole: MemberRole,
+    ): CommandResponse {
         autoRegisterService.ensureUserRegistered(
             chatId = chatId,
             userId = userId,
             username = username,
             firstName = firstName,
-            userRole = userRole
+            userRole = userRole,
         )
         return CommandResponse.Success(BotMessages.Welcome.message())
     }
@@ -22,20 +28,32 @@ class RegistrationController(
     /**
      * Registers a single user (used by StartCommand for admin sync).
      */
-    suspend fun ensureUserRegistered(chatId: Long, userId: Long, username: String, firstName: String, userRole: MemberRole) {
+    suspend fun ensureUserRegistered(
+        chatId: Long,
+        userId: Long,
+        username: String,
+        firstName: String,
+        userRole: MemberRole,
+    ) {
         autoRegisterService.ensureUserRegistered(
             chatId = chatId,
             userId = userId,
             username = username,
             firstName = firstName,
-            userRole = userRole
+            userRole = userRole,
         )
     }
 
     /**
      * Handles /register: registers a single user and returns response.
      */
-    suspend fun register(chatId: Long, userId: Long, username: String, firstName: String, userRole: MemberRole): CommandResponse {
+    suspend fun register(
+        chatId: Long,
+        userId: Long,
+        username: String,
+        firstName: String,
+        userRole: MemberRole,
+    ): CommandResponse {
         val alreadyRegistered = autoRegisterService.isUserRegistered(chatId, username)
         val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
 

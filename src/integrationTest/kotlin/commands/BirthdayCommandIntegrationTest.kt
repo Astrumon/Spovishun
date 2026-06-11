@@ -23,7 +23,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
-
     private val memberRepo = MemberRepositoryImpl()
     private val memberChatRepo = MemberChatRepositoryImpl()
     private val birthdayGreetingRepo = BirthdayGreetingRepositoryImpl()
@@ -56,7 +55,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("25.12") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -84,7 +83,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Невірний") || it.contains("формат") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -99,7 +98,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             text = "/birthday 01.01 @$testUsername",
             userId = modUserId,
             username = modUsername,
-            firstName = "Mod"
+            firstName = "Mod",
         )
         birthdayCommand.execute(bot, update)
 
@@ -119,7 +118,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("адмін") || it.contains("модератор") || it.contains("Лише") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -132,7 +131,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             text = "/birthday 25.12 @nonexistent",
             userId = modUserId,
             username = modUsername,
-            firstName = "Mod"
+            firstName = "Mod",
         )
         birthdayCommand.execute(bot, update)
 
@@ -140,7 +139,7 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("nonexistent") || it.contains("не зареєстрований") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

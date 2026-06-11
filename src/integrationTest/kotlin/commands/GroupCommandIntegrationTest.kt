@@ -9,7 +9,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class GroupCommandIntegrationTest : BaseIntegrationTest() {
-
     @Test
     fun `groups with no groups should show empty state message`() = runTest {
         registerMember()
@@ -21,7 +20,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Немає груп") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -38,7 +37,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("devs") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -54,7 +53,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Лише адміни та модератори") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -70,7 +69,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("devs") && it.contains("створена") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
         val groups = groupService.getAllGroupsWithMembers(testChatId).getOrThrow()
@@ -89,7 +88,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("devs") && it.contains("видален") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -105,7 +104,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("не знайдено") || it.contains("Помилка") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -123,7 +122,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("alice") && it.contains("додано") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -139,7 +138,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("не знайдено") || it.contains("Помилка") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -158,7 +157,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("alice") && it.contains("видален") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }
@@ -174,7 +173,7 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(
                 ChatId.fromId(testChatId),
                 match { it.contains("Лише адміни та модератори") },
-                ParseMode.HTML
+                ParseMode.HTML,
             )
         }
     }

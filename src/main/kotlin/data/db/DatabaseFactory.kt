@@ -25,7 +25,7 @@ object DatabaseFactory {
                 driver = config.databaseDriver,
                 username = config.databaseUsername,
                 password = config.databasePassword,
-                poolSize = config.databasePoolSize
+                poolSize = config.databasePoolSize,
             )
 
             val dataSource = HikariDataSource(hikariConfig)
@@ -33,7 +33,8 @@ object DatabaseFactory {
 
             logger.info("Database connection established. Running Flyway migrations...")
 
-            val flyway = Flyway.configure()
+            val flyway = Flyway
+                .configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/postgresql")
                 .baselineOnMigrate(true)
@@ -49,19 +50,18 @@ object DatabaseFactory {
     }
 }
 
-suspend fun <T> dbQuery(block: () -> T): T =
-    withContext(Dispatchers.IO) {
-        try {
-            transaction { block() }
-        } catch (e: BaseException) {
-            throw e
-        } catch (e: Exception) {
-            throw DatabaseException("Database query failed", e)
-        }
+suspend fun <T> dbQuery(block: () -> T): T = withContext(Dispatchers.IO) {
+    try {
+        transaction { block() }
+    } catch (e: BaseException) {
+        throw e
+    } catch (e: Exception) {
+        throw DatabaseException("Database query failed", e)
     }
+}
 
-suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> =
-    ResultContainer.catching {
+suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> = ResultContainer
+    .catching {
         logger.debug("safeDbQuery: starting execution")
         val result = dbQuery { block() }
         logger.debug("safeDbQuery: execution completed successfully")
@@ -70,5 +70,4 @@ suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> =
         logger.error("safeDbQuery: execution failed", exception)
     }
 
-suspend fun <T> safeDbTransaction(block: () -> T): ResultContainer<T> =
-    ResultContainer.catching { transaction { block() } }
+suspend fun <T> safeDbTransaction(block: () -> T): ResultContainer<T> = ResultContainer.catching { transaction { block() } }

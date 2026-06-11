@@ -25,7 +25,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class BirthdayGreetingSchedulerTest {
-
     private val birthdayService: BirthdayService = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private val zone: ZoneId = ZoneId.of("Europe/Kyiv")
@@ -38,7 +37,12 @@ class BirthdayGreetingSchedulerTest {
         clearAllMocks()
     }
 
-    private fun clockAt(year: Int, month: Int, day: Int, hour: Int = 14): Clock {
+    private fun clockAt(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int = 14,
+    ): Clock {
         val instant = ZonedDateTime.of(year, month, day, hour, 0, 0, 0, zone).toInstant()
         return Clock.fixed(instant, zone)
     }
@@ -137,11 +141,13 @@ class BirthdayGreetingSchedulerTest {
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
         val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
 
-        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice, memberBob))
+        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
+            ResultContainer.success(listOf(memberAlice, memberBob))
 
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
         coEvery { birthdayService.findChatIdsForMember(1L) } returns ResultContainer.success(listOf(-100L))
-        every { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) } throws RuntimeException("Telegram error")
+        every { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) } throws
+            RuntimeException("Telegram error")
 
         coEvery { birthdayService.wasGreetedThisYear(2L, 2025) } returns ResultContainer.success(false)
         coEvery { birthdayService.findChatIdsForMember(2L) } returns ResultContainer.success(listOf(-200L))

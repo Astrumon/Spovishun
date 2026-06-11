@@ -17,7 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupRepositoryImplTest {
-
     private val repository = GroupRepositoryImpl()
     private val chatRepository = ChatRepositoryImpl()
 

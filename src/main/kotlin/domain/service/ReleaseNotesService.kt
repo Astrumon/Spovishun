@@ -6,7 +6,6 @@ import com.ua.astrumon.domain.model.ReleaseNote
 import kotlinx.serialization.json.Json
 
 class ReleaseNotesService {
-
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun getAll(): ResultContainer<List<ReleaseNote>> = ResultContainer.catching {

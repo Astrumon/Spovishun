@@ -1,6 +1,5 @@
 package com.ua.astrumon.di
 
-import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
@@ -12,11 +11,11 @@ import com.ua.astrumon.presentation.bot.commands.MembersCommand
 import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
 import com.ua.astrumon.presentation.bot.commands.PingAllCommand
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
+import com.ua.astrumon.presentation.bot.commands.RandomCommand
 import com.ua.astrumon.presentation.bot.commands.RegisterCommand
 import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
-import com.ua.astrumon.presentation.bot.commands.RandomCommand
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
@@ -29,6 +28,7 @@ import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
+import com.ua.astrumon.presentation.util.BotAdminUtils
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob

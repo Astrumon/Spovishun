@@ -14,7 +14,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MemberRepositoryImplTest {
-
     private val repository = MemberRepositoryImpl()
 
     @BeforeTest

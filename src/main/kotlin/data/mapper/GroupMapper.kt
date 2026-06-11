@@ -8,5 +8,5 @@ fun ResultRow.toGroup() = Group(
     id = this[Groups.id].value,
     chatId = this[Groups.chatId],
     name = this[Groups.name],
-    memberUsernames = emptyList()
+    memberUsernames = emptyList(),
 )

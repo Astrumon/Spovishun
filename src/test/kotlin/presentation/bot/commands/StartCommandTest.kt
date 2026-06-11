@@ -24,7 +24,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class StartCommandTest {
-
     private val registrationController: RegistrationController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -45,7 +44,11 @@ class StartCommandTest {
         coEvery { registrationController.ensureUserRegistered(any(), any(), any(), any(), any()) } returns Unit
     }
 
-    private fun createUpdate(fromUser: User? = user, chatIdVal: Long = chatId, chatType: String = "private"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        chatIdVal: Long = chatId,
+        chatType: String = "private",
+    ): Update {
         val chat = Chat(id = chatIdVal, type = chatType)
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = "/start")
         return Update(updateId = 1L, message = message)
@@ -95,7 +98,7 @@ class StartCommandTest {
         val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
         every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "group"))
         every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
-            listOf(ChatMember(user = adminUser, status = "administrator"))
+            listOf(ChatMember(user = adminUser, status = "administrator")),
         )
         val update = createUpdate(chatType = "group")
 
@@ -109,7 +112,7 @@ class StartCommandTest {
         val adminUser = User(id = 789L, isBot = false, firstName = "Admin", username = "admin")
         every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
         every { bot.getChatAdministrators(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(
-            listOf(ChatMember(user = adminUser, status = "administrator"))
+            listOf(ChatMember(user = adminUser, status = "administrator")),
         )
         val update = createUpdate(chatType = "supergroup")
 

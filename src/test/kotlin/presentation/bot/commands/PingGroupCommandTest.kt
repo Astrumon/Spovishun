@@ -26,7 +26,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class PingGroupCommandTest {
-
     private val pingController: PingController = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
@@ -44,7 +43,10 @@ class PingGroupCommandTest {
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/ping"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/ping",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)
@@ -70,7 +72,13 @@ class PingGroupCommandTest {
 
         command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("не знайдено") && it.contains("devs") && it.contains("qa") }, ParseMode.HTML) }
+        coVerify {
+            bot.sendMessage(
+                ChatId.fromId(chatId),
+                match { it.contains("не знайдено") && it.contains("devs") && it.contains("qa") },
+                ParseMode.HTML,
+            )
+        }
     }
 
     @Test

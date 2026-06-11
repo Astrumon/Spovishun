@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupMapperTest {
-
     @Test
     fun `toGroup should map ResultRow to Group`() {
         val row = mockk<ResultRow>()

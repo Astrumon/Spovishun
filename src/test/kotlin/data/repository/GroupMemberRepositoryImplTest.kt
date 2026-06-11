@@ -20,7 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupMemberRepositoryImplTest {
-
     private val repository = GroupMemberRepositoryImpl()
     private val chatRepository = ChatRepositoryImpl()
     private val chatId = 100L
@@ -40,7 +39,10 @@ class GroupMemberRepositoryImplTest {
         chatRepository.save(chatId, null, null)
     }
 
-    private fun insertMember(username: String, userId: Long = username.hashCode().toLong()) {
+    private fun insertMember(
+        username: String,
+        userId: Long = username.hashCode().toLong(),
+    ) {
         transaction {
             Members.insert {
                 it[Members.userId] = userId

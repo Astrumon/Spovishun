@@ -2,9 +2,7 @@ package presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Chat
-import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Message
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
@@ -21,7 +19,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class AddUserToGroupCommandTest {
-
     private val groupController: GroupController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: AddUserToGroupCommand
@@ -36,7 +33,10 @@ class AddUserToGroupCommandTest {
         command = AddUserToGroupCommand(groupController)
     }
 
-    private fun createUpdate(fromUser: User? = user, text: String = "/addtogroup"): Update {
+    private fun createUpdate(
+        fromUser: User? = user,
+        text: String = "/addtogroup",
+    ): Update {
         val chat = Chat(id = chatId, type = "group")
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = fromUser, text = text)
         return Update(updateId = 1L, message = message)
@@ -45,7 +45,8 @@ class AddUserToGroupCommandTest {
     @Test
     fun `should pass args to controller`() = runTest {
         val update = createUpdate(text = "/addtogroup devs @bob")
-        coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns CommandResponse.Success("bob додано до devs")
+        coEvery { groupController.addUserToGroup(chatId, userId, listOf("devs", "@bob")) } returns
+            CommandResponse.Success("bob додано до devs")
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
 
         command.execute(bot, update)

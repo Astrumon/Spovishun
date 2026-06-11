@@ -9,7 +9,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GroupCommandE2ETest : BaseE2ETest() {
-
     @BeforeTest
     fun setUpAdmin() {
         // Pre-register the helper bot as ADMIN so moderator-gated commands pass

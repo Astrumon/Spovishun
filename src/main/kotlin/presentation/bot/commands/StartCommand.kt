@@ -15,12 +15,14 @@ class StartCommand(
     private val registrationController: RegistrationController,
     private val botAdminUtils: BotAdminUtils,
 ) : BotCommand {
-
     override val name = "start"
 
     private val logger = LoggerFactory.getLogger(StartCommand::class.java)
 
-    override suspend fun execute(bot: Bot, update: Update) {
+    override suspend fun execute(
+        bot: Bot,
+        update: Update,
+    ) {
         val chatId = update.message?.chat?.id ?: return
         val user = update.message?.from ?: return
 
@@ -38,7 +40,7 @@ class StartCommand(
                                     userId = admin.user.id,
                                     username = sanitizeUsername(admin.user.username, admin.user.id),
                                     firstName = admin.user.firstName,
-                                    userRole = MemberRole.ADMIN
+                                    userRole = MemberRole.ADMIN,
                                 )
                             }
                         } else {

@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class StartCommandE2ETest : BaseE2ETest() {
-
     @Test
     fun `start command auto-registers the trigger user`() {
         dispatch("/start")

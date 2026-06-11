@@ -9,7 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ReleaseNotesFormatterTest {
-
     private val singleNote = ReleaseNote("2.0.0", "2026-01-01", listOf("Feature A", "Feature B"))
     private val oldNote = ReleaseNote("1.0.0", "2025-01-01", listOf("Initial release"))
 

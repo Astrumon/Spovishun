@@ -59,7 +59,6 @@ import kotlin.test.BeforeTest
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseE2ETest {
-
     // Real Telegram bot (makes actual API calls: sendMessage, getChatMember, etc.)
     protected lateinit var mainBot: com.github.kotlintelegrambot.Bot
 
@@ -140,7 +139,7 @@ abstract class BaseE2ETest {
                 RemoveUserFromGroupCommand(groupController),
                 PingAllCommand(pingController, botAdminUtils),
                 PingGroupCommand(pingController, botAdminUtils),
-            )
+            ),
         )
 
         val telegramBot = TelegramBot(commandRegistry, messageHandler, mockk(relaxed = true), mockk())
@@ -181,7 +180,7 @@ abstract class BaseE2ETest {
         username: String = "helper_bot",
         firstName: String = "HelperBot",
         chatId: Long = testChatId,
-        chatType: String = "supergroup"
+        chatType: String = "supergroup",
     ): Update {
         val user = User(id = userId, isBot = true, firstName = firstName, username = username)
         val chat = Chat(id = chatId, type = chatType)
@@ -193,18 +192,24 @@ abstract class BaseE2ETest {
         runBlocking { dispatchCommand(command, buildUpdate(text = command)) }
     }
 
-    protected suspend fun dispatchCommand(command: String, update: Update) {
+    protected suspend fun dispatchCommand(
+        command: String,
+        update: Update,
+    ) {
         val name = command.trimStart('/').split(" ").firstOrNull() ?: return
         val cmd = commandRegistry.commands.find { it.name == name }
-        if (cmd != null) cmd.execute(mainBot, update)
-        else messageHandler.handleIncomingMessage(mainBot, update)
+        if (cmd != null) {
+            cmd.execute(mainBot, update)
+        } else {
+            messageHandler.handleIncomingMessage(mainBot, update)
+        }
     }
 
     protected fun registerMember(
         userId: Long,
         username: String,
         firstName: String,
-        role: MemberRole = MemberRole.MEMBER
+        role: MemberRole = MemberRole.MEMBER,
     ): MemberWithChat = runBlocking {
         autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
     }

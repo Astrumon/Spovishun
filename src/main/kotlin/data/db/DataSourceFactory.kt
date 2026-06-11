@@ -8,7 +8,7 @@ object DataSourceFactory {
         driver: String,
         username: String = "",
         password: String = "",
-        poolSize: Int = 10
+        poolSize: Int = 10,
     ): HikariConfig = HikariConfig().apply {
         jdbcUrl = url
         driverClassName = driver

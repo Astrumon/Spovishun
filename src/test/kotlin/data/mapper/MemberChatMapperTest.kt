@@ -12,7 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class MemberChatMapperTest {
-
     @Test
     fun `toMemberChat should map ResultRow to MemberChat`() {
         val now = Clock.System.now()
