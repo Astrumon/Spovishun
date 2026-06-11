@@ -1,12 +1,8 @@
 ---
 name: grill-me
-description: >
-  Interview the user relentlessly about a plan or design until reaching shared understanding.
-  Resolves each branch of the decision tree one question at a time, providing a recommended
-  answer for each. Use when the user wants to stress-test a plan or says "grill me".
-  Triggers on: "grill me", "stress-test my plan", "challenge my design", "загартуй мене",
-  "перевір мій план", "постав мені питання".
+description: "Interviews the user one question at a time about a plan or design, walking the decision tree until shared understanding is reached. Provides a recommended answer for each question. Triggers: grill me, stress-test my plan, challenge my design, stress test, загартуй мене, перевір мій план, постав мені питання, допити мене."
 ---
+# Grill Me
 
 Interview me relentlessly about every aspect of this plan until we reach a shared understanding.
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.

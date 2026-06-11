@@ -4,7 +4,7 @@ description: "Creates a new task on the project Notion board and prepares the co
 ---
 # New Task Skill
 
-Create a new task on the project board in Notion and prepare the corresponding git branch.
+Create a new task on the project board in Notion; optionally prepare the corresponding git branch when work starts immediately.
 
 ---
 
@@ -49,6 +49,7 @@ If the array is empty (board has no tasks) — start from 1.
 |---|---|
 | Name (property) | `feature/spovishun-{N}: {task title}` |
 | Status | `Not started` |
+| Stage | `Backlog` (default) or `Sprint` — see Step 3.7 |
 | icon | `✨` (default; user may override) |
 
 Branch name: `feature/spovishun-{N}-{slug}`
@@ -81,6 +82,16 @@ If yes — accept task numbers (e.g. `84, 86`) or full page IDs. For each number
 node .claude/scripts/notion/get-task.js spovishun-<N> --format=json
 ```
 Collect the resolved page IDs into `blockedBy` (array). If the user skips, `blockedBy = []`.
+
+---
+
+## Step 3.7: Choose the Stage (Board v2)
+
+Ask where the task lands:
+- **Backlog** (default) — grooming queue, not committed to a sprint. Pick this unless the user says otherwise.
+- **Sprint** — work starts right away; the task is visible to the picker immediately.
+
+Save the answer as `stage`. On Board v1 (the board has no Stage property) set `stage = null` — the script then omits the property entirely.
 
 ---
 
@@ -122,11 +133,14 @@ echo '{
   "title": "feature/spovishun-{N}: {task title}",
   "priority": "Medium",
   "icon": "✨",
+  "stage": "<Backlog | Sprint from Step 3.7; null on Board v1>",
   "epicId": "<page-id from Step 3.5 or null>",
   "blockedBy": ["<page-id>", ...],
   "content": "{full page content from Step 4 — markdown is parsed, not flattened}"
 }' | node .claude/scripts/notion/create-task.js
 ```
+
+The script sets `Status = "Not started"` automatically — do not pass `status` unless the user explicitly asks for a different starting status.
 
 Alternatively (MCP path, if no relations needed):
 ```
@@ -136,7 +150,7 @@ notion-create-pages(
     properties: {
       "Name": "feature/spovishun-{N}: {task title}",
       "Status": "Not started",
-      "Stage": "Backlog"   // omit if the board has no Stage property (Board v1)
+      "Stage": "<Backlog | Sprint from Step 3.7>"   // omit if the board has no Stage property (Board v1)
     },
     icon: "✨",
     content: "{full page content from Step 4}"
@@ -152,7 +166,13 @@ notion-create-pages(
 
 ---
 
-## Step 6: Create git branch
+## Step 6: Create git branch (conditional)
+
+Create a branch ONLY when one of these holds:
+- the task went straight to `Sprint` in Step 3.7 AND the user confirms starting work now, or
+- the user explicitly asks for a branch.
+
+For Backlog tasks skip this step — the branch is created later, when the task is promoted to Sprint and picked up.
 
 ```bash
 git checkout develop
@@ -167,9 +187,9 @@ If there is already a branch with this name — inform the user and do NOT overw
 ## Step 7: Confirm to user
 
 Report:
-- Task created: `feature/spovishun-{N}: {task title}` (with Notion URL if available)
-- Branch created: `feature/spovishun-{N}-{slug}`
-- Current branch is now: `feature/spovishun-{N}-{slug}`
+- Task created: `feature/spovishun-{N}: {task title}` (with Notion URL if available), Stage: `Backlog` / `Sprint`
+- If Step 6 ran — Branch created: `feature/spovishun-{N}-{slug}` and current branch is now that branch
+- If Step 6 was skipped — note that no branch was created (task is in Backlog)
 
 ---
 
@@ -177,6 +197,7 @@ Report:
 
 - Do NOT explore the codebase
 - Do NOT report on or modify existing tasks
+- Do NOT create a git branch for Backlog tasks unless explicitly requested
 - Do NOT branch from `main` — always from `develop`
 - Do NOT guess the task number — always fetch the board first
 - Do NOT skip any of the five page sections (Goal, Branch, Steps, DoD, prompt)
