@@ -17,6 +17,7 @@ mockk = "1.13.13"
 h2 = "2.3.232"
 okhttp = "4.12.0"
 okio = "3.9.0"
+ktlint-tool = "1.5.0"
 ktlint-plugin = "14.2.0"
 detekt = "2.0.0-alpha.3"
 
@@ -70,6 +71,12 @@ h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
 # Security constraints
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+
+# Gradle plugin artifacts (for buildSrc convention-plugin classpath)
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-serialization-gradle-plugin = { group = "org.jetbrains.kotlin.plugin.serialization", name = "org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+ktlint-gradle-plugin = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version.ref = "ktlint-plugin" }
+detekt-gradle-plugin = { group = "dev.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
 
 
 [plugins]
