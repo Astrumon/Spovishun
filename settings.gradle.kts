@@ -3,3 +3,5 @@ plugins {
 }
 
 rootProject.name = "spovishun"
+
+include(":common", ":domain", ":data", ":bot", ":app")

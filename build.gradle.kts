@@ -1,8 +1,11 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ktlint)
-    alias(libs.plugins.detekt)
+    // Versions are omitted: buildSrc puts these plugins on the build classpath for every
+    // project, so the root can no longer request them with an explicit version. The same
+    // plugins are still applied — behavior is unchanged. (spovishun-100, ADR-0001)
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jlleitschuh.gradle.ktlint")
+    id("dev.detekt")
     application
 }
 
