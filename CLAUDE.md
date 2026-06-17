@@ -137,6 +137,16 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
 | Update status | `node .claude/scripts/notion/update-status.js` or MCP `notion-update-page` |
 | Semantic search across arbitrary Notion content | MCP `notion-search` (not replicable via scripts) |
 
+## Task Status Workflow
+When you **begin implementing** a board task — at Plan Mode entry, or before the first edit if no
+plan step — set its Notion Status to `In progress`:
+```bash
+node .claude/scripts/notion/update-status.js <task-id> "In progress"
+```
+This applies even when the task was picked manually (not via a skill). Honor the **single
+In-progress** rule — only one task in progress at a time. Move to `Done` only after the PR merges.
+On any Notion API failure: log the intended change in chat and continue — never block the actual code work.
+
 ## Idea Planning Pipeline
 Use these skills to go from a raw idea to implementable tasks:
 - `idea-brainstormer` — structures a raw idea into a problem brief (problem statement, scope, risks, feasibility)
