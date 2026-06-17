@@ -18,6 +18,9 @@ repositories {
 }
 
 dependencies {
+    // Modules
+    implementation(project(":common"))
+
     // Tests
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
