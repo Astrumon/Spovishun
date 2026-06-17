@@ -2,6 +2,7 @@ package commands
 
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.ua.astrumon.data.releasenotes.ReleaseNotesRepositoryImpl
 import com.ua.astrumon.domain.service.ReleaseNotesService
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
 import com.ua.astrumon.presentation.controller.WhatsNewController
@@ -12,7 +13,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
-    private val releaseNotesService = ReleaseNotesService()
+    private val releaseNotesService = ReleaseNotesService(ReleaseNotesRepositoryImpl())
     private lateinit var whatsNewCommand: WhatsNewCommand
 
     @BeforeTest
