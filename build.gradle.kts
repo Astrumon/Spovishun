@@ -20,6 +20,7 @@ repositories {
 dependencies {
     // Modules
     implementation(project(":common"))
+    implementation(project(":domain"))
 
     // Tests
     testImplementation(libs.kotlin.test)

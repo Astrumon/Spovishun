@@ -5,8 +5,6 @@
     <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
     <ID>LoopWithTooManyJumpStatements:TelegramHelperBot.kt:TelegramHelperBot$for</ID>
     <ID>MagicNumber:BaseE2ETest.kt:BaseE2ETest$30L</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
     <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$12</ID>
     <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$25</ID>
     <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>

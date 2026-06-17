@@ -22,6 +22,6 @@ val serviceModule = module {
     single { AutoRegisterService(get(), get(), get(), get()) }
     single { BirthdayService(get(), get(), get()) }
     single<Clock> { Clock.system(ZoneId.of("Europe/Kyiv")) }
-    single { ReleaseNotesService() }
+    single { ReleaseNotesService(get()) }
     single { BotMetaService(get()) }
 }
