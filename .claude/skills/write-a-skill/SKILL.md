@@ -1,4 +1,5 @@
 ---
+x-spovishun: write-a-skill
 name: write-a-skill
 description: "Guides the user through creating a new Claude Code skill in their own project's .claude/skills/ directory — drafts SKILL.md, decides structure, and reviews the result. Use when the user wants to create, write, build, or add a new skill. Triggers: write a skill, new skill, create a skill, add a skill, build a skill, напиши скіл, новий скіл, створи скіл, додай скіл, зроби скіл."
 ---

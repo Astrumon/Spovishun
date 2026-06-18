@@ -1,4 +1,5 @@
 ---
+x-spovishun: reflect
 name: reflect
 description: "Processes the learnings queue from the capture-learning hook and proposes memory-file entries for user approval. Also provides /view-queue and /skip-reflect sub-commands. Triggers: reflect, process the queue, view queue, skip reflect, рефлект, обробити чергу, переглянути чергу."
 ---

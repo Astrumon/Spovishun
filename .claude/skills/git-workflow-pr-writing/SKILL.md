@@ -1,4 +1,5 @@
 ---
+x-spovishun: git-workflow-pr-writing
 name: git-workflow-pr-writing
 description: "Writes commit messages, pull request descriptions, and changelogs following Conventional Commits and Keep a Changelog conventions. Includes GitFlow branching guidance. Triggers: write a commit, create PR description, write release notes, PR template, напиши коміт, опис PR, нотатки до релізу."
 ---

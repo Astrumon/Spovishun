@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-data-migrator
 name: notion-data-migrator
 description: "Migrates or imports data into Notion from Telegram messages, JSON, CSV, or Markdown. Handles classification, topic grouping, batch page creation, and database record migration. Triggers: import to Notion, migrate my notes, add these to Notion, convert this to Notion, create Notion pages from this, імпортуй в Notion, перенеси нотатки, створи сторінки в Notion."
 ---

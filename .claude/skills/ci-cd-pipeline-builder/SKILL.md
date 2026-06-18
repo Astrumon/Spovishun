@@ -1,4 +1,5 @@
 ---
+x-spovishun: ci-cd-pipeline-builder
 name: ci-cd-pipeline-builder
 description: "Generates CI/CD pipelines (GitHub Actions, GitLab CI) for Kotlin/Gradle projects. Includes caching, test, build, and SSH deploy stages with a validation checklist. Triggers: GitHub Actions, CI pipeline, build workflow, deploy automation, continuous integration, налаштуй CI, пайплайн, автоматичне деплоювання."
 ---

@@ -1,4 +1,5 @@
 ---
+x-spovishun: kotlin-specialist
 name: kotlin-specialist
 description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gradle Kotlin DSL, and idiomatic patterns. Includes structured concurrency rules and dispatcher enforcement. Triggers: coroutine, suspend, Flow, launch, withContext, sealed class, Gradle DSL, корутина, flow, сілд клас, нульова безпека."
 ---
@@ -30,7 +31,8 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 - Never use `runBlocking` in production coroutine context — causes deadlock.
 - Never use `GlobalScope.launch` — breaks structured concurrency and causes memory leaks.
 - Never swallow `CancellationException` — always rethrow or propagate it.
-- Bot coroutine scope uses `SupervisorJob` — one failing handler must never kill the bot.
+- Every `CoroutineScope` context MUST carry three elements: Dispatcher + Job + `CoroutineExceptionHandler` — a scope without a handler silently swallows uncaught exceptions.
+- `SupervisorJob` only isolates a failing child from its siblings — it does NOT catch, log, or surface the exception. An uncaught throw reaches the default `Thread.UncaughtExceptionHandler` and disappears, so the bot keeps running but the feature stops working invisibly.
 
 ## Do NOT
 
@@ -43,7 +45,7 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 
 - If no Decision Table row matches, ask the user to clarify before proceeding.
 - If a reference file is missing, stop and report the exact path.
-- Coroutine errors: set `CoroutineExceptionHandler` at scope level, not inside `launch {}`.
+- Coroutine errors: set `CoroutineExceptionHandler` at scope level, not inside `launch {}`. The handler must log (SLF4J) AND report to observability — never leave it empty. Inject it via DI with a typed qualifier (see `dependency-injection-architecture`).
 
 ## Related Skills
 

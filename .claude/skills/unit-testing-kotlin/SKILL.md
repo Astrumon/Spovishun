@@ -1,4 +1,5 @@
 ---
+x-spovishun: unit-testing-kotlin
 name: unit-testing-kotlin
 description: "Unit testing for Kotlin projects using JUnit 5, MockK, and Kotest. Covers AAA pattern, coroutine testing with runTest, MockK coEvery/coVerify, and test naming conventions. Triggers: write tests for, add unit test, test this function, TDD, MockK, runTest, напиши тести, unit тест, протестуй функцію."
 ---

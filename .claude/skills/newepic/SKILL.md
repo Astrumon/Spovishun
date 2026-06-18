@@ -1,4 +1,5 @@
 ---
+x-spovishun: newepic
 name: newepic
 description: "Creates a new Epic record in the Notion Epics database. The Epic page owns its full research/spec body — no stubs. Covers MCP vs CLI path selection, section structure, and Goal property rules. Triggers: new epic, create epic, add epic, новий епік, створи епік, додай епік."
 ---

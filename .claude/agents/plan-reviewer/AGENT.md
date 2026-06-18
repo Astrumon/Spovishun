@@ -1,4 +1,5 @@
 ---
+x-spovishun: plan-reviewer
 name: plan-reviewer
 description: Technical plan reviewer. Audits implementation plans for completeness, risk, and alignment with Clean Architecture. Produces a 7-section review report.
 tools: Read, Glob, Grep, WebFetch

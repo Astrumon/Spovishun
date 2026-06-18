@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-spovishun-task-manager
 name: notion-spovishun-task-manager
 description: "Project-specific Notion task manager. Covers task numbering, branch naming, epic linking, board reading via CLI scripts, status updates via MCP, and auto-doc update on task completion. Triggers: task board, update task status, what's in progress, show board, sprint planning, задача, борд, спринт, створи задачу, що в борді, закрий задачу, переведи в done."
 ---

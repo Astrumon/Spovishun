@@ -1,4 +1,5 @@
 ---
+x-spovishun: commit
 name: commit
 description: "Commits staged or all current changes following Conventional Commits and project conventions. User-invocable via /commit or /commit -m \"message\". Triggers: commit changes, create a commit, закоміть, зроби коміт."
 ---

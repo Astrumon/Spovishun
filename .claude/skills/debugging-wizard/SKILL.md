@@ -1,4 +1,5 @@
 ---
+x-spovishun: debugging-wizard
 name: debugging-wizard
 description: "Diagnoses bugs, runtime errors, and unexpected behavior through hypothesis-driven investigation. Produces a Root Cause Report with a fix and prevention strategy. Triggers: bug, error, debug, not working, exception, помилка, не працює, баг, відлагодь."
 ---

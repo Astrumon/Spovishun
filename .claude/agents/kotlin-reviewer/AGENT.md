@@ -1,4 +1,5 @@
 ---
+x-spovishun: kotlin-reviewer
 name: kotlin-reviewer
 description: Kotlin code reviewer. Runs 9 checks covering null-safety, structured concurrency, dispatcher injection, naming, layer compliance, magic numbers, function length, data access patterns, and security. Use proactively on any Kotlin PR.
 tools: Read, Glob, Grep

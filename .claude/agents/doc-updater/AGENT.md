@@ -1,4 +1,5 @@
 ---
+x-spovishun: doc-updater
 name: doc-updater
 description: Documentation auditor subagent for the update-doc-full skill. Maps changed files to Notion zones, reads current Notion page content, proposes minimal updates, and returns structured proposals. Does not apply changes — returns proposals only.
 tools: Read, Glob, Grep, Bash

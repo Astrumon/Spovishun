@@ -1,4 +1,5 @@
 ---
+x-spovishun: postgresql-exposed-orm
 name: postgresql-exposed-orm
 description: "Kotlin Exposed ORM with PostgreSQL — table design, query patterns, safeDbQuery enforcement, Flyway migrations, and HikariCP configuration. Triggers: Exposed ORM, Flyway, safeDbQuery, HikariCP, database schema, migration, таблиця Exposed, міграція Flyway, запит до бази, HikariCP пул."
 ---
