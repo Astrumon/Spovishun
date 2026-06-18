@@ -1,4 +1,5 @@
 ---
+x-spovishun: architecture-designer
 name: architecture-designer
 description: "Designs system architecture with Kotlin Clean Architecture layer rules, ADR templates, and Koin/Exposed boundary enforcement. Triggers: architecture, design decision, ADR, module structure, trade-off, архітектура, дизайн рішення, структура модуля."
 ---

@@ -8,6 +8,6 @@
     "skills:doctor": "spovishun-skills doctor"
   },
   "devDependencies": {
-    "spovishun-skills": "^1.8.1"
+    "spovishun-skills": "^1.10.0"
   }
 }

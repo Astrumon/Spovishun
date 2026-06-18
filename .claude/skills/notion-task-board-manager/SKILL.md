@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-task-board-manager
 name: notion-task-board-manager
 description: "Manages tasks on a Notion Kanban board — fetches schema, creates tasks with Goal/Steps/DoD structure, updates statuses, and reads board state. Generic board skill; does not assume any specific project schema. Triggers: create a task in Notion, update task status, what's in progress, show the board, plan a sprint, add to backlog, створи задачу в Notion, оновити статус задачі, що в процесі, покажи дошку."
 ---

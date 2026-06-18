@@ -1,4 +1,5 @@
 ---
+x-spovishun: database-reviewer
 name: database-reviewer
 description: Database layer code reviewer. Audits migrations, transaction safety, index coverage, N+1 patterns, and data access isolation. Use proactively on any PR touching database layer code.
 tools: Read, Glob, Grep

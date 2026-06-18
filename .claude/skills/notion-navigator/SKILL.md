@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-navigator
 name: notion-navigator
 description: "Reference map of the project Notion workspace. Decision table for where to put new documentation by category, refresh workflow, and critical rule to never create standalone pages. Triggers: where in Notion, notion page for, find the notion page, which page to update, де в Notion, яка сторінка, куди додати документацію, оновити карту."
 ---

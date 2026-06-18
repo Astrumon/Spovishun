@@ -1,4 +1,5 @@
 ---
+x-spovishun: task-decomposer
 name: task-decomposer
 description: "Breaks a solution into atomic Notion tasks following clean-architecture decomposition rules. Covers Epic creation, overview table, 5-section task cards with English AI prompts, dependency wiring, and Notion creation on user confirmation. Triggers: break into tasks, decompose, task breakdown, create tasks for, розбий на задачі, декомпозиція, які задачі потрібні, розклади на таски."
 ---

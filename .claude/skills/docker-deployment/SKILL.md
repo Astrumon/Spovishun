@@ -1,4 +1,5 @@
 ---
+x-spovishun: docker-deployment
 name: docker-deployment
 description: "Containerize Kotlin apps with multi-stage Dockerfile (installDist), docker-compose with dev profile, ghcr.io push workflow, and SSH deploy to low-RAM servers. Triggers: Dockerfile, docker-compose, containerize, deploy, ghcr.io, GitHub Container Registry, Oracle Cloud, докерфайл, контейнер, деплой."
 ---

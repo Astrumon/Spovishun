@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-content-reader
 name: notion-content-reader
 description: "Reads, fetches, and searches Notion content. Prefers REST scripts for board/task/CLAUDE.md reads; falls back to MCP notion-search and notion-fetch for everything else. Triggers: find in Notion, read my Notion page, search Notion for, fetch from Notion, what's on my Notion page, знайди в Notion, прочитай Notion сторінку, пошукай в Notion."
 ---

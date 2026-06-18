@@ -1,4 +1,5 @@
 ---
+x-spovishun: idea-brainstormer
 name: idea-brainstormer
 description: "Structures raw ideas into actionable Idea Briefs with problem statement, scope, risks, and feasibility assessment. Produces structured output for handoff to solution-designer. Triggers: idea, what if we, I want to add, feature idea, brainstorm, нова ідея, хочу додати, що якщо, давай обговоримо, є ідея."
 ---

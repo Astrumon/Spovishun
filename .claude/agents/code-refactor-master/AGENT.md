@@ -1,4 +1,5 @@
 ---
+x-spovishun: code-refactor-master
 name: code-refactor-master
 description: Large-scale Kotlin refactoring agent. Runs a 4-phase process (Discovery, Planning, Execution, Verification) and enforces 300-line class / 20-line function limits. Use for structural refactors, not small fixes.
 tools: Read, Glob, Grep, Bash

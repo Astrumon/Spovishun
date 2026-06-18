@@ -1,4 +1,5 @@
 ---
+x-spovishun: telegram-bot-development
 name: telegram-bot-development
 description: "Kotlin Telegram bot development — command routing, inline keyboards, coroutine scope, BotMessages, and Command→Controller→Service layer enforcement. Triggers: Telegram bot, bot command, inline keyboard, callback query, MessageHandler, bot deployment, команда бота, інлайн клавіатура, обробник повідомлень, реєстрація бота."
 ---

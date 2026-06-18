@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-workspace-organizer
 name: notion-workspace-organizer
 description: "Reorganizes Notion workspaces — maps structure, proposes before/after plans, moves pages in bulk (up to 100 per call), enforces naming conventions, and enforces max 3-level page hierarchy. Triggers: organize my Notion, move this page to, restructure my workspace, create a hub page, clean up Notion, організуй Notion, перемісти сторінку, реструктуризуй простір."
 ---
