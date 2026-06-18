@@ -1,4 +1,5 @@
 ---
+x-spovishun: discover-patterns
 name: discover-patterns
 description: "Retrospectively scans Claude Code session JSONL logs for correction signals missed by the capture-learning hook, and pushes candidates to the learnings queue for /reflect to process. Triggers: discover patterns, scan past sessions, find missed corrections, знайди патерни, перегляньcтарі сесії."
 ---

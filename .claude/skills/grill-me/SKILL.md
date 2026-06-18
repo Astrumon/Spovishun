@@ -1,4 +1,5 @@
 ---
+x-spovishun: grill-me
 name: grill-me
 description: "Interviews the user one question at a time about a plan or design, walking the decision tree until shared understanding is reached. Provides a recommended answer for each question. Triggers: grill me, stress-test my plan, challenge my design, stress test, загартуй мене, перевір мій план, постав мені питання, допити мене."
 ---

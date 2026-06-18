@@ -1,4 +1,5 @@
 ---
+x-spovishun: update-doc-full
 name: update-doc-full
 description: "Orchestrated documentation sync. Audits committed git changes over a time range (1w/2w/1m/3m/1y), delegates zone mapping to a doc-updater subagent, presents proposed Notion updates in plannotator for batch confirmation, then applies approved updates via MCP. Triggers: update docs, sync notion, sync docs, оновити документацію, синхронізувати документацію."
 ---

@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-database-manager
 name: notion-database-manager
 description: "Creates Notion databases, designs schemas, adds records, updates properties, and builds relations. Covers property types, data_source_id usage, checkbox/date formatting, and self-relations. Triggers: create a Notion database, add to my Notion DB, design a schema, notion table, notion tracker, add records to Notion, створи базу даних Notion, додай до Notion DB, схема бази Notion."
 ---

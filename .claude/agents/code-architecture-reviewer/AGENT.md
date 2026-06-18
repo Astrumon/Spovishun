@@ -1,4 +1,5 @@
 ---
+x-spovishun: code-architecture-reviewer
 name: code-architecture-reviewer
 description: Full Clean Architecture reviewer. Audits layer boundaries, dependency direction, SOLID compliance, and module coupling. Saves the report to ./docs/reviews/ and waits for approval before suggesting fixes.
 tools: Read, Glob, Grep

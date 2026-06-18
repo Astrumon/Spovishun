@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-task-to-code
 name: notion-task-to-code
 description: "Converts a Notion task into a ready-to-use AI agent prompt. Fetches task from cache or Notion API, extracts Goal/Branch/Steps/DoD, injects Epic and blocker context, outputs a fenced prompt, and enters Plan Mode. Triggers: create prompt for task, generate prompt, prompt for Claude Code, prepare task for agent, run agent on task, зроби промпт для задачі, згенеруй промпт, промпт для Claude Code, підготуй задачу для агента."
 ---

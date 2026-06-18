@@ -1,4 +1,5 @@
 ---
+x-spovishun: database-optimizer
 name: database-optimizer
 description: "PostgreSQL and SQLite performance optimization — EXPLAIN ANALYZE, index design, N+1 detection with Exposed ORM, pg_stat_statements, and HikariCP tuning. Triggers: slow query, EXPLAIN ANALYZE, index, N+1, database performance, pg_stat_statements, повільний запит, індекс, продуктивність бази."
 ---

@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-page-builder
 name: notion-page-builder
 description: "Creates and updates Notion pages via MCP. Covers icon rules, content structure, replace_content limitations, image placeholders, and database schema fetching before entry creation. Triggers: create a Notion page, add content to Notion, update Notion page content, build a Notion page, set icon on Notion page, створи сторінку в Notion, додай контент до Notion, онови вміст Notion."
 ---

@@ -1,4 +1,5 @@
 ---
+x-spovishun: newtask
 name: newtask
 description: "Creates a new task on the project Notion board and prepares the corresponding git branch. Covers task numbering, branch naming, epic linking, blocker wiring, and 5-section page structure (Goal/Branch/Steps/DoD/prompt). Triggers: new task, create task, add task, нова задача, створи задачу, додай таск, нова таска."
 ---

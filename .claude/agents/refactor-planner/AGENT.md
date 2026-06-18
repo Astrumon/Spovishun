@@ -1,4 +1,5 @@
 ---
+x-spovishun: refactor-planner
 name: refactor-planner
 description: Creates detailed refactoring plans saved to ./docs/refactoring/. Analyzes the codebase, identifies violations, proposes a sequenced plan with risk assessment. Does not apply changes — planning only.
 tools: Read, Glob, Grep, Bash

@@ -4,6 +4,8 @@ dotenv = "6.4.1"
 koin = "4.1.1"
 kotlinx-serialization = "1.7.3"
 kotlinx-coroutines = "1.9.0"
+kotlinx-datetime = "0.6.1"
+slf4j = "2.0.16"
 exposed = "0.55.0"
 ktor = "3.0.3"
 retrofit = "2.11.0"
@@ -17,6 +19,7 @@ mockk = "1.13.13"
 h2 = "2.3.232"
 okhttp = "4.12.0"
 okio = "3.9.0"
+ktlint-tool = "1.5.0"
 ktlint-plugin = "14.2.0"
 detekt = "2.0.0-alpha.3"
 
@@ -32,6 +35,7 @@ koin-ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin"
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # Database
 exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }
@@ -46,6 +50,7 @@ postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "pos
 hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
 
 # Logging
+slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 logback = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
 
 # Ktor
@@ -70,6 +75,12 @@ h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
 # Security constraints
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+
+# Gradle plugin artifacts (for buildSrc convention-plugin classpath)
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-serialization-gradle-plugin = { group = "org.jetbrains.kotlin.plugin.serialization", name = "org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+ktlint-gradle-plugin = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version.ref = "ktlint-plugin" }
+detekt-gradle-plugin = { group = "dev.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
 
 
 [plugins]

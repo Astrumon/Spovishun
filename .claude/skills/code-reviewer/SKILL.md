@@ -1,4 +1,5 @@
 ---
+x-spovishun: code-reviewer
 name: code-reviewer
 description: "Reviews pull requests and code changes for bugs, security vulnerabilities, performance issues, and architectural correctness. Produces prioritized Critical/Major/Minor findings. Triggers: review this PR, code review, check this diff, review this code, переглянь код, код рев'ю, перевір PR, зроби рев'ю."
 ---

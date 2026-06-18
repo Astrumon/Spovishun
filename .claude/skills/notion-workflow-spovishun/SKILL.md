@@ -1,4 +1,5 @@
 ---
+x-spovishun: notion-workflow-spovishun
 name: notion-workflow-spovishun
 description: "Project-level Notion workflow orchestrator. Routes operations to the correct skill, enforces REST-first hot path for task/board reads, and prevents duplicate MCP calls. Entry point for any Notion operation in a project that uses the full Spovishun Notion stack. Triggers: notion workflow, start notion operation, notion операція, почни з Notion."
 ---

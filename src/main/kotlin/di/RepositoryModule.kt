@@ -7,6 +7,7 @@ import com.ua.astrumon.data.db.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
 import com.ua.astrumon.data.db.repository.MemberChatRepositoryImpl
 import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
+import com.ua.astrumon.data.releasenotes.ReleaseNotesRepositoryImpl
 import com.ua.astrumon.domain.repository.BirthdayGreetingRepository
 import com.ua.astrumon.domain.repository.BotMetaRepository
 import com.ua.astrumon.domain.repository.ChatRepository
@@ -14,6 +15,7 @@ import com.ua.astrumon.domain.repository.GroupMemberRepository
 import com.ua.astrumon.domain.repository.GroupRepository
 import com.ua.astrumon.domain.repository.MemberChatRepository
 import com.ua.astrumon.domain.repository.MemberRepository
+import com.ua.astrumon.domain.repository.ReleaseNotesRepository
 import org.koin.dsl.module
 
 val repositoryModule = module {
@@ -24,4 +26,5 @@ val repositoryModule = module {
     single<ChatRepository> { ChatRepositoryImpl() }
     single<BirthdayGreetingRepository> { BirthdayGreetingRepositoryImpl() }
     single<BotMetaRepository> { BotMetaRepositoryImpl() }
+    single<ReleaseNotesRepository> { ReleaseNotesRepositoryImpl() }
 }

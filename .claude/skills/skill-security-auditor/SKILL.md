@@ -1,4 +1,5 @@
 ---
+x-spovishun: skill-security-auditor
 name: skill-security-auditor
 description: "Quality gate for new or modified Claude Code skills. Reviews a SKILL.md against a 7-point checklist (frontmatter, triggers, workflow clarity, scope guard, error handling, cross-references, test coverage) and produces a PASS/FAIL report. Triggers: audit this skill, review this skill, check this skill, skill ready to add?, is this skill good?, перевір скіл, аудит скіла."
 ---

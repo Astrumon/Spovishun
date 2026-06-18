@@ -1,4 +1,5 @@
 ---
+x-spovishun: technical-documentation-writer
 name: technical-documentation-writer
 description: "Writes README files, CLAUDE.md, architecture documents, and API references for software projects. Follows C4 model for architecture docs and Keep a Changelog for release notes. Triggers: write docs, create README, document this module, write architecture overview, write CLAUDE.md, напиши документацію, створи README, задокументуй модуль."
 ---

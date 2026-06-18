@@ -1,4 +1,5 @@
 ---
+x-spovishun: documentation-architect
 name: documentation-architect
 description: Creates structured markdown documentation under ./docs/ for later transfer to Notion or other knowledge bases. Does NOT call Notion MCP tools directly — output is markdown files only.
 tools: Read, Glob, Grep, Write

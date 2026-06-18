@@ -1,4 +1,5 @@
 ---
+x-spovishun: solution-designer
 name: solution-designer
 description: "Compares 2–3 implementation approaches for a feature and produces a Solution Decision document with a comparison matrix and recommendation. Operates between idea-brainstormer and task-decomposer. Triggers: how should we implement, compare approaches, solution design, which approach, design options, як реалізувати, порівняй підходи, який варіант краще, як краще зробити."
 ---

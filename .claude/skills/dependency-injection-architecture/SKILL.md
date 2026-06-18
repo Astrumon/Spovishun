@@ -1,4 +1,5 @@
 ---
+x-spovishun: dependency-injection-architecture
 name: dependency-injection-architecture
 description: "Clean Architecture layering and Koin DI patterns for Kotlin apps. Enforces layer boundary rules, constructor injection, interface bindings, and profile-based module switching. Triggers: dependency injection, Koin, DI module, layer architecture, add new service, repository pattern, ін'єкція залежностей, Koin модуль, архітектура шарів."
 ---
@@ -18,7 +19,7 @@ Expert in clean architecture and dependency injection for Kotlin applications.
 | If the task is about… | Read first |
 |---|---|
 | Layer responsibilities, allowed dependency direction, per-layer hard rules | `references/layers.md` |
-| Koin modules, `single`/`factory`, profile-based config, naming, adding a service | `references/koin-patterns.md` |
+| Koin modules, `single`/`factory`, profile-based config, naming, adding a service, coroutine scope / `CoroutineExceptionHandler` provider | `references/koin-patterns.md` |
 
 ## Always-Active Rules
 
@@ -28,6 +29,7 @@ Expert in clean architecture and dependency injection for Kotlin applications.
 - Use interface types for all repository/service bindings.
 - Never inject the DI container itself (service-locator anti-pattern).
 - Use `Service`, never `UseCase`, for the naming of domain orchestration classes.
+- Provide `CoroutineExceptionHandler` as its own DI dependency keyed by a typed qualifier (annotation class, not string `@Named`), then compose the scope as `CoroutineScope(SupervisorJob() + dispatcher + exceptionHandler)`. A scope without an injected handler silently swallows background exceptions.
 
 ## Do NOT
 

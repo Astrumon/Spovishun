@@ -5,8 +5,6 @@
     <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
     <ID>LoopWithTooManyJumpStatements:TelegramHelperBot.kt:TelegramHelperBot$for</ID>
     <ID>MagicNumber:BaseE2ETest.kt:BaseE2ETest$30L</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
     <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$12</ID>
     <ID>MagicNumber:BirthdayCommandIntegrationTest.kt:BirthdayCommandIntegrationTest$25</ID>
     <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>
@@ -32,7 +30,6 @@
     <ID>TooGenericExceptionCaught:DatabaseFactory.kt:DatabaseFactory$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DatabaseFactory.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ResultContainer.kt:ResultContainer.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:StartCommand.kt:StartCommand$e: Exception</ID>
     <ID>TooGenericExceptionCaught:TelegramBot.kt:TelegramBot$e: Exception</ID>
   </CurrentIssues>

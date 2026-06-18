@@ -1,4 +1,5 @@
 ---
+x-spovishun: web-research-specialist
 name: web-research-specialist
 description: Internet research agent. Fetches URLs, searches the web, and synthesizes findings into a structured report. Use for library comparisons, API documentation lookup, best practice research, or competitive analysis.
 tools: WebFetch, WebSearch, Read
