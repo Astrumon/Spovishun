@@ -1,9 +1,9 @@
 package com.ua.astrumon.config
 
+import com.ua.astrumon.data.db.DatabaseConfig
 import io.github.cdimascio.dotenv.dotenv
 
 class AppConfig {
-    private val profile = System.getenv("PROFILE") ?: "dev"
     private val env = dotenv { ignoreIfMissing = true }
 
     val telegramBotToken: String = env["TELEGRAM_BOT_TOKEN"]
@@ -17,11 +17,6 @@ class AppConfig {
         ?.toSet()
         .orEmpty()
 
-    private val prefix = profile.uppercase()
-    val databaseUrl: String = env["${prefix}_DATABASE_URL"] ?: "jdbc:postgresql://localhost:5432/spovishun_dev"
-    val databaseDriver: String = env["${prefix}_DATABASE_DRIVER"] ?: "org.postgresql.Driver"
-    val databaseUsername: String = env["${prefix}_DATABASE_USERNAME"] ?: "postgres"
-    val databasePassword: String = env["${prefix}_DATABASE_PASSWORD"]
-        ?: error("${prefix}_DATABASE_PASSWORD is not set — refusing to start")
-    val databasePoolSize: Int = (env["${prefix}_DATABASE_POOL_SIZE"] ?: "10").toInt()
+    // DB settings are owned by the data layer; env-reading lives in one place ([DatabaseConfig.fromEnv]).
+    val databaseConfig: DatabaseConfig = DatabaseConfig.fromEnv()
 }

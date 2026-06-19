@@ -50,6 +50,6 @@ object Application : KoinComponent {
     }
 
     private fun initializeDatabase() {
-        DatabaseFactory.initialize(config)
+        DatabaseFactory.initialize(config.databaseConfig)
     }
 }

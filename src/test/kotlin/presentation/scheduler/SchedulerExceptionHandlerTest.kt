@@ -30,14 +30,14 @@ class SchedulerExceptionHandlerTest {
             SupervisorJob() + StandardTestDispatcher(testScheduler) + handler + CoroutineName("test-scheduler"),
         )
 
-        scope.launch { throw RuntimeException("boom") }
+        scope.launch { throw IllegalStateException("boom") }
         testScheduler.runCurrent()
 
         verify {
             logger.error(
                 "Uncaught exception in scheduler coroutine [{}]",
                 "test-scheduler",
-                any<RuntimeException>(),
+                any<IllegalStateException>(),
             )
         }
         scope.cancel()

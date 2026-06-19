@@ -21,12 +21,20 @@ dependencies {
     // Modules
     implementation(project(":common"))
     implementation(project(":domain"))
+    implementation(project(":data"))
 
     // Tests
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.h2)
+    // The integration/e2e test infra (TestDatabaseFactory/TestDatabaseCleaner) drives the DB
+    // stack directly. :data exposes these as `implementation` (not transitive to compile), so
+    // the test source sets compile against them here; the rest of the stack (exposed-jdbc,
+    // flyway-postgresql, postgresql driver) arrives transitively from :data on the runtime classpath.
+    testImplementation(libs.exposed.core)
+    testImplementation(libs.hikari)
+    testImplementation(libs.flyway.core)
 
     // Env
     implementation(libs.dotenv)
@@ -37,24 +45,6 @@ dependencies {
 
     // Coroutines + Flow
     implementation(libs.kotlinx.coroutines.core)
-
-    // Exposed (ORM)
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.dao)
-    implementation(libs.exposed.jdbc)
-    implementation(libs.exposed.date)
-    implementation(libs.exposed.migration)
-
-    // Database drivers
-    implementation(libs.sqlite.jdbc)
-    implementation(libs.postgresql)
-
-    // Connection pool
-    implementation(libs.hikari)
-
-    // Db Migration
-    implementation(libs.flyway.core)
-    implementation(libs.flyway.postgresql)
 
     // Logging
     implementation(libs.logback)

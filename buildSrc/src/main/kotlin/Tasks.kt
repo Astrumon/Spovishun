@@ -50,13 +50,8 @@ fun Project.registerAppTasks() {
         environment("PROFILE", "prod")
     }
 
-    tasks.register<JavaExec>("generateMigration") {
-        group = "database"
-        description = "Generate SQL migration statements"
-        classpath = mainClasspath
-        mainClass.set("com.ua.astrumon.tools.MigrationGeneratorKt")
-        environment("PROFILE", "dev")
-    }
+    // `generateMigration` is registered in :data (spovishun-103) — the module that owns the
+    // schema, MigrationGenerator, and the migration resources.
 
     tasks.register<Exec>("syncSkillsToNotion") {
         group = "notion"
