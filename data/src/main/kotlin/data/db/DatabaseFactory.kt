@@ -3,7 +3,6 @@ package com.ua.astrumon.data.db
 import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DatabaseFactory.logger
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
@@ -16,16 +15,16 @@ import org.slf4j.LoggerFactory
 object DatabaseFactory {
     val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)
 
-    fun initialize(config: AppConfig) {
+    fun initialize(config: DatabaseConfig) {
         try {
             logger.info("Initializing database")
 
             val hikariConfig = DataSourceFactory.create(
-                url = config.databaseUrl,
-                driver = config.databaseDriver,
-                username = config.databaseUsername,
-                password = config.databasePassword,
-                poolSize = config.databasePoolSize,
+                url = config.url,
+                driver = config.driver,
+                username = config.username,
+                password = config.password,
+                poolSize = config.poolSize,
             )
 
             val dataSource = HikariDataSource(hikariConfig)

@@ -1,7 +1,7 @@
-package com.ua.astrumon.tools
+package com.ua.astrumon.data.tools
 
-import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DataSourceFactory
+import com.ua.astrumon.data.db.DatabaseConfig
 import com.ua.astrumon.data.db.table.GroupMembers
 import com.ua.astrumon.data.db.table.Groups
 import com.ua.astrumon.data.db.table.Members
@@ -13,14 +13,14 @@ import java.io.File
 
 @OptIn(ExperimentalDatabaseMigrationApi::class)
 fun main() {
-    val config = AppConfig()
+    val config = DatabaseConfig.fromEnv()
 
     val dataSource = HikariDataSource(
         DataSourceFactory.create(
-            url = config.databaseUrl,
-            driver = config.databaseDriver,
-            username = config.databaseUsername,
-            password = config.databasePassword,
+            url = config.url,
+            driver = config.driver,
+            username = config.username,
+            password = config.password,
             poolSize = 2,
         ),
     )
