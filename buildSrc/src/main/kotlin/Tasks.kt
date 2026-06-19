@@ -12,27 +12,9 @@ fun Project.registerAppTasks() {
     val sourceSets = the<JavaPluginExtension>().sourceSets
     val mainClasspath = sourceSets["main"].runtimeClasspath
 
-    tasks.register("generateVersionInfo") {
-        group = "build"
-        description = "Generate version info file"
-        doLast {
-            val f = file("src/main/kotlin/common/util/VersionInfo.kt")
-            // Output must satisfy ktlint (blank line before the function, trailing newline).
-            f.writeText(
-                """
-                package com.ua.astrumon.common.util
-
-                object VersionInfo {
-                    const val VERSION = "$version"
-                    const val BOT_NAME = "Spovishun"
-
-                    fun getFullVersion(): String = BOT_NAME + " v" + VERSION
-                }
-                """.trimIndent() + "\n",
-            )
-            println("Generated VersionInfo.kt with version: $version")
-        }
-    }
+    // `generateVersionInfo` is registered in :common (spovishun-104) — the module that owns
+    // VersionInfo. It was retargeted there when the bot/presentation layer moved to :bot, which
+    // now consumes VersionInfo transitively from :common rather than a root-generated copy.
 
     tasks.register<JavaExec>("runDev") {
         group = "application"
@@ -57,9 +39,5 @@ fun Project.registerAppTasks() {
         group = "notion"
         description = "Sync .claude/skills/*/SKILL.md files to Notion"
         commandLine("python", ".claude/scripts/sync-skills-to-notion.py")
-    }
-
-    tasks.named("compileKotlin") {
-        dependsOn("generateVersionInfo")
     }
 }
