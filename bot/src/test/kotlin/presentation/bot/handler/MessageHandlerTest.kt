@@ -6,7 +6,7 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.config.AppConfig
+import com.ua.astrumon.domain.config.ChatAccessConfig
 import com.ua.astrumon.domain.model.MemberRole
 import com.ua.astrumon.domain.model.MemberWithChat
 import com.ua.astrumon.domain.service.AutoRegisterService
@@ -24,7 +24,7 @@ import kotlin.test.Test
 class MessageHandlerTest {
     private val autoRegisterService: AutoRegisterService = mockk()
     private val botAdminUtils: BotAdminUtils = mockk()
-    private val config: AppConfig = mockk(relaxed = true)
+    private val config: ChatAccessConfig = mockk(relaxed = true)
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var messageHandler: MessageHandler
 

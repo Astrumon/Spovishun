@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":domain"))
     implementation(project(":data"))
+    implementation(project(":bot"))
 
     // Tests
     testImplementation(libs.kotlin.test)
@@ -59,8 +60,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
 
-    // Telegram
-    implementation(libs.telegram.bot)
+    // Telegram types arrive transitively via :bot (api(libs.telegram.bot)).
 
     // Force secure versions of transitive dependencies
     constraints {

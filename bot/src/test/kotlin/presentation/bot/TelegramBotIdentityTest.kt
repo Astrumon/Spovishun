@@ -3,7 +3,7 @@ package presentation.bot
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
-import com.ua.astrumon.config.AppConfig
+import com.ua.astrumon.domain.config.ChatAccessConfig
 import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 class TelegramBotIdentityTest {
     private val commandRegistry: CommandRegistry = mockk(relaxed = true)
     private val messageHandler: MessageHandler = mockk(relaxed = true)
-    private val config: AppConfig = mockk(relaxed = true)
+    private val config: ChatAccessConfig = mockk(relaxed = true)
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var telegramBot: TelegramBot
 

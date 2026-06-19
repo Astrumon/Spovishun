@@ -7,7 +7,7 @@ import com.github.kotlintelegrambot.dispatcher.callbackQuery
 import com.github.kotlintelegrambot.dispatcher.command
 import com.github.kotlintelegrambot.dispatcher.message
 import com.github.kotlintelegrambot.extensions.filters.Filter
-import com.ua.astrumon.config.AppConfig
+import com.ua.astrumon.domain.config.ChatAccessConfig
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import org.slf4j.LoggerFactory
@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 class TelegramBot(
     private val commandRegistry: CommandRegistry,
     private val messageHandler: MessageHandler,
-    private val config: AppConfig,
+    private val config: ChatAccessConfig,
     private val pingCallbackHandler: PingCallbackHandler,
 ) {
     private val logger = LoggerFactory.getLogger(TelegramBot::class.java)

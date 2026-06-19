@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$29</ID>
+    <ID>NestedBlockDepth:StartCommand.kt:StartCommand$override suspend fun execute</ID>
+    <ID>ReturnCount:BirthdayController.kt:BirthdayController$suspend fun setBirthdayForOther: CommandResponse</ID>
+    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
+    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
+    <ID>ReturnCount:PingCallbackHandler.kt:PingCallbackHandler$suspend fun handle</ID>
+    <ID>ReturnCount:PingGroupCommand.kt:PingGroupCommand$override suspend fun execute</ID>
+    <ID>TooGenericExceptionCaught:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BotAdminUtils.kt:BotAdminUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:StartCommand.kt:StartCommand$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TelegramBot.kt:TelegramBot$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>
