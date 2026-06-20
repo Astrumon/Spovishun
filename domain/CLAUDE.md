@@ -1,13 +1,15 @@
-# domain/
+# :domain
 
-Contains: `model/`, `repository/` (interfaces only), `service/`, `cache/`.
+Pure business logic module. Depends only on `:common` (no Gradle dependency on `:data` or `:bot`).
 
-## Forbidden imports
+Packages: `model/`, `repository/` (interfaces only), `service/`, `cache/`, `config/`.
+
+## Forbidden dependencies
 - Telegram SDK (`com.github.kotlintelegrambot.*`)
 - Exposed / JDBC (`org.jetbrains.exposed.*`, `java.sql.*`)
 - Koin (`org.koin.*`)
 - `Dispatchers.IO` (or any coroutine dispatcher assignment)
-- Any `data/` or `presentation/` package
+- A Gradle dependency on `:data` or `:bot` (the build must keep `:domain` free of them)
 
 ## Repository interfaces
 Return `ResultContainer<T>`. Nullable result is allowed at the interface level (e.g. `ResultContainer<Member?>`).
@@ -33,4 +35,3 @@ suspend fun getAll(): List<Member> = withContext(Dispatchers.IO) {
 ## Access checks
 `hasAdminAccess()` / `hasModeratorAccess()` live in `MemberService` and query the DB.
 They do NOT call the Telegram API.
-

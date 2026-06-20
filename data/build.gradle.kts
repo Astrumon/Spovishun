@@ -26,7 +26,6 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
     implementation(libs.postgresql)
-    implementation(libs.sqlite.jdbc)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
