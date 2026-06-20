@@ -6,10 +6,10 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.config.ChatAccessConfig
-import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.domain.model.MemberWithChat
-import com.ua.astrumon.domain.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.config.ChatAccessConfig
+import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberWithChat
+import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks

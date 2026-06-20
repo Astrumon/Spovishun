@@ -1,10 +1,10 @@
 package data.mapper
 
-import com.ua.astrumon.data.db.table.MemberChats
-import com.ua.astrumon.data.db.table.Members
-import com.ua.astrumon.data.mapper.toMember
-import com.ua.astrumon.data.mapper.toMemberWithChat
-import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.data.bot.mapper.toMember
+import com.ua.astrumon.data.bot.mapper.toMemberWithChat
+import com.ua.astrumon.data.bot.table.MemberChats
+import com.ua.astrumon.data.bot.table.Members
+import com.ua.astrumon.domain.bot.model.MemberRole
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.datetime.Clock

@@ -5,7 +5,7 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
-import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.handler.PingCallback
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler

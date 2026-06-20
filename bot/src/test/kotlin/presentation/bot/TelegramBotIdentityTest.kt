@@ -3,7 +3,7 @@ package presentation.bot
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
-import com.ua.astrumon.domain.config.ChatAccessConfig
+import com.ua.astrumon.domain.bot.config.ChatAccessConfig
 import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.bot.handler.MessageHandler

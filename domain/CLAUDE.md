@@ -2,7 +2,14 @@
 
 Pure business logic module. Depends only on `:common` (no Gradle dependency on `:data` or `:bot`).
 
-Packages: `model/`, `repository/` (interfaces only), `service/`, `cache/`, `config/`.
+Organized by bounded context, each keeping its own layer subpackages:
+- `bot/` — the Telegram bot domain: `bot/model/`, `bot/repository/` (interfaces only), `bot/service/`,
+  `bot/cache/`, `bot/config/` (package `com.ua.astrumon.domain.bot.*`).
+- `admin/` — the admin observability API domain (spovishun-110): `admin/model/` (`ServerHealth`),
+  `admin/repository/` (`ServerHealthRepository`) (package `com.ua.astrumon.domain.admin.*`).
+
+New domain types belong under the context they serve; add layer subpackages (`model/`, `repository/`,
+`service/`) within a context as needed.
 
 ## Forbidden dependencies
 - Telegram SDK (`com.github.kotlintelegrambot.*`)

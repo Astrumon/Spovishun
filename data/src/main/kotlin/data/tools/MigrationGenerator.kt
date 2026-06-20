@@ -1,10 +1,10 @@
 package com.ua.astrumon.data.tools
 
+import com.ua.astrumon.data.bot.table.GroupMembers
+import com.ua.astrumon.data.bot.table.Groups
+import com.ua.astrumon.data.bot.table.Members
 import com.ua.astrumon.data.db.DataSourceFactory
 import com.ua.astrumon.data.db.DatabaseConfig
-import com.ua.astrumon.data.db.table.GroupMembers
-import com.ua.astrumon.data.db.table.Groups
-import com.ua.astrumon.data.db.table.Members
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ExperimentalDatabaseMigrationApi

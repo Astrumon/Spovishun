@@ -6,10 +6,10 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.common.util.VersionInfo
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.service.BotMetaService
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.service.BotMetaService
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -98,6 +98,25 @@ class ReleaseAnnouncerTest {
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
             listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future"))),
+        )
+        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+
+        announcer.notifyIfNewVersion(bot)
+        testScheduler.runCurrent()
+
+        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+        scope.cancel()
+    }
+
+    @Test
+    fun `should save version without broadcast when latest note has empty changes`() = runTest {
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+            listOf(ReleaseNote(currentVersion, "2026-06-20", emptyList())),
         )
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 

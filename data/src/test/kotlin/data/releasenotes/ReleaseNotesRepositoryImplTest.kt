@@ -1,6 +1,6 @@
 package data.releasenotes
 
-import com.ua.astrumon.data.releasenotes.ReleaseNotesRepositoryImpl
+import com.ua.astrumon.data.bot.releasenotes.ReleaseNotesRepositoryImpl
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertNotNull

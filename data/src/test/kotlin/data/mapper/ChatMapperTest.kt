@@ -1,7 +1,7 @@
 package data.mapper
 
-import com.ua.astrumon.data.db.table.Chats
-import com.ua.astrumon.data.mapper.toChat
+import com.ua.astrumon.data.bot.mapper.toChat
+import com.ua.astrumon.data.bot.table.Chats
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.datetime.Clock

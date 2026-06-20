@@ -2,9 +2,9 @@ package domain.service
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.Chat
-import com.ua.astrumon.domain.repository.ChatRepository
-import com.ua.astrumon.domain.service.ChatService
+import com.ua.astrumon.domain.bot.model.Chat
+import com.ua.astrumon.domain.bot.repository.ChatRepository
+import com.ua.astrumon.domain.bot.service.ChatService
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify

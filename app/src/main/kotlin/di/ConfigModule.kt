@@ -1,7 +1,7 @@
 package com.ua.astrumon.di
 
 import com.ua.astrumon.config.AppConfig
-import com.ua.astrumon.domain.config.ChatAccessConfig
+import com.ua.astrumon.domain.bot.config.ChatAccessConfig
 import org.koin.dsl.module
 
 val configModule = module {

@@ -3,10 +3,10 @@ package domain.service
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.Group
-import com.ua.astrumon.domain.repository.GroupMemberRepository
-import com.ua.astrumon.domain.repository.GroupRepository
-import com.ua.astrumon.domain.service.GroupService
+import com.ua.astrumon.domain.bot.model.Group
+import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
+import com.ua.astrumon.domain.bot.repository.GroupRepository
+import com.ua.astrumon.domain.bot.service.GroupService
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify

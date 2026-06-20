@@ -2,10 +2,10 @@ package presentation.controller
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.MemberService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.MemberService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import io.mockk.clearAllMocks
@@ -24,6 +24,11 @@ class WhatsNewControllerTest {
 
     private val notes = listOf(
         ReleaseNote("2.0.0", "2026-01-01", listOf("New feature")),
+        ReleaseNote("1.0.0", "2025-01-01", listOf("Initial release")),
+    )
+
+    private val emptyLatestNotes = listOf(
+        ReleaseNote("1.6.0", "2026-06-20", emptyList()),
         ReleaseNote("1.0.0", "2025-01-01", listOf("Initial release")),
     )
 
@@ -67,6 +72,15 @@ class WhatsNewControllerTest {
     }
 
     @Test
+    fun `showLatest should return Silent when latest note has no changes`() = runTest {
+        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
+
+        val result = controller.showLatest()
+
+        assertTrue(result is CommandResponse.Silent)
+    }
+
+    @Test
     fun `showLatest should return Error when service fails`() = runTest {
         coEvery { releaseNotesService.getAll() } returns
             ResultContainer.failure(DatabaseException("classpath read failed"))
@@ -90,6 +104,28 @@ class WhatsNewControllerTest {
     @Test
     fun `showHistory should return Silent when notes are empty`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
+
+        val result = controller.showHistory()
+
+        assertTrue(result is CommandResponse.Silent)
+    }
+
+    @Test
+    fun `showHistory should omit entries with no changes`() = runTest {
+        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
+
+        val result = controller.showHistory()
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("1.0.0"))
+        assertTrue(!result.message.contains("1.6.0"))
+    }
+
+    @Test
+    fun `showHistory should return Silent when all entries have no changes`() = runTest {
+        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+            listOf(ReleaseNote("1.6.0", "2026-06-20", emptyList())),
+        )
 
         val result = controller.showHistory()
 

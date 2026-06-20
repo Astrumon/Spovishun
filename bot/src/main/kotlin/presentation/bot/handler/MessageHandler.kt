@@ -3,8 +3,8 @@ package com.ua.astrumon.presentation.bot.handler
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.sanitizeUsername
-import com.ua.astrumon.domain.config.ChatAccessConfig
-import com.ua.astrumon.domain.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.config.ChatAccessConfig
+import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import org.slf4j.LoggerFactory
 

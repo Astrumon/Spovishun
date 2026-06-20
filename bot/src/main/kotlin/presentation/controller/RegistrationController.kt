@@ -1,7 +1,7 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.domain.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
 

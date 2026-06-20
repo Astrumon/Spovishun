@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
     implementation(project(":bot"))
+    implementation(project(":admin-api"))
 
     // Koin (DI)
     implementation(libs.koin.core)
