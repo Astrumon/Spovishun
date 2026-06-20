@@ -5,6 +5,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.6.0] - 2026-06-20
+
+### Changed
+- Migrated the codebase to a multi-module Gradle build (`:common :domain :data :bot :app`);
+  `:app` is the composition root that wires everything via Koin. No change to bot behavior or commands.
+
+### Added
+- Read-only `docker-socket-proxy` (GET-only Docker Engine API, socket mounted read-only, no public port)
+  on the `prod` profile, plus Tailscale-based private admin access — groundwork for a future admin API.
+- ktlint (formatting, hard CI gate) and detekt (static analysis, non-blocking) with per-module baselines.
+- Scope-level `CoroutineExceptionHandler` on scheduler coroutine scopes.
+
+### Fixed
+- Deploy workflow now syncs the VM working tree to `origin/main` before bringing the stack up,
+  so `docker-compose.yml` changes ship to production instead of drifting.
+
+### Tooling
+- `.claude/` automation stack migrated to the `spovishun-skills` plugin.
+
+---
+
 ## [1.5.0] - 2026-05-12
 
 ### Added
