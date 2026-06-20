@@ -16,11 +16,17 @@ fun Project.registerAppTasks() {
     // VersionInfo. It was retargeted there when the bot/presentation layer moved to :bot, which
     // now consumes VersionInfo transitively from :common rather than a root-generated copy.
 
+    // AppConfig reads the gitignored root `.env` via dotenv from the JVM working directory. Since
+    // :app is a subproject, pin the working dir to the repo root so local runs find `.env` (the task
+    // would otherwise default to app/). Production passes env vars directly, so this only aids dev.
+    val repoRoot = rootProject.projectDir
+
     tasks.register<JavaExec>("runDev") {
         group = "application"
         description = "Run the application in development mode"
         classpath = mainClasspath
         mainClass.set("com.ua.astrumon.MainKt")
+        workingDir = repoRoot
         environment("PROFILE", "dev")
     }
 
@@ -29,6 +35,7 @@ fun Project.registerAppTasks() {
         description = "Run the application in production mode"
         classpath = mainClasspath
         mainClass.set("com.ua.astrumon.MainKt")
+        workingDir = repoRoot
         environment("PROFILE", "prod")
     }
 
