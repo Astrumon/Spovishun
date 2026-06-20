@@ -57,4 +57,4 @@ jobs:
         if: always()
         with:
           name: e2e-test-reports
-          path: build/reports/tests/e2eTest/
+          path: app/build/reports/tests/e2eTest/

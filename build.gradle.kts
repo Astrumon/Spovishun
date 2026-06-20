@@ -1,157 +1,29 @@
+// Root project is a pure aggregator after the multi-module migration (spovishun-100..105): all code
+// and the composition root now live in the :common/:domain/:data/:bot/:app subprojects. The root only
+// carries shared coordinates and lints its own build scripts.
+//
+// ktlint is applied with no version here because buildSrc puts the plugin on the build classpath for
+// every project (spovishun-100, ADR-0001); the same rule applies to the convention plugins.
 plugins {
-    // Versions are omitted: buildSrc puts these plugins on the build classpath for every
-    // project, so the root can no longer request them with an explicit version. The same
-    // plugins are still applied — behavior is unchanged. (spovishun-100, ADR-0001)
-    id("org.jetbrains.kotlin.jvm")
-    id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jlleitschuh.gradle.ktlint")
-    id("dev.detekt")
-    application
 }
 
 group = "com.ua.astrumon"
+
+// `version` is single-sourced here and consumed by :common's generateVersionInfo (rootProject.version).
 version = "1.5.0"
 
+// ktlint resolves its CLI from here when linting the root build scripts (subprojects get their
+// repositories from the spovishun.kotlin-common convention).
 repositories {
     mavenCentral()
-    maven { url = uri("https://jitpack.io") }
 }
 
-dependencies {
-    // Modules
-    implementation(project(":common"))
-    implementation(project(":domain"))
-    implementation(project(":data"))
-    implementation(project(":bot"))
-
-    // Tests
-    testImplementation(libs.kotlin.test)
-    testImplementation(libs.mockk)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.h2)
-    // The integration/e2e test infra (TestDatabaseFactory/TestDatabaseCleaner) drives the DB
-    // stack directly. :data exposes these as `implementation` (not transitive to compile), so
-    // the test source sets compile against them here; the rest of the stack (exposed-jdbc,
-    // flyway-postgresql, postgresql driver) arrives transitively from :data on the runtime classpath.
-    testImplementation(libs.exposed.core)
-    testImplementation(libs.hikari)
-    testImplementation(libs.flyway.core)
-
-    // Env
-    implementation(libs.dotenv)
-
-    // Koin (DI)
-    implementation(libs.koin.core)
-    implementation(libs.kotlinx.serialization.json)
-
-    // Coroutines + Flow
-    implementation(libs.kotlinx.coroutines.core)
-
-    // Logging
-    implementation(libs.logback)
-
-    // Ktor (HTTP server)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-
-    // Retrofit (HTTP client)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
-
-    // Telegram types arrive transitively via :bot (api(libs.telegram.bot)).
-
-    // Force secure versions of transitive dependencies
-    constraints {
-        implementation(libs.okhttp)
-        implementation(libs.okio)
-    }
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-// ktlint owns code formatting (indentation, imports, syntax). Rules come from .editorconfig.
+// ktlint lints the root build scripts (build.gradle.kts / settings.gradle.kts); subproject sources are
+// covered by the shared spovishun.kotlin-common convention. Tool version comes from the catalog.
 ktlint {
-    version.set("1.5.0")
-    // Build scripts (*.kts) are checked together with source sets.
-}
-
-// detekt owns static analysis (code smells, complexity, structure) — NOT formatting,
-// which is delegated to ktlint to avoid running the same rules twice (detekt-formatting omitted).
-detekt {
-    buildUponDefaultConfig = true
-    config.setFrom(files("config/detekt/detekt.yml"))
-    baseline = file("config/detekt/baseline.xml")
-    source.setFrom(
-        files(
-            "src/main/kotlin",
-            "src/test/kotlin",
-            "src/integrationTest/kotlin",
-            "src/e2eTest/kotlin",
-        ),
+    version.set(
+        libs.versions.ktlint.tool
+            .get(),
     )
-}
-
-application {
-    mainClass.set("com.ua.astrumon.MainKt")
-}
-
-registerAppTasks()
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-val integrationTestSourceSet = sourceSets.create("integrationTest") {
-    kotlin.srcDir("src/integrationTest/kotlin")
-    resources.srcDir("src/integrationTest/resources")
-    compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-    runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-}
-
-configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
-configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
-
-tasks.register<Test>("integrationTest") {
-    description = "Runs integration tests"
-    group = "verification"
-    testClassesDirs = integrationTestSourceSet.output.classesDirs
-    classpath = integrationTestSourceSet.runtimeClasspath
-    useJUnitPlatform()
-    shouldRunAfter(tasks.test)
-    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
-    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
-    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
-}
-
-val e2eTestSourceSet = sourceSets.create("e2eTest") {
-    kotlin.srcDir("src/e2eTest/kotlin")
-    resources.srcDir("src/e2eTest/resources")
-    compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-    runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-}
-
-configurations["e2eTestImplementation"].extendsFrom(configurations["testImplementation"])
-configurations["e2eTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
-
-tasks.register<Test>("e2eTest") {
-    description = "Runs end-to-end tests against real Telegram API"
-    group = "verification"
-    testClassesDirs = e2eTestSourceSet.output.classesDirs
-    classpath = e2eTestSourceSet.runtimeClasspath
-    useJUnitPlatform()
-    maxParallelForks = 1
-    shouldRunAfter(tasks.named("integrationTest"))
-    // Env vars are read by E2EConfig via dotenv (falls back to .env file).
-    // Only forward when explicitly set to avoid overriding dotenv with empty strings.
-    System.getenv("TEST_BOT_TOKEN")?.let { environment("TEST_BOT_TOKEN", it) }
-    System.getenv("TEST_HELPER_BOT_TOKEN")?.let { environment("TEST_HELPER_BOT_TOKEN", it) }
-    System.getenv("TEST_CHAT_ID")?.let { environment("TEST_CHAT_ID", it) }
-    System.getenv("TEST_ADMINS")?.let { environment("TEST_ADMINS", it) }
-    System.getenv("E2E_DATABASE_URL")?.let { environment("E2E_DATABASE_URL", it) }
-    System.getenv("E2E_DATABASE_USERNAME")?.let { environment("E2E_DATABASE_USERNAME", it) }
-    System.getenv("E2E_DATABASE_PASSWORD")?.let { environment("E2E_DATABASE_PASSWORD", it) }
 }

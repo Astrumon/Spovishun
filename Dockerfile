@@ -8,23 +8,29 @@ COPY gradlew .
 COPY gradle/ gradle/
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY buildSrc/ buildSrc/
+COPY config/ config/
 
-# Fix line endings (gradlew may have CRLF on Windows hosts) and warm dependency cache
-RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-daemon
+# Fix line endings (gradlew may have CRLF on Windows hosts) and warm dependency cache.
+# The root project has no dependencies after the multi-module split — resolve :app's instead.
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew :app:dependencies --no-daemon
 
-# Copy source code (changes frequently — separate layer)
-COPY src/ src/
+# Copy module sources (changes frequently — separate layer)
+COPY common/ common/
+COPY domain/ domain/
+COPY data/ data/
+COPY bot/ bot/
+COPY app/ app/
 
-# Build the distribution (generateVersionInfo runs automatically via compileKotlin)
-RUN ./gradlew installDist --no-daemon
+# Build the :app distribution (generateVersionInfo runs automatically via compileKotlin in :common)
+RUN ./gradlew :app:installDist --no-daemon
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
 
-# Copy only the distribution from the builder stage
-COPY --from=builder /app/build/install/spovishun/ ./
+# Copy only the :app distribution from the builder stage (dist name preserved via applicationName)
+COPY --from=builder /app/app/build/install/spovishun/ ./
 
 # Run as non-root user
 RUN addgroup -S app && adduser -S app -G app
