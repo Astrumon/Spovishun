@@ -18,7 +18,17 @@ services:
       PROD_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       # Read-only Docker API via docker-socket-proxy (prod admin-api, spovishun-110)
       DOCKER_API_URL: ${DOCKER_API_URL:-http://docker-socket-proxy:2375}
+      # Admin observability API (spovishun-110). Bind 0.0.0.0 inside the container; tailnet-only
+      # exposure is enforced by the host port publish below (ADMIN_API_BIND_IP), not by this bind.
+      ADMIN_API_ENABLED: ${ADMIN_API_ENABLED:-false}
+      ADMIN_API_BIND: ${ADMIN_API_BIND:-0.0.0.0}
+      ADMIN_API_PORT: ${ADMIN_API_PORT:-8081}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
     restart: unless-stopped
+    # Publish the admin API on the tailnet interface only (ADMIN_API_BIND_IP = the VM's tailnet IP,
+    # e.g. 100.105.149.58). Never bind to 0.0.0.0 here — that would expose it on the public IP.
+    ports:
+      - "${ADMIN_API_BIND_IP:-127.0.0.1}:${ADMIN_API_PORT:-8081}:${ADMIN_API_PORT:-8081}"
     networks:
       - default
       - proxy-net
