@@ -2,9 +2,9 @@ package domain.service
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.repository.ReleaseNotesRepository
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.repository.ReleaseNotesRepository
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify

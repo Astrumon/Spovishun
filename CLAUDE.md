@@ -3,7 +3,7 @@
 SpovishunTelegramBotV2 — Kotlin Telegram bot (Clean Architecture, multi-module).
 Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog + buildSrc convention plugins,
 Koin 4.x, Exposed 0.55.0, Flyway 12.x, PostgreSQL (dev + prod).
-Modules: `:common :domain :data :bot :app` (see Source Structure); `:app` is the composition root.
+Modules: `:common :domain :data :bot :admin-api :app` (see Source Structure); `:app` is the composition root.
 
 ## Commands
 ```bash
@@ -48,18 +48,22 @@ The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `
 on one line); all other `ktlint_official` rules apply.
 
 ## Source Structure
-Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :app`).
+Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :admin-api :app`).
 Shared config lives in `buildSrc` convention plugins (`spovishun.kotlin-common`,
 `spovishun.kotlin-library`); the root `build.gradle.kts` is a pure aggregator (single-sources `version`,
 lints its own scripts). Each module owns its `detekt-baseline.xml` and a `CLAUDE.md`.
 
 ```
 :common  — pure Kotlin, framework-free: result/ (ResultContainer), exception/, extension/, util/
-:domain  — model/, repository/ (interfaces), service/, cache/, config/  (depends on :common)
-:data    — db/table/, db/repository/ (Exposed impls), db/ (DatabaseFactory), mapper/, releasenotes/,
-           tools/ (MigrationGenerator)  (depends on :domain, :common)
+:domain  — by bounded context: bot/ (model/, repository/ interfaces, service/, cache/, config/) +
+           admin/ (model/, repository/ — ServerHealth)  (depends on :common)
+:data    — shared db/ (DatabaseFactory, DataSourceFactory, DatabaseConfig, ExposedExtensions) +
+           by context: bot/ (repository/ impls, table/, mapper/, releasenotes/) + admin/ (repository/ —
+           ServerHealth) + tools/ (MigrationGenerator)  (depends on :domain, :common)
 :bot     — presentation/: bot/ (TelegramBot, MessageHandler, commands/), controller/, scheduler/, util/
            (depends on :domain, :common — not :data)
+:admin-api — embedded Ktor (CIO) read-only observability API: admin/ (config/, dto/, docker/, auth/,
+           server/); started from :app, bearer-auth, /api/v1  (depends on :domain, :data, :common)
 :app     — composition root: Main.kt, Application.kt (initializeKoin()), config/ (AppConfig),
            di/ (Koin modules); owns the test/integrationTest/e2eTest source sets  (depends on all)
 ```

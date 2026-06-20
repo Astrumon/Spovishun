@@ -2,7 +2,7 @@ package commands
 
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
-import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberRole
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest

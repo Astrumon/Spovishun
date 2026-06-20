@@ -10,8 +10,8 @@ import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.domain.service.GroupWithMembers
+import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
 import com.ua.astrumon.presentation.controller.PingController

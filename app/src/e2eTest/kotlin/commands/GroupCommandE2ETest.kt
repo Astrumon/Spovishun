@@ -1,6 +1,6 @@
 package commands
 
-import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberRole
 import infrastructure.BaseE2ETest
 import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest

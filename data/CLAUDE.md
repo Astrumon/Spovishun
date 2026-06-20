@@ -2,8 +2,16 @@
 
 Persistence module. Depends on `:domain` (implements its repository interfaces) and `:common`.
 
-Packages: `db/table/` (Exposed `Table` objects), `db/repository/` (`*RepositoryImpl`),
-`db/` (`DatabaseFactory`, `DatabaseConfig`), `mapper/`, `releasenotes/`, `tools/` (MigrationGenerator).
+Organized by bounded context (mirrors `:domain`), with shared persistence infra at the root:
+- `db/` — **shared infra**, context-free: `DatabaseFactory` (`safeDbQuery`), `DataSourceFactory`,
+  `DatabaseConfig`, `ExposedExtensions` (package `com.ua.astrumon.data.db`).
+- `bot/` — the Telegram bot persistence: `bot/repository/` (`*RepositoryImpl`), `bot/table/`
+  (Exposed `Table` objects), `bot/mapper/`, `bot/releasenotes/` (package `com.ua.astrumon.data.bot.*`).
+- `admin/` — admin observability persistence (spovishun-110): `admin/repository/`
+  (`ServerHealthRepositoryImpl`) (package `com.ua.astrumon.data.admin.*`).
+- `tools/` — dev tool (`MigrationGenerator`), context-free.
+
+New `*RepositoryImpl`s go under the context they serve; shared DB infra stays in `db/`.
 
 ## Forbidden dependencies
 - Telegram SDK (`com.github.kotlintelegrambot.*`)

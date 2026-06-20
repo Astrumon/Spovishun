@@ -1,11 +1,11 @@
 package infrastructure
 
+import com.ua.astrumon.data.bot.table.Chats
+import com.ua.astrumon.data.bot.table.GroupMembers
+import com.ua.astrumon.data.bot.table.Groups
+import com.ua.astrumon.data.bot.table.MemberChats
+import com.ua.astrumon.data.bot.table.Members
 import com.ua.astrumon.data.db.dbQuery
-import com.ua.astrumon.data.db.table.Chats
-import com.ua.astrumon.data.db.table.GroupMembers
-import com.ua.astrumon.data.db.table.Groups
-import com.ua.astrumon.data.db.table.MemberChats
-import com.ua.astrumon.data.db.table.Members
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.deleteWhere

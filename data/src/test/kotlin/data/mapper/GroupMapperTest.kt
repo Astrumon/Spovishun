@@ -1,7 +1,7 @@
 package data.mapper
 
-import com.ua.astrumon.data.db.table.Groups
-import com.ua.astrumon.data.mapper.toGroup
+import com.ua.astrumon.data.bot.mapper.toGroup
+import com.ua.astrumon.data.bot.table.Groups
 import io.mockk.every
 import io.mockk.mockk
 import org.jetbrains.exposed.dao.id.EntityID

@@ -2,9 +2,9 @@ package presentation.controller
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.domain.model.MemberWithChat
-import com.ua.astrumon.domain.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberWithChat
+import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.RegistrationController
 import io.mockk.clearAllMocks

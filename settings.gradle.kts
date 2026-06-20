@@ -4,4 +4,4 @@ plugins {
 
 rootProject.name = "spovishun"
 
-include(":common", ":domain", ":data", ":bot", ":app")
+include(":common", ":domain", ":data", ":bot", ":admin-api", ":app")

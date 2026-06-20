@@ -1,7 +1,10 @@
 package com.ua.astrumon
 
+import com.ua.astrumon.admin.config.AdminApiConfig
+import com.ua.astrumon.admin.server.AdminApiServer
 import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DatabaseFactory
+import com.ua.astrumon.di.adminApiModule
 import com.ua.astrumon.di.configModule
 import com.ua.astrumon.di.presentationModule
 import com.ua.astrumon.di.repositoryModule
@@ -20,6 +23,8 @@ object Application : KoinComponent {
     private val config: AppConfig by inject()
     private val birthdayGreetingScheduler: BirthdayGreetingScheduler by inject()
     private val releaseAnnouncer: ReleaseAnnouncer by inject()
+    private val adminApiConfig: AdminApiConfig by inject()
+    private val adminApiServer: AdminApiServer by inject()
 
     private val profile = System.getenv("PROFILE") ?: "dev"
 
@@ -30,6 +35,9 @@ object Application : KoinComponent {
         val bot = telegramBot.create(config.telegramBotToken)
         if (!telegramBot.verifyIdentity(bot, config.expectedBotUsername)) {
             throw IllegalStateException("Bot identity check failed — refusing to start")
+        }
+        if (adminApiConfig.enabled) {
+            adminApiServer.start()
         }
         birthdayGreetingScheduler.start(bot)
         releaseAnnouncer.notifyIfNewVersion(bot)
@@ -45,6 +53,7 @@ object Application : KoinComponent {
                 repositoryModule,
                 serviceModule,
                 presentationModule,
+                adminApiModule,
             )
         }
     }

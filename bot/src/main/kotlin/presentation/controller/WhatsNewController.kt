@@ -1,8 +1,8 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.MemberService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.MemberService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
@@ -23,8 +23,9 @@ class WhatsNewController(
 
     suspend fun showHistory(): CommandResponse = releaseNotesService.getAll().fold(
         onSuccess = { notes ->
-            if (notes.isEmpty()) return@fold CommandResponse.Silent
-            CommandResponse.Success(ReleaseNotesFormatter.formatHistory(notes))
+            val text = ReleaseNotesFormatter.formatHistory(notes)
+                ?: return@fold CommandResponse.Silent
+            CommandResponse.Success(text)
         },
         onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
     )

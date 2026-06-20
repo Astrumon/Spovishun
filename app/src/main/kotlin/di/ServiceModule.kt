@@ -1,14 +1,14 @@
 package com.ua.astrumon.di
 
-import com.ua.astrumon.domain.cache.ChatCache
-import com.ua.astrumon.domain.cache.UserCache
-import com.ua.astrumon.domain.service.AutoRegisterService
-import com.ua.astrumon.domain.service.BirthdayService
-import com.ua.astrumon.domain.service.BotMetaService
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.GroupService
-import com.ua.astrumon.domain.service.MemberService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.cache.ChatCache
+import com.ua.astrumon.domain.bot.cache.UserCache
+import com.ua.astrumon.domain.bot.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.service.BirthdayService
+import com.ua.astrumon.domain.bot.service.BotMetaService
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.GroupService
+import com.ua.astrumon.domain.bot.service.MemberService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import org.koin.dsl.module
 import java.time.Clock
 import java.time.ZoneId
