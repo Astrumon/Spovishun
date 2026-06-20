@@ -23,8 +23,9 @@ class WhatsNewController(
 
     suspend fun showHistory(): CommandResponse = releaseNotesService.getAll().fold(
         onSuccess = { notes ->
-            if (notes.isEmpty()) return@fold CommandResponse.Silent
-            CommandResponse.Success(ReleaseNotesFormatter.formatHistory(notes))
+            val text = ReleaseNotesFormatter.formatHistory(notes)
+                ?: return@fold CommandResponse.Silent
+            CommandResponse.Success(text)
         },
         onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
     )

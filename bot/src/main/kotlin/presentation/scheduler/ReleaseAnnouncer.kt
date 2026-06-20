@@ -39,12 +39,15 @@ class ReleaseAnnouncer(
         bot: Bot,
         version: String,
     ) {
-        val entry = findReleaseNote(version) ?: run {
+        // No entry, or an internal-only release with empty changes → mark as notified and skip the
+        // broadcast, so we neither spam chats nor re-evaluate this version on every restart (spovishun-134).
+        val entry = findReleaseNote(version)
+        val text = entry?.let { ReleaseNotesFormatter.formatLatest(listOf(it)) }
+        if (text == null) {
             botMetaService.setLastNotifiedVersion(version)
             return
         }
         val chatIds = chatService.getAnnouncementChatIds().getOrNull() ?: return
-        val text = ReleaseNotesFormatter.formatLatest(listOf(entry)) ?: return
         sendToAllChats(bot, chatIds, text)
         botMetaService.setLastNotifiedVersion(version)
     }

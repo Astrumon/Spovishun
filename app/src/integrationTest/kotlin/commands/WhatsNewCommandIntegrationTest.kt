@@ -6,6 +6,7 @@ import com.ua.astrumon.data.bot.releasenotes.ReleaseNotesRepositoryImpl
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
 import com.ua.astrumon.presentation.controller.WhatsNewController
+import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -23,24 +24,20 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `whatsnew should reply with latest version entry`() = runTest {
-        // Derive the expected version from the same source the controller reads, so the
-        // assertion never goes stale on a version bump.
-        val latestVersion = releaseNotesService
-            .getAll()
-            .getOrThrow()
-            .first()
-            .version
+    fun `whatsnew reply reflects the latest entry`() = runTest {
+        // Derive the expectation from the same source the controller reads, so the assertion never
+        // goes stale on a version bump. An internal-only latest entry (empty changes) yields no reply
+        // (spovishun-134); a normal entry yields its formatted text.
+        val notes = releaseNotesService.getAll().getOrThrow()
+        val expected = ReleaseNotesFormatter.formatLatest(notes)
         val update = buildUpdate("/whatsnew")
 
         whatsNewCommand.execute(bot, update)
 
-        verify {
-            bot.sendMessage(
-                ChatId.fromId(testChatId),
-                match { it.contains(latestVersion) },
-                ParseMode.HTML,
-            )
+        if (expected == null) {
+            verify(exactly = 0) { bot.sendMessage(ChatId.fromId(testChatId), any<String>(), ParseMode.HTML) }
+        } else {
+            verify { bot.sendMessage(ChatId.fromId(testChatId), match { it == expected }, ParseMode.HTML) }
         }
     }
 
@@ -60,8 +57,10 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `whatsnew should include change description in reply`() = runTest {
-        val update = buildUpdate("/whatsnew")
+    fun `whatsnew dollar-h should include change bullets`() = runTest {
+        // The latest entry may be internal-only (no bullets); history always renders the non-empty
+        // entries, so bullet rendering is asserted against the full history.
+        val update = buildUpdate("/whatsnew \$h")
 
         whatsNewCommand.execute(bot, update)
 

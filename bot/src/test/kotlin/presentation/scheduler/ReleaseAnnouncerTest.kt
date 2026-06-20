@@ -110,6 +110,25 @@ class ReleaseAnnouncerTest {
     }
 
     @Test
+    fun `should save version without broadcast when latest note has empty changes`() = runTest {
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+            listOf(ReleaseNote(currentVersion, "2026-06-20", emptyList())),
+        )
+        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+
+        announcer.notifyIfNewVersion(bot)
+        testScheduler.runCurrent()
+
+        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+        coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
+        scope.cancel()
+    }
+
+    @Test
     fun `should continue to other chats when one sendMessage throws`() = runTest {
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
