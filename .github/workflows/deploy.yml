@@ -73,6 +73,10 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             cd ~/Spovishun
+            # Sync the working tree to the deployed ref so compose changes ship too
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
             docker compose --profile prod pull bot
-            docker compose --profile prod up -d
+            docker compose --profile prod up -d --remove-orphans
             docker image prune -f
