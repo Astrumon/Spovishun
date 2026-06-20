@@ -53,6 +53,31 @@ docker compose ps
 docker compose logs bot --tail 50
 ```
 
+### Private admin access (Tailscale + docker-socket-proxy)
+
+The prod stack ships a read-only Docker API gateway (`docker-socket-proxy`, `prod` profile) so the
+bot / future admin-api never touches the raw `docker.sock`. It exposes a GET-only subset
+(`CONTAINERS`, `INFO`), mounts the socket read-only, and is reachable **only** on the internal
+`proxy-net` docker network — no host port is published.
+
+Admin access to the VM goes over **Tailscale**, not a public port:
+
+```bash
+# 1. Install Tailscale on the VM and join the tailnet
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up        # authenticate, then record the assigned tailnet IP (100.x.y.z)
+
+# 2. Bring up the proxy (part of the prod profile)
+docker compose --profile prod up -d docker-socket-proxy
+
+# 3. Sanity-check permissions from the bot container
+docker compose exec bot sh -c 'curl -s http://docker-socket-proxy:2375/containers/json'      # 200 + JSON
+docker compose exec bot sh -c 'curl -s -o /dev/null -w "%{http_code}" -XPOST http://docker-socket-proxy:2375/containers/create'  # 403
+```
+
+Record the tailnet IP in your ops notes (it is not a secret and is not read from `.env`). No new
+public port should appear — verify with an external scan of the VM's public IP.
+
 ## Backups
 
 `scripts/backup.sh` creates a compressed daily backup of the production database.
@@ -205,3 +230,4 @@ Copy `.env.example` to `.env` and fill in the values. The variables below are gr
 | Variable | Example | Notes |
 |---|---|---|
 | `NOTION_SKILLS_TOKEN` | `ntn_...` | Used by the Claude Code skills→Notion sync hook only; not needed to run the bot |
+| `DOCKER_API_URL` | `http://docker-socket-proxy:2375` | Read-only Docker API via the socket proxy (prod, internal network). Defaults in compose; consumed by the future admin-api |
