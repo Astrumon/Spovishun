@@ -10,6 +10,14 @@ COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY buildSrc/ buildSrc/
 COPY config/ config/
 
+# Module build scripts must exist before resolving :app's dependency graph —
+# Gradle configures every included project, and a missing module directory fails the build.
+COPY common/build.gradle.kts common/
+COPY domain/build.gradle.kts domain/
+COPY data/build.gradle.kts   data/
+COPY bot/build.gradle.kts    bot/
+COPY app/build.gradle.kts    app/
+
 # Fix line endings (gradlew may have CRLF on Windows hosts) and warm dependency cache.
 # The root project has no dependencies after the multi-module split — resolve :app's instead.
 RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew :app:dependencies --no-daemon
