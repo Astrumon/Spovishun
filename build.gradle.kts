@@ -11,7 +11,7 @@ plugins {
 group = "com.ua.astrumon"
 
 // `version` is single-sourced here and consumed by :common's generateVersionInfo (rootProject.version).
-version = "1.6.0"
+version = "1.7.0"
 
 // ktlint resolves its CLI from here when linting the root build scripts (subprojects get their
 // repositories from the spovishun.kotlin-common convention).

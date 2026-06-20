@@ -5,6 +5,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.7.0] - 2026-06-20
+
+### Added
+- Admin observability API (`:admin-api`): an embedded read-only Ktor server running in the bot
+  process, bearer-authenticated and bound to the tailnet interface only, exposing `/api/v1`
+  endpoints for health (DB connectivity + size), metrics, containers and container logs over the
+  read-only `docker-socket-proxy` (spovishun-110).
+
+### Changed
+- Reorganized `:domain` and `:data` by bounded context (`bot/` + `admin/`); shared DB infra
+  (`DatabaseFactory`, `DataSourceFactory`, `DatabaseConfig`, `ExposedExtensions`) and the migration
+  dev-tool remain context-free. Internal only — no change to bot behavior or commands.
+
+### Fixed
+- Empty release-notes entries no longer trigger a startup auto-broadcast or render a bare `/whatsnew`
+  reply, so internal-only releases do not spam chats (spovishun-134).
+
+### Build
+- `docker-compose.yml` wires the admin API environment and publishes its port on the tailnet
+  interface only (`ADMIN_API_BIND_IP`, default `127.0.0.1` so it is never exposed on the public IP).
+
+---
+
 ## [1.6.0] - 2026-06-20
 
 ### Changed
