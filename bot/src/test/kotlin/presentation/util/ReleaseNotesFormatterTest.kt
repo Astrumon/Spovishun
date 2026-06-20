@@ -1,7 +1,7 @@
 package presentation.util
 
 import com.ua.astrumon.common.util.VersionInfo
-import com.ua.astrumon.domain.model.ReleaseNote
+import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 import kotlin.test.Test
 import kotlin.test.assertContains

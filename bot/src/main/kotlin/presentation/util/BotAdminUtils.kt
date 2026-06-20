@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.util
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
-import com.ua.astrumon.domain.model.MemberRole
+import com.ua.astrumon.domain.bot.model.MemberRole
 import org.slf4j.LoggerFactory
 
 class BotAdminUtils {

@@ -4,10 +4,10 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.util.VersionInfo
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.service.BotMetaService
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.service.BotMetaService
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

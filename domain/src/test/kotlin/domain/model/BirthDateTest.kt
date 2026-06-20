@@ -1,6 +1,6 @@
 package domain.model
 
-import com.ua.astrumon.domain.model.BirthDate
+import com.ua.astrumon.domain.bot.model.BirthDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

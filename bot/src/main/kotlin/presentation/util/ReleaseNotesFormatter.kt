@@ -1,7 +1,7 @@
 package com.ua.astrumon.presentation.util
 
 import com.ua.astrumon.common.util.VersionInfo
-import com.ua.astrumon.domain.model.ReleaseNote
+import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.presentation.bot.BotMessages
 
 object ReleaseNotesFormatter {

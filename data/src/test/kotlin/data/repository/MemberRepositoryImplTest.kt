@@ -1,7 +1,7 @@
 package data.repository
 
-import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
-import com.ua.astrumon.data.db.table.Members
+import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
+import com.ua.astrumon.data.bot.table.Members
 import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll

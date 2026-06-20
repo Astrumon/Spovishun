@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.domain.model.Member
+import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.toText

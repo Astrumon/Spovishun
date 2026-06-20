@@ -1,7 +1,7 @@
 package com.ua.astrumon.config
 
 import com.ua.astrumon.data.db.DatabaseConfig
-import com.ua.astrumon.domain.config.ChatAccessConfig
+import com.ua.astrumon.domain.bot.config.ChatAccessConfig
 import io.github.cdimascio.dotenv.dotenv
 
 class AppConfig : ChatAccessConfig {

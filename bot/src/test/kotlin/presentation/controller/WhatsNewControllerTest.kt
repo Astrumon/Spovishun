@@ -2,10 +2,10 @@ package presentation.controller
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.MemberService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.MemberService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import io.mockk.clearAllMocks

@@ -3,10 +3,10 @@ package presentation.controller
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.BirthDate
-import com.ua.astrumon.domain.model.Member
-import com.ua.astrumon.domain.service.BirthdayService
-import com.ua.astrumon.domain.service.MemberService
+import com.ua.astrumon.domain.bot.model.BirthDate
+import com.ua.astrumon.domain.bot.model.Member
+import com.ua.astrumon.domain.bot.service.BirthdayService
+import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.BirthdayController
 import io.mockk.clearAllMocks

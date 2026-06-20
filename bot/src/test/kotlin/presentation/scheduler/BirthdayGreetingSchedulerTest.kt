@@ -4,9 +4,9 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.result.ResultContainer
-import com.ua.astrumon.domain.model.BirthDate
-import com.ua.astrumon.domain.model.Member
-import com.ua.astrumon.domain.service.BirthdayService
+import com.ua.astrumon.domain.bot.model.BirthDate
+import com.ua.astrumon.domain.bot.model.Member
+import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import io.mockk.clearAllMocks
 import io.mockk.coEvery

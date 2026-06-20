@@ -2,11 +2,11 @@ package data.repository
 
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
-import com.ua.astrumon.data.db.repository.ChatRepositoryImpl
-import com.ua.astrumon.data.db.repository.GroupRepositoryImpl
-import com.ua.astrumon.data.db.table.Chats
-import com.ua.astrumon.data.db.table.GroupMembers
-import com.ua.astrumon.data.db.table.Groups
+import com.ua.astrumon.data.bot.repository.ChatRepositoryImpl
+import com.ua.astrumon.data.bot.repository.GroupRepositoryImpl
+import com.ua.astrumon.data.bot.table.Chats
+import com.ua.astrumon.data.bot.table.GroupMembers
+import com.ua.astrumon.data.bot.table.Groups
 import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll

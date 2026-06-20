@@ -6,10 +6,10 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.common.util.VersionInfo
-import com.ua.astrumon.domain.model.ReleaseNote
-import com.ua.astrumon.domain.service.BotMetaService
-import com.ua.astrumon.domain.service.ChatService
-import com.ua.astrumon.domain.service.ReleaseNotesService
+import com.ua.astrumon.domain.bot.model.ReleaseNote
+import com.ua.astrumon.domain.bot.service.BotMetaService
+import com.ua.astrumon.domain.bot.service.ChatService
+import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
 import io.mockk.clearAllMocks
 import io.mockk.coEvery

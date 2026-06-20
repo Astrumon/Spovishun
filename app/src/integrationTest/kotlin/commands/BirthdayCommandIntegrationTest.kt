@@ -2,12 +2,12 @@ package commands
 
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
-import com.ua.astrumon.data.db.repository.BirthdayGreetingRepositoryImpl
-import com.ua.astrumon.data.db.repository.MemberChatRepositoryImpl
-import com.ua.astrumon.data.db.repository.MemberRepositoryImpl
-import com.ua.astrumon.domain.model.BirthDate
-import com.ua.astrumon.domain.model.MemberRole
-import com.ua.astrumon.domain.service.BirthdayService
+import com.ua.astrumon.data.bot.repository.BirthdayGreetingRepositoryImpl
+import com.ua.astrumon.data.bot.repository.MemberChatRepositoryImpl
+import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
+import com.ua.astrumon.domain.bot.model.BirthDate
+import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.bot.commands.BirthdayCommand
 import com.ua.astrumon.presentation.controller.BirthdayController
 import infrastructure.BaseIntegrationTest
