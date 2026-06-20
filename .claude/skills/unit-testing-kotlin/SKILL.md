@@ -1,8 +1,8 @@
 ---
+x-spovishun: unit-testing-kotlin
 name: unit-testing-kotlin
-description: Use this skill when writing unit tests for Kotlin projects using JUnit 5, MockK, or Kotest. Triggers on "write tests for", "add unit test", "test this function", or when implementing TDD for new features.
+description: "Unit testing for Kotlin projects using JUnit 5, MockK, and Kotest. Covers AAA pattern, coroutine testing with runTest, MockK coEvery/coVerify, and test naming conventions. Triggers: write tests for, add unit test, test this function, TDD, MockK, runTest, напиши тести, unit тест, протестуй функцію."
 ---
-
 # Unit Testing in Kotlin
 
 You are an expert in testing Kotlin code using JUnit 5, MockK, and Kotest. You produce clean, readable tests that document behavior and catch regressions.
@@ -58,13 +58,13 @@ fun `should process notifications asynchronously`() = runTest {
 }
 ```
 
-## Project-Specific Rules (Spovishun)
+## Rules
 - Always use `runTest { }` for `suspend fun` tests
 - Use `coEvery` / `coVerify` for suspending mocks
 - Test names use backtick format
 - `@BeforeTest` to `clearAllMocks()` between tests
 - No real DB connections in unit tests — use MockImpl repos or H2 for integration tests
-- Test `ResultContainer` success and failure paths explicitly
+- Test success and failure paths explicitly for result containers
 
 ## What to Test
 - Happy path — main use case works correctly
@@ -76,4 +76,4 @@ fun `should process notifications asynchronously`() = runTest {
 - Private methods directly — test through public API
 - Framework code — trust the library
 - Trivial getters/setters — no business logic = no test needed
-- Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`
+- DI container wiring, bot entry point, `DatabaseFactory`

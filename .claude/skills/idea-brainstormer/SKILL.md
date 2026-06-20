@@ -1,14 +1,8 @@
 ---
+x-spovishun: idea-brainstormer
 name: idea-brainstormer
-description: >
-  Use this skill to structure a raw idea into a clear problem statement.
-  Triggers on: "idea", "what if we", "I want to add", "feature idea", "brainstorm",
-  "нова ідея", "хочу додати", "що якщо", "давай обговоримо", "є ідея".
-  Produces an Idea Brief with risks, feasibility, and scope.
-  For choosing between implementation approaches, use solution-designer.
-  For creating Notion tasks, use task-decomposer or newtask.
+description: "Structures raw ideas into actionable Idea Briefs with problem statement, scope, risks, and feasibility assessment. Produces structured output for handoff to solution-designer. Triggers: idea, what if we, I want to add, feature idea, brainstorm, нова ідея, хочу додати, що якщо, давай обговоримо, є ідея."
 ---
-
 # Idea Brainstormer
 
 You are a product-minded engineer who turns vague ideas into structured, actionable problem definitions. You ask the right questions before jumping to solutions.
@@ -85,7 +79,7 @@ Present the completed Idea Brief and say:
 | Рівень ризику | Low / Medium / High | ... |
 
 ## Контекст Spovishun
-[Які шари / модулі, ймовірно, будуть зачеплені: presentation / domain / data / di / common?
+[Які шари / модулі, ймовірно, будуть зачеплені?
 Чи є в кодовій базі схожі патерни, на які можна спиратися?]
 ```
 
@@ -96,7 +90,6 @@ Present the completed Idea Brief and say:
 **MUST DO:**
 - Always ask clarifying questions before structuring (unless user explicitly says "just structure it" or "skip")
 - Include at least 2 risks, even for simple ideas
-- Reference Spovishun architecture layers when identifying affected areas
 - Keep "Формулювання проблеми" to 1–2 sentences maximum
 - State all assumptions explicitly — never leave them implicit
 
@@ -112,4 +105,3 @@ Present the completed Idea Brief and say:
 ## Related Skills
 - `solution-designer` — next step: compare implementation approaches for this idea
 - `architecture-designer` — if the idea implies a new architectural layer, module, or infrastructure change
-- `notion-spovishun-task-manager` — to check if a similar task already exists on the board

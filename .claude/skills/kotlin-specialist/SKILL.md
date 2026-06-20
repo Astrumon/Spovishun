@@ -1,9 +1,8 @@
 ---
+x-spovishun: kotlin-specialist
 name: kotlin-specialist
-description: Use this skill for Kotlin development tasks including coroutines, Flow, Gradle Kotlin DSL, and idiomatic Kotlin patterns. Triggers on Kotlin-specific architecture questions, language feature usage, coroutine/async questions ("coroutine", "suspend", "Flow", "launch", "withContext"), or when implementing complex async logic. Ukrainian triggers: "корутина", "flow", "сілд клас", "нульова безпека", "Gradle DSL".
-version: "2.0.0"
+description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gradle Kotlin DSL, and idiomatic patterns. Includes structured concurrency rules and dispatcher enforcement. Triggers: coroutine, suspend, Flow, launch, withContext, sealed class, Gradle DSL, корутина, flow, сілд клас, нульова безпека."
 ---
-
 # Kotlin Specialist
 
 ## Workflow
@@ -32,20 +31,21 @@ version: "2.0.0"
 - Never use `runBlocking` in production coroutine context — causes deadlock.
 - Never use `GlobalScope.launch` — breaks structured concurrency and causes memory leaks.
 - Never swallow `CancellationException` — always rethrow or propagate it.
-- `TelegramBot` scope uses `SupervisorJob` — one failing handler must never kill the bot.
+- Every `CoroutineScope` context MUST carry three elements: Dispatcher + Job + `CoroutineExceptionHandler` — a scope without a handler silently swallows uncaught exceptions.
+- `SupervisorJob` only isolates a failing child from its siblings — it does NOT catch, log, or surface the exception. An uncaught throw reaches the default `Thread.UncaughtExceptionHandler` and disappears, so the bot keeps running but the feature stops working invisibly.
 
 ## Do NOT
 
 - Do NOT load all references at once — pick exactly one based on the Decision Table.
 - Do NOT use `!!` without a documented invariant that guarantees non-null at that point.
-- Do NOT use `runBlocking`, `GlobalScope`, or undocumented `!!` — project-level hard bans.
+- Do NOT use `runBlocking`, `GlobalScope`, or undocumented `!!` — hard bans.
 - Do NOT hardcode `Dispatchers.IO` outside `DatabaseFactory.kt`.
 
 ## Error Handling
 
 - If no Decision Table row matches, ask the user to clarify before proceeding.
 - If a reference file is missing, stop and report the exact path.
-- Coroutine errors: set `CoroutineExceptionHandler` at scope level, not inside `launch {}`.
+- Coroutine errors: set `CoroutineExceptionHandler` at scope level, not inside `launch {}`. The handler must log (SLF4J) AND report to observability — never leave it empty. Inject it via DI with a typed qualifier (see `dependency-injection-architecture`).
 
 ## Related Skills
 

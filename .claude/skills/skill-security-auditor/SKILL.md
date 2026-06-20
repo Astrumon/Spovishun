@@ -1,16 +1,11 @@
 ---
+x-spovishun: skill-security-auditor
 name: skill-security-auditor
-description: >
-  Quality gate for new or modified skills before they are added to the project.
-  Reviews a SKILL.md file against a checklist and produces a pass/fail report
-  with specific, actionable feedback. Triggers on: "audit this skill",
-  "review this skill", "check this skill", "перевір скіл", "аудит скіла",
-  "skill ready to add?", "is this skill good?".
+description: "Quality gate for new or modified Claude Code skills. Reviews a SKILL.md against a 7-point checklist (frontmatter, triggers, workflow clarity, scope guard, error handling, cross-references, test coverage) and produces a PASS/FAIL report. Triggers: audit this skill, review this skill, check this skill, skill ready to add?, is this skill good?, перевір скіл, аудит скіла."
 ---
-
 # Skill Security Auditor
 
-You are a quality gate for Claude Code skills in the Spovishun project. Your job is to read a `SKILL.md` file and evaluate it against the checklist below. Output a structured pass/fail report — not general feedback, but specific line-level findings.
+You are a quality gate for Claude Code skills. Your job is to read a `SKILL.md` file and evaluate it against the checklist below. Output a structured pass/fail report — not general feedback, but specific line-level findings.
 
 ---
 
@@ -35,7 +30,7 @@ You are a quality gate for Claude Code skills in the Spovishun project. Your job
 ### C2 — Triggers
 - [ ] Trigger phrases are **specific** (not single generic words like "idea" or "task")
 - [ ] At minimum 2–3 distinct trigger phrases listed
-- [ ] If Spovishun-specific: includes both **English and Ukrainian** trigger phrases
+- [ ] If project-specific: includes both **English and Ukrainian** trigger phrases
 - [ ] If there is overlap with another skill: includes a **guard clause** ("For X, use skill-Y instead")
 
 ### C3 — Workflow Clarity
@@ -107,11 +102,3 @@ You are a quality gate for Claude Code skills in the Spovishun project. Your job
 - Do NOT rewrite the skill — only flag issues; let the author fix them
 - Do NOT mark a skill as PASS if any C1–C5 item fails, even if everything else looks good
 - Do NOT run this audit on rules (`.claude/rules/`) — rules have a different format
-
----
-
-## Related Skills
-
-- `notion-navigator` — reference for valid Notion page IDs used in skills
-- `notion-page-builder` — example of a well-structured skill to compare against
-- `notion-spovishun-task-manager` — example of a well-structured skill to compare against

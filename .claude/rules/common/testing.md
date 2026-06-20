@@ -14,13 +14,13 @@
 ## What to Test
 - Domain layer (services): ALWAYS unit tested — mock repositories
 - Presentation layer (controllers): ALWAYS unit tested — mock services
-- Data layer (repositories): integration tested against MockImpl, not unit mocked
-- NEVER unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`
+- Data layer (repositories): integration tested against real or in-memory DB, not unit mocked
+- NEVER unit test: DI modules, framework entry points, or database factory classes
 
 ## Coverage
 - Minimum 80% line coverage for domain and presentation layers
 - Every public function in a service or controller needs at least one test
-- Cover both success and failure paths (`ResultContainer.Success` and `Failure`)
+- Cover both success and failure paths
 
 ## Naming
 - Pattern: `fun should_doX_when_conditionY()`

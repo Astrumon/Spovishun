@@ -1,8 +1,8 @@
 ---
+x-spovishun: notion-database-manager
 name: notion-database-manager
-description: Use this skill when creating Notion databases, designing schemas, adding records to databases, updating database properties, or building relations between Notion databases. Always use this skill for any Notion database work — triggers on "create a Notion database", "add to my Notion DB", "design a schema", "notion table", "notion tracker", "add records to Notion", "update Notion properties", or any request to structure data in Notion as a database.
+description: "Creates Notion databases, designs schemas, adds records, updates properties, and builds relations. Covers property types, data_source_id usage, checkbox/date formatting, and self-relations. Triggers: create a Notion database, add to my Notion DB, design a schema, notion table, notion tracker, add records to Notion, створи базу даних Notion, додай до Notion DB, схема бази Notion."
 ---
-
 # Notion Database Manager
 
 ## Property Type Selection

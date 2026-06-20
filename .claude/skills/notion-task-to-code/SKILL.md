@@ -1,11 +1,11 @@
 ---
+x-spovishun: notion-task-to-code
 name: notion-task-to-code
-description: Converts a Spovishun Notion task into a ready-to-use AI agent prompt for Claude Code or Windsurf. Always use this skill when the user says "зроби промпт для задачі", "згенеруй промпт", "промпт для Claude Code", "підготуй задачу для агента", "запусти агента на задачу", or any request to turn a Notion task into executable instructions for an AI coding agent. Also triggers when user says a task number (e.g. "#19", "задача 18") and asks to start working on it.
+description: "Converts a Notion task into a ready-to-use AI agent prompt. Fetches task from cache or Notion API, extracts Goal/Branch/Steps/DoD, injects Epic and blocker context, outputs a fenced prompt, and enters Plan Mode. Triggers: create prompt for task, generate prompt, prompt for Claude Code, prepare task for agent, run agent on task, зроби промпт для задачі, згенеруй промпт, промпт для Claude Code, підготуй задачу для агента."
 ---
-
 # Notion Task to Code Prompt
 
-> IDs: see `notion-ids.md`. CLAUDE.md is auto-fetched by `notion-workflow-spovishun`.
+Converts a Notion task into a ready-to-use AI agent prompt for Claude Code or similar AI coding agents.
 
 ## Workflow
 
@@ -22,37 +22,77 @@ git rev-parse --abbrev-ref HEAD
 
 **1d.** Otherwise (standalone invocation or no cache) → fetch from Notion:
 ```
-node scripts/notion/get-task.js <N-or-pageId>
+node .claude/scripts/notion/get-task.js <spovishun-N | N | pageId> [--format=json|md|text]
 ```
-Accepts `spovishun-19`, bare `19`, or a 32-char compact pageId.
+- `spovishun-19` — fully-qualified task id (board lookup by name).
+- `19` — bare number; resolves to `spovishun-19` automatically.
+- 32-char compact (or dashed) Notion `pageId` — direct fetch.
+
+Default `--format=json`. Use `md` for a rendered markdown card or `text` for a plain human-readable summary.
+
+**1e. Stage check (Board v2).** If the fetched task has a non-null `stage` and it is not `"Sprint"`, warn the user before continuing: the task is still in `Backlog` (not committed to the active sprint) or already in `Archive`. Offer to promote it first (`node .claude/scripts/notion/update-status.js <id> --stage Sprint`) or proceed anyway. Skip the warning when `stage` is `null` (Board v1 — no Stage property).
 
 ### Step 2: Fetch CLAUDE.md (targeted)
 ```
-node scripts/notion/get-claude-md.js --section commands       # just the Commands section
-node scripts/notion/get-claude-md.js --section testing        # just Testing section
-node scripts/notion/get-claude-md.js                          # full read - only when overview needed
+node .claude/scripts/notion/get-claude-md.js --section commands       # just the Commands section
+node .claude/scripts/notion/get-claude-md.js --section testing        # just Testing section
+node .claude/scripts/notion/get-claude-md.js                          # full read — only when overview needed
 ```
-
-### Step 4: Generate the final prompt
-Read `.claude/skills/_templates/task-to-code-prompt.md` for the prompt template.
-Fill in all placeholders from the fetched task fields. Output as a fenced code block.
-
-### Step 6: Enter Plan Mode
-After presenting the prompt, immediately enter Plan Mode using the `EnterPlanMode` tool.
-Plannotator will intercept `ExitPlanMode` - wait for user approval before proceeding.
-
-<details>
-<summary>Extended: extracting task fields (Step 3), presenting output (Step 5)</summary>
 
 ### Step 3: Extract task fields
 From the fetched task page, extract:
-- **Goal** - what the task is about
-- **Branch name** - `feature/spovishun-N-xxx`
-- **Steps** - ordered list of implementation steps
-- **Definition of Done** - completion condition
-- **prompt toggle** - existing AI prompt if present (use as base, expand if needed)
+- **Goal** — what the task is about
+- **Branch name** — `feature/spovishun-N-xxx`
+- **Steps** — ordered list of implementation steps
+- **Definition of Done** — completion condition
+- **prompt toggle** — existing AI prompt if present (use as base, expand if needed)
+- **epic** — parent Epic title and id, if any
+- **blockedBy** — list of blocker tasks (title + id)
+
+When generating the prompt, inject into the Context section:
+- "This task belongs to Epic: **<epic.title>**" — if epic is present
+- "Blocked by (must verify before starting): <comma-separated blocker titles>" — if blockedBy is non-empty
+
+### Step 4: Generate the final prompt
+
+Fill the prompt template from all extracted task fields. Output as a fenced code block.
+
+Template structure:
+```
+You are implementing a feature for the Spovishun project.
+
+## Context
+[Tech stack, architecture layer, key existing patterns]
+[This task belongs to Epic: <epic.title>] (if applicable)
+[Blocked by: <blockers>] (if applicable)
+
+## Task
+[Task title and number]
+
+## Goal
+[What this task should accomplish]
+
+## Steps
+1. [Step 1]
+2. [Step 2]
+3. Write/update tests
+
+## Definition of Done
+- [ ] [Condition 1]
+- [ ] [Condition 2]
+- [ ] All existing tests pass
+- [ ] Code follows Clean Architecture layer rules
+
+## Key files
+- `path/to/RelevantFile.kt` — [why it matters]
+
+## Constraints
+[Project-specific architectural constraints from CLAUDE.md]
+```
 
 ### Step 5: Present the output
 Show the prompt in a code block and offer to update the prompt toggle in Notion.
 
-</details>
+### Step 6: Enter Plan Mode
+After presenting the prompt, immediately enter Plan Mode using the `EnterPlanMode` tool.
+Plannotator will intercept `ExitPlanMode` — wait for user approval before proceeding.

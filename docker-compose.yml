@@ -16,7 +16,12 @@ services:
       PROD_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-spovishun_prod}
       PROD_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
       PROD_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      # Read-only Docker API via docker-socket-proxy (prod admin-api, spovishun-110)
+      DOCKER_API_URL: ${DOCKER_API_URL:-http://docker-socket-proxy:2375}
     restart: unless-stopped
+    networks:
+      - default
+      - proxy-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,6 +37,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "127.0.0.1:5432:5432"
+    networks:
+      - default
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -39,6 +46,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # Read-only Docker API gateway: exposes a GET-only subset of the Docker Engine API
+  # so the bot/admin-api never touches the raw docker.sock. No host port — internal only.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: spovishun-docker-proxy
+    profiles: ["prod"]
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+  # Isolated link between the bot and the socket proxy. internal:true keeps it
+  # off the public internet; postgres is intentionally not attached.
+  proxy-net:
+    driver: bridge
+    internal: true
 
 volumes:
   pgdata:

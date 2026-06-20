@@ -1,4 +1,4 @@
-# SpovishunTelegramBotV2
+# Spovishun
 
 A Kotlin-based Telegram bot built with Clean Architecture, Koin DI, Exposed ORM, and Flyway database migrations.
 
@@ -8,45 +8,17 @@ A Kotlin-based Telegram bot built with Clean Architecture, Koin DI, Exposed ORM,
 |---|---|
 | Language | Kotlin 2.3.0 (JVM 21) |
 | Build | Gradle Kotlin DSL + Version Catalog |
-| DI | Koin 3.x |
+| DI | Koin 4.x |
 | ORM | Exposed 0.55.0 |
-| Migrations | Flyway 10.x |
+| Migrations | Flyway 12.x |
 | Database (dev) | PostgreSQL (local) |
 | Database (prod) | PostgreSQL 16 (self-hosted, Docker on Oracle Cloud VM) |
+| Telegram | kotlin-telegram-bot 6.x |
+| HTTP | Ktor client + Retrofit |
 | Config | dotenv-kotlin |
 | Logging | SLF4J + Logback |
 
-## Project Structure
-```
-src/main/kotlin/
-├── Application.kt          # Koin init + bot startup
-├── config/                 # AppConfig — dotenv-based env var bindings
-├── common/                 # ResultContainer, exceptions, extensions, logging
-├── domain/
-│   ├── cache/              # In-memory cache strategies
-│   ├── model/              # Pure Kotlin data classes (Member, Group, MemberRole, MemberChat)
-│   ├── repository/         # Repository interfaces (5 total)
-│   └── service/            # Business logic (MemberService, GroupService, AutoRegisterService…)
-├── data/
-│   ├── db/
-│   │   ├── table/          # Exposed Table objects
-│   │   ├── repository/     # DB repository implementations
-│   │   ├── DatabaseFactory.kt   # DB init + Flyway migrations
-│   │   └── DataSourceFactory.kt # HikariCP datasource
-│   ├── mapper/             # ResultRow → domain model mappers
-│   └── memory/             # MockImpl repositories (integration tests only)
-├── di/                     # Koin modules
-└── presentation/
-    ├── CommandResponse.kt  # Sealed class: Success / AccessDenied / NotFound / Error
-    ├── bot/                # TelegramBot, MessageHandler, commands/
-    ├── controller/         # Command controllers (return CommandResponse)
-    └── util/               # BotAdminUtils (Telegram API admin check)
-src/main/resources/
-└── db/migration/postgresql/
-    ├── V1__init_schema.sql
-    ├── ...
-    └── V8__normalize_members_chats.sql
-```
+> Architecture follows Clean Architecture (`presentation → domain ← data`). See `CLAUDE.md` and the per-layer `CLAUDE.md` files in `domain/`, `data/`, and `presentation/` for the current package layout and conventions.
 
 ## Running
 ```bash
@@ -81,6 +53,31 @@ docker compose ps
 docker compose logs bot --tail 50
 ```
 
+### Private admin access (Tailscale + docker-socket-proxy)
+
+The prod stack ships a read-only Docker API gateway (`docker-socket-proxy`, `prod` profile) so the
+bot / future admin-api never touches the raw `docker.sock`. It exposes a GET-only subset
+(`CONTAINERS`, `INFO`), mounts the socket read-only, and is reachable **only** on the internal
+`proxy-net` docker network — no host port is published.
+
+Admin access to the VM goes over **Tailscale**, not a public port:
+
+```bash
+# 1. Install Tailscale on the VM and join the tailnet
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up        # authenticate, then record the assigned tailnet IP (100.x.y.z)
+
+# 2. Bring up the proxy (part of the prod profile)
+docker compose --profile prod up -d docker-socket-proxy
+
+# 3. Sanity-check permissions from the bot container
+docker compose exec bot sh -c 'curl -s http://docker-socket-proxy:2375/containers/json'      # 200 + JSON
+docker compose exec bot sh -c 'curl -s -o /dev/null -w "%{http_code}" -XPOST http://docker-socket-proxy:2375/containers/create'  # 403
+```
+
+Record the tailnet IP in your ops notes (it is not a secret and is not read from `.env`). No new
+public port should appear — verify with an external scan of the VM's public IP.
+
 ## Backups
 
 `scripts/backup.sh` creates a compressed daily backup of the production database.
@@ -97,11 +94,19 @@ chmod +x scripts/backup.sh
 ### Automated daily backup (cron)
 ```bash
 crontab -e
-# Add:
-0 3 * * * cd /home/ubuntu/Spovishun && ./scripts/backup.sh >> backups/cron.log 2>&1
+# Add (adjust the path to your clone location):
+0 3 * * * cd ~/Spovishun && ./scripts/backup.sh >> backups/cron.log 2>&1
 ```
 
 Backups older than 14 days are removed automatically.
+
+### Pull backups to a local machine
+
+`scripts/pull-backup.sh` downloads the latest dump from the VM over SSH for off-site storage.
+
+```bash
+./scripts/pull-backup.sh
+```
 
 ### Restore from backup
 ```bash
@@ -121,10 +126,12 @@ docker exec spovishun-db rm /tmp/restore.dump /tmp/restore.dump.gz
 
 ## Testing
 ```bash
-./gradlew test              # unit tests
-./gradlew integrationTest   # integration tests (real MockImpl repos)
+./gradlew test              # unit tests (mocked dependencies)
+./gradlew integrationTest   # in-process tests against a real DB (needs E2E_DATABASE_URL, else skipped)
 ./gradlew e2eTest           # e2e tests (real Telegram API, skips if env vars unset)
 ```
+
+Integration and e2e tests require extra environment variables — see [Environment Variables](#environment-variables).
 
 ## Database Migrations
 
@@ -137,7 +144,7 @@ Migrations run automatically on startup for both dev and prod via Flyway.
 ```bash
 ./gradlew generateMigration
 # → Enter migration description: add_member_lastname
-# → ✅ Created: V2__add_member_lastname.sql
+# → ✅ Created: V12__add_member_lastname.sql   # next free version
 ```
 3. Review the generated file
 4. Commit the `Table` file and migration script together
@@ -169,18 +176,58 @@ claude   # launch Claude Code in the project directory
 | `/addtogroup <group> @user` | Add user to group *(admin)* |
 | `/removefromgroup <group> @user` | Remove user from group *(admin)* |
 | `/grantrole <role> @user` | Assign role to member *(admin only)* |
+| `/birthday <date>` | Set your own birthday; `off` clears it; `<date> @user` sets another member's *(admin/moderator)* |
+| `/random [group]` | Pick a random member from the chat, or from a named group |
+| `/whatsnew` | Show the latest release notes; `$h` full history; `$on`/`$off` toggle per-chat broadcasts *(admin)* |
+
+On startup with a new version, the bot auto-broadcasts the release notes to every chat that has announcements enabled.
 
 ## Environment Variables
 
-| Variable | Example |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | `123456:ABC-DEF...` |
-| `PROFILE` | `dev` or `prod` |
-| `DEV_DATABASE_URL` | `jdbc:postgresql://localhost:5432/spovishun` |
-| `DEV_DATABASE_DRIVER` | `org.postgresql.Driver` |
-| `DEV_DATABASE_USERNAME` | `postgres` |
-| `DEV_DATABASE_PASSWORD` | `secret` |
-| `PROD_DATABASE_URL` | `jdbc:postgresql://postgres:5432/spovishun_prod` |
-| `PROD_DATABASE_DRIVER` | `org.postgresql.Driver` |
-| `PROD_DATABASE_USERNAME` | `postgres` |
-| `PROD_DATABASE_PASSWORD` | `secret` |
+Copy `.env.example` to `.env` and fill in the values. The variables below are grouped by purpose.
+
+### Bot & security
+| Variable | Example | Notes |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | `123456:ABC-DEF...` | Bot token from BotFather |
+| `PROFILE` | `dev` or `prod` | Set automatically by `runDev`/`runProd` |
+| `EXPECTED_BOT_USERNAME` | `MyBot` | Identity lock — bot's `@username` (no `@`). Empty = check skipped (warns). Required in prod |
+| `ALLOWED_CHAT_IDS` | `-100123,-100456` | Comma-separated chat allowlist. Empty = all chats allowed |
+
+### Database
+| Variable | Example | Notes |
+|---|---|---|
+| `DEV_DATABASE_URL` | `jdbc:postgresql://localhost:5432/spovishun_dev` | Overridden to `postgres:5432` under Docker Compose |
+| `DEV_DATABASE_DRIVER` | `org.postgresql.Driver` | |
+| `DEV_DATABASE_USERNAME` | `postgres` | |
+| `DEV_DATABASE_PASSWORD` | `secret` | |
+| `DEV_DATABASE_POOL_SIZE` | `10` | HikariCP pool size |
+| `PROD_DATABASE_URL` | `jdbc:postgresql://postgres:5432/spovishun_prod` | |
+| `PROD_DATABASE_DRIVER` | `org.postgresql.Driver` | |
+| `PROD_DATABASE_USERNAME` | `postgres` | |
+| `PROD_DATABASE_PASSWORD` | `secret` | |
+| `PROD_DATABASE_POOL_SIZE` | `10` | HikariCP pool size |
+
+### Postgres container (Docker Compose)
+| Variable | Example | Notes |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `secret` | Password the `postgres` container starts with (match the active profile's DB password) |
+| `POSTGRES_DB` | `spovishun_prod` | DB name created on first container start |
+| `POSTGRES_USER` | `postgres` | |
+
+### Tests (integration & e2e — optional)
+| Variable | Example | Notes |
+|---|---|---|
+| `E2E_DATABASE_URL` | `jdbc:postgresql://localhost:5432/spovishun_e2e` | Real DB for `integrationTest` / `e2eTest`; unset = those tests skip |
+| `E2E_DATABASE_USERNAME` | `postgres` | |
+| `E2E_DATABASE_PASSWORD` | `secret` | |
+| `TEST_BOT_TOKEN` | `123456:ABC...` | e2e: token of the bot under test |
+| `TEST_HELPER_BOT_TOKEN` | `654321:ZYX...` | e2e: second bot used to drive interactions |
+| `TEST_CHAT_ID` | `-100123` | e2e: chat the tests run in |
+| `TEST_ADMINS` | `111,222` | e2e: admin user IDs |
+
+### Tooling (optional)
+| Variable | Example | Notes |
+|---|---|---|
+| `NOTION_SKILLS_TOKEN` | `ntn_...` | Used by the Claude Code skills→Notion sync hook only; not needed to run the bot |
+| `DOCKER_API_URL` | `http://docker-socket-proxy:2375` | Read-only Docker API via the socket proxy (prod, internal network). Defaults in compose; consumed by the future admin-api |

@@ -1,0 +1,41 @@
+# spovishun-skills consumer config — EXAMPLE / sanitized template.
+# Copy to spovishun-skills.config.yaml (gitignored) and fill in real Notion IDs.
+# The Notion integration secret is NOT stored here — only the env var name in `token_env`.
+project:
+  name: "Spovishun"
+  language: uk
+
+stack:
+  kotlin: true
+  postgres: true
+  telegram: true
+  notion: true
+  docker: true
+
+git:
+  branch_prefix: "feature/spovishun"
+  main_branch: "main"
+  dev_branch: "develop"
+
+notion:
+  # Name of the env var (in .env) holding the Notion integration secret. example.yaml only — fill real IDs in the gitignored copy.
+  token_env: "NOTION_TOKEN"
+  # 32-hex or dashed-uuid Notion IDs. Replace each with your workspace's real IDs.
+  database_id: "00000000000000000000000000000000"        # task board database
+  # Board v2 (Scrum) only: filter the task picker to a Stage select value.
+  # Omit the whole `picker` block for a Board v1 (no Stage field) board.
+  picker:
+    stage_filter: "Sprint"
+  root_page_id: "00000000-0000-0000-0000-000000000000"
+  docs_root_id: "00000000000000000000000000000000"
+  claude_md_page_id: "00000000-0000-0000-0000-000000000000"
+  epics_database_id: "00000000000000000000000000000000"
+  epics_group_page_id: "00000000000000000000000000000000"
+  categories:
+    architecture: "00000000000000000000000000000000"
+    database: "00000000000000000000000000000000"
+    testing: "00000000000000000000000000000000"
+    cicd: "00000000000000000000000000000000"
+    features: "00000000000000000000000000000000"
+    aitools: "00000000000000000000000000000000"
+    epics: "00000000000000000000000000000000"

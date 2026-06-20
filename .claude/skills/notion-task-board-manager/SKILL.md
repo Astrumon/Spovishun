@@ -1,8 +1,8 @@
 ---
+x-spovishun: notion-task-board-manager
 name: notion-task-board-manager
-description: Use this skill when managing tasks on any Notion Kanban board — creating tasks with correct structure, updating statuses, reading board state, or planning work. Triggers on "create a task", "update task status", "what's in progress", "show the board", "plan a sprint", "add to backlog", or any request to interact with a Notion task board. For Spovishun-specific operations (numbered branches, CLAUDE.md conventions), use notion-spovishun-task-manager instead. Always use this skill before any Notion board operation to ensure correct schema fetching, property naming, and task structure.
+description: "Manages tasks on a Notion Kanban board — fetches schema, creates tasks with Goal/Steps/DoD structure, updates statuses, and reads board state. Generic board skill; does not assume any specific project schema. Triggers: create a task in Notion, update task status, what's in progress, show the board, plan a sprint, add to backlog, створи задачу в Notion, оновити статус задачі, що в процесі, покажи дошку."
 ---
-
 # Notion Task Board Manager
 
 ## Step 0: Always Fetch Board Schema First
@@ -13,28 +13,30 @@ Before any board operation, fetch the board to get:
 3. Available SELECT/STATUS option values
 
 ```
-Notion:notion-fetch(id: "<board-page-url>")
+notion-fetch(id: "<board-page-url>")
 ```
 
-Never assume property names - always verify.
+Never assume property names — always verify.
 
 ## Reading the Board
 
 ```
-Notion:notion-search(
+notion-search(
   query: "<project prefix or keyword>",
   data_source_url: "collection://<data_source_id>"
 )
 ```
 
-Note: `notion-search` returns titles only - Status not included. Fetch each page individually for Status.
+Note: `notion-search` returns titles only — Status not included. Fetch each page individually for Status.
 
-Status values: `Not started` / `Backlog` - `In progress` - `Done`
+Status values: `Not started` → `In progress` → `Done`
+
+(`Backlog` is NOT a Status — it is a value of the separate Board v2 `Stage` select. See `notion-spovishun-task-manager` for the Stage model.)
 
 ## Updating a Task
 
 ```
-Notion:notion-update-page(
+notion-update-page(
   page_id: "<task-id>",
   properties: { "Status": "In progress" }
 )
@@ -47,10 +49,10 @@ Status flow: `Not started -> In progress -> Done`
 
 ## Creating a Task
 
-Pass `icon` directly in `notion-create-pages` - no separate `API-patch-page` needed:
+Pass `icon` directly in `notion-create-pages` — no separate patch needed:
 
 ```
-Notion:notion-create-pages(
+notion-create-pages(
   parent: { type: "data_source_id", data_source_id: "<id>" },
   pages: [{
     properties: {
@@ -74,12 +76,12 @@ What this task achieves and why it matters.
 2. Second step
 
 ## Definition of Done
-Clear condition - when is this task considered complete.
+Clear condition — when is this task considered complete.
 ```
 
 ## Critical Rules
-- Use `data_source_id` parent - never `database_id`
-- Never emoji in task title - use `icon` field
-- Always fetch schema first - property names are case-sensitive
+- Use `data_source_id` parent — never `database_id`
+- Never emoji in task title — use `icon` field
+- Always fetch schema first — property names are case-sensitive
 
 </details>

@@ -1,8 +1,8 @@
 ---
+x-spovishun: notion-data-migrator
 name: notion-data-migrator
-description: Use this skill when migrating or importing data into Notion from external sources like Telegram messages, JSON files, CSV data, or Markdown documents. Triggers on "import to Notion", "migrate my notes", "add these to Notion", "convert this to Notion", or bulk page creation requests. Always use this skill when the user wants to move structured or unstructured content into Notion — even if they don't say "migrate", phrases like "put these notes in Notion", "create Notion pages from this", or "move this data to Notion" should trigger it.
+description: "Migrates or imports data into Notion from Telegram messages, JSON, CSV, or Markdown. Handles classification, topic grouping, batch page creation, and database record migration. Triggers: import to Notion, migrate my notes, add these to Notion, convert this to Notion, create Notion pages from this, імпортуй в Notion, перенеси нотатки, створи сторінки в Notion."
 ---
-
 # Notion Data Migrator
 
 ## Migration Workflow

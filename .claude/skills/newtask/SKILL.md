@@ -1,15 +1,11 @@
 ---
+x-spovishun: newtask
 name: newtask
-description: >
-  Use this skill to create a new task on the Spovishun Notion board and prepare the
-  corresponding git branch. Triggers on: "new task", "create task", "add task",
-  "нова задача", "створи задачу", "додай таск", "нова таска".
-  Do NOT use for reading the board, updating status, or sprint planning — use notion-spovishun-task-manager for those.
+description: "Creates a new task on the project Notion board and prepares the corresponding git branch. Covers task numbering, branch naming, epic linking, blocker wiring, and 5-section page structure (Goal/Branch/Steps/DoD/prompt). Triggers: new task, create task, add task, нова задача, створи задачу, додай таск, нова таска."
 ---
-
 # New Task Skill
 
-Create a new Spovishun task on the Notion board and prepare the git branch.
+Create a new task on the project board in Notion; optionally prepare the corresponding git branch when work starts immediately.
 
 ---
 
@@ -17,7 +13,7 @@ Create a new Spovishun task on the Notion board and prepare the git branch.
 
 Fetch CLAUDE.md to load project context:
 ```
-Notion:notion-fetch(id: "https://www.notion.so/31c3462f68a9819c8150ff31d729293e")
+notion-fetch(id: "31c3462f-68a9-819c-8150-ff31d729293e")
 ```
 Do not announce this step.
 
@@ -35,15 +31,15 @@ If the user already supplied both in their message, use them directly — do NOT
 
 ## Step 2: Determine next task number
 
-Query the 10 most recently created tasks (O(1), no pagination issues):
+Query the 10 most recently created tasks:
 ```bash
-node scripts/notion/get-board.js --latest --format json
+node .claude/scripts/notion/get-board.js --latest --format json
 ```
 
 Iterate through the returned array in order. Find the first `title` that matches the pattern
 `feature/spovishun-{N}:` and extract N. Next task number = N + 1.
 
-If no task in the array matches the pattern — stop and inform the user. Do NOT guess or invent a number.
+If no task matches the pattern — stop and inform the user. Do NOT guess or invent a number.
 If the array is empty (board has no tasks) — start from 1.
 
 ---
@@ -54,11 +50,49 @@ If the array is empty (board has no tasks) — start from 1.
 |---|---|
 | Name (property) | `feature/spovishun-{N}: {task title}` |
 | Status | `Not started` |
+| Stage | `Backlog` (default) or `Sprint` — see Step 3.7 |
 | icon | `✨` (default; user may override) |
 
 Branch name: `feature/spovishun-{N}-{slug}`
 - `{slug}` = max **3 words** from the title, kebab-case, English only
 - Example: title "Add member ban command" → `feature/spovishun-17-add-member-ban`
+
+---
+
+## Step 3.5: Link to an Epic (optional)
+
+Ask the user if they want to link this task to an existing epic.
+
+If yes — list available epics:
+```bash
+node .claude/scripts/notion/list-epics.js --format=text
+```
+
+Show the numbered list and ask which one (`1`, `2`, …) or `skip`. Save the chosen epic's `id` as `epicId`. If the user says `skip` or the list is empty, `epicId = null`.
+
+If the user wants a brand-new epic, suggest invoking the `newepic` skill first, then return here.
+
+---
+
+## Step 3.6: Mark blockers (optional)
+
+Ask if there are blocker tasks already on the board that must complete before this one can start.
+
+If yes — accept task numbers (e.g. `84, 86`) or full page IDs. For each number, resolve to a page ID:
+```bash
+node .claude/scripts/notion/get-task.js spovishun-<N> --format=json
+```
+Collect the resolved page IDs into `blockedBy` (array). If the user skips, `blockedBy = []`.
+
+---
+
+## Step 3.7: Choose the Stage (Board v2)
+
+Ask where the task lands:
+- **Backlog** (default) — grooming queue, not committed to a sprint. Pick this unless the user says otherwise.
+- **Sprint** — work starts right away; the task is visible to the picker immediately.
+
+Save the answer as `stage`. On Board v1 (the board has no Stage property) set `stage = null` — the script then omits the property entirely.
 
 ---
 
@@ -68,7 +102,7 @@ Every new task page must include all five sections:
 
 ```
 ## 🎯 Goal
-{Перетворіть мету задачі у 1-3 речення. Який результат очікується?}
+{Goal in 1-3 sentences. What result is expected?}
 
 ## 🌿 Branch name
 feature/spovishun-{N}-{slug}
@@ -82,23 +116,43 @@ feature/spovishun-{N}-{slug}
 > {A concrete, testable condition — when is this task complete?}
 
 🤖 prompt  ← toggle (collapsible)
-  {Professional AI agent prompt in English. Include: task context, tech stack (Kotlin, Koin, Exposed, Clean Architecture), relevant files/modules, expected output, conventions from CLAUDE.md.}
+  {Professional AI agent prompt in English. Include: task context, tech stack, relevant files/modules, expected output, conventions from CLAUDE.md.}
 ```
 
 Rules:
 - No emoji in the Name property — emoji goes in `icon` only
 - AI prompt must be in **English**, professional, precise — suitable for autonomous agent execution
-- Steps should match the architectural layers involved (domain → data → presentation, each change in its own step)
+- Steps should match the architectural layers involved
 
 ---
 
 ## Step 5: Create the task
 
+Use the script (supports `epicId`, `blockedBy`, and since v1.4.0 parses the full markdown `content` into native Notion blocks — headings, lists, code, callouts, toggles, tables):
+```bash
+echo '{
+  "title": "feature/spovishun-{N}: {task title}",
+  "priority": "Medium",
+  "icon": "✨",
+  "stage": "<Backlog | Sprint from Step 3.7; null on Board v1>",
+  "epicId": "<page-id from Step 3.5 or null>",
+  "blockedBy": ["<page-id>", ...],
+  "content": "{full page content from Step 4 — markdown is parsed, not flattened}"
+}' | node .claude/scripts/notion/create-task.js
 ```
-Notion:notion-create-pages(
-  parent: { type: "data_source_id", data_source_id: "3193462f-68a9-80b8-99b9-000bcbf3b536" },
+
+The script sets `Status = "Not started"` automatically — do not pass `status` unless the user explicitly asks for a different starting status.
+
+Alternatively (MCP path, if no relations needed):
+```
+notion-create-pages(
+  parent: { type: "database_id", database_id: "36f3462f68a981328625d728cac86ea3" },
   pages: [{
-    properties: { "Name": "feature/spovishun-{N}: {task title}", "Status": "Not started" },
+    properties: {
+      "Name": "feature/spovishun-{N}: {task title}",
+      "Status": "Not started",
+      "Stage": "<Backlog | Sprint from Step 3.7>"   // omit if the board has no Stage property (Board v1)
+    },
     icon: "✨",
     content: "{full page content from Step 4}"
   }]
@@ -107,9 +161,19 @@ Notion:notion-create-pages(
 
 ⚠️ The property name is **Name** (not Title) — case-sensitive.
 
+⚠️ MCP `type: "database_id"` parent works only when the database has exactly **one** data source. Multi-source databases require a live-fetched `data_source_id` — use `notion-task-board-manager` for that pattern.
+
+⚠️ Board v2 (Scrum) only: new tasks must land in `Stage = "Backlog"` (visible to grooming, hidden from the Sprint picker until promoted). Skip the `Stage` property entirely on Board v1 / unset `notion.picker.stage_filter`.
+
 ---
 
-## Step 6: Create git branch
+## Step 6: Create git branch (conditional)
+
+Create a branch ONLY when one of these holds:
+- the task went straight to `Sprint` in Step 3.7 AND the user confirms starting work now, or
+- the user explicitly asks for a branch.
+
+For Backlog tasks skip this step — the branch is created later, when the task is promoted to Sprint and picked up.
 
 ```bash
 git checkout develop
@@ -124,9 +188,9 @@ If there is already a branch with this name — inform the user and do NOT overw
 ## Step 7: Confirm to user
 
 Report:
-- Task created: `feature/spovishun-{N}: {task title}` (with Notion URL if available)
-- Branch created: `feature/spovishun-{N}-{slug}`
-- Current branch is now: `feature/spovishun-{N}-{slug}`
+- Task created: `feature/spovishun-{N}: {task title}` (with Notion URL if available), Stage: `Backlog` / `Sprint`
+- If Step 6 ran — Branch created: `feature/spovishun-{N}-{slug}` and current branch is now that branch
+- If Step 6 was skipped — note that no branch was created (task is in Backlog)
 
 ---
 
@@ -134,26 +198,7 @@ Report:
 
 - Do NOT explore the codebase
 - Do NOT report on or modify existing tasks
+- Do NOT create a git branch for Backlog tasks unless explicitly requested
 - Do NOT branch from `main` — always from `develop`
 - Do NOT guess the task number — always fetch the board first
-- Do NOT skip any of the five page sections (Мета, Branch, Steps, DoD, prompt)
-
----
-
-## Example
-
-User: "нова задача: Add /ban command for admins"
-
-Expected outcome:
-- Task `feature/spovishun-{N}: Add /ban command for admins` created on the board with status `Not started`
-- Page contains Мета, Branch name, Steps, Definition of Done, and 🤖 prompt toggle
-- Branch `feature/spovishun-{N}-add-ban-command` created from `develop` and checked out
-- User receives confirmation with task title and branch name
-
----
-
-## Related Skills
-
-- `notion-spovishun-task-manager` — read board, update status, sprint planning
-- `notion-task-to-code` — convert existing task to AI agent prompt
-- `git-workflow-pr-writing` — write commit messages and PR descriptions
+- Do NOT skip any of the five page sections (Goal, Branch, Steps, DoD, prompt)

@@ -1,32 +1,62 @@
 ---
+x-spovishun: task-decomposer
 name: task-decomposer
-description: >
-  Use this skill to break a solution into atomic Notion-compatible tasks following Spovishun conventions.
-  Triggers on: "break into tasks", "decompose", "task breakdown", "create tasks for",
-  "розбий на задачі", "декомпозиція", "які задачі потрібні", "розклади на таски".
-  Input: Solution Decision (from solution-designer) or a direct solution description.
-  For creating individual tasks in Notion, use newtask or notion-spovishun-task-manager.
-  For choosing an implementation approach first, use solution-designer.
+description: "Breaks a solution into atomic Notion tasks following clean-architecture decomposition rules. Covers Epic creation, overview table, 5-section task cards with English AI prompts, dependency wiring, and Notion creation on user confirmation. Triggers: break into tasks, decompose, task breakdown, create tasks for, розбий на задачі, декомпозиція, які задачі потрібні, розклади на таски."
 ---
-
 # Task Decomposer
 
-You are a meticulous task planner who breaks solutions into small, independently completable tasks. Each task you produce can be picked up by an AI agent or developer without additional context.
+Break a solution into atomic, Notion-compatible tasks. Input: Solution Decision (from `solution-designer`) or a direct solution description.
 
 ## Workflow
 
 ### Step 0: Load Context (silently)
 Fetch CLAUDE.md and the current board state to determine the next task number. Do not announce this step.
 
-```
-Notion:notion-fetch(id: "31c3462f68a9819c8150ff31d729293e")
-Notion:notion-search(query: "", data_source_url: "collection://3193462f-68a9-80b8-99b9-000bcbf3b536")
+```bash
+node .claude/scripts/notion/get-board.js          # JSON board snapshot — use to find max task number
 ```
 
-Find the highest existing task number N. New tasks start at N+1.
+```
+notion-fetch(id: "31c3462f-68a9-819c-8150-ff31d729293e")
+```
+
+`get-board.js` queries the board via REST `/databases/36f3462f68a981328625d728cac86ea3/query` and returns a JSON list of tasks with their `Name` property, from which the highest existing task number N is extracted. New tasks start at N+1.
+
+(MCP `notion-search` with `data_source_url: "collection://<id>"` is an alternative, but it requires the live data_source_id of the board — fetch it from the database first; do not interpolate it from config.)
+
+### Step 0.5: Determine Epic context
+
+If the decomposition produces **3 or more tasks**, an Epic is required.
+
+1. List existing epics:
+   ```bash
+   node .claude/scripts/notion/list-epics.js --format=text
+   ```
+2. Ask the user: "Link to an existing epic (enter number) or create a new one?"
+3. If user picks an existing one → save its `id` as `epicId`.
+4. If new → create it **with full body inline**:
+   - Use required sections: TL;DR, Current state, Risks, Roadmap, Task decomposition
+   - Reuse the Solution Decision to populate sections
+   - The decomposition table produced in Step 2 goes into the Task decomposition section
+   - Create via MCP so callouts/tables/toggles render correctly:
+     ```
+     notion-create-pages(
+       parent: { type: "database_id", database_id: "d0c0020049f74b0589979065d8cfe7d3" },
+       pages: [{
+         properties: { "Name": "<Epic name>", "Status": "Active", "Goal": "<1–2 sentences>" },
+         icon: "🧩",
+         content: "<full markdown body following the template>"
+       }]
+     )
+     ```
+     (`type: "database_id"` requires the epics DB to have a single data source. For multi-source DBs fetch the live `data_source_id` first.)
+   - Save the returned `id` as `epicId`
+   - Never create a stub-with-link — the Epic page must own the content
+
+For 1–2 tasks, an Epic is optional — ask once and respect the answer.
 
 ### Step 1: Understand
-Parse the input — either a Solution Decision from `solution-designer` or a direct solution description.
+Parse the input — either a Solution Decision or a direct solution description.
 Identify all layers and components that need changes.
 List them before decomposing.
 
@@ -37,22 +67,40 @@ Break the solution into atomic tasks using these rules:
 - One task per architectural layer when changes span multiple layers
 - Database migration is always a **separate task** (comes first)
 - Tests belong **in the same task** as the code they test — never a separate "write tests" task
-- DI/Koin wiring is a separate task only if it is non-trivial (e.g., new module, new scope)
+- DI wiring is a separate task only if non-trivial (e.g., new module, new scope)
 - Order by dependency: tasks that block others come first
 - Each task should be completable in **one focused session (~1–4 hours)**
 - If a task seems larger than 4 hours, split it further
 
 ### Step 3: Format
 For each task produce the full 5-section Notion card (see Output Template below).
-AI prompt in the collapsible toggle must be in **English** and follow the `notion-task-to-code` template format.
+AI prompt in the collapsible toggle must be in **English**.
 
 ### Step 4: Present
 Show the **Overview Table** first (compact), then the full **Task Cards**.
 Ask the user to confirm, merge, split, or reorder before creating anything in Notion.
 
 ### Step 5: Create in Notion (on confirmation)
-If the user confirms, offer to create tasks using `notion-spovishun-task-manager`.
-After creating, suggest starting implementation with `notion-task-to-code` on the first task.
+For each task in order:
+1. Build the stdin JSON for `create-task.js`:
+   - `title` = `feature/spovishun-{N}: {task title}`
+   - `priority` = inferred from the overview table (default `Medium`)
+   - `epicId` = the Epic chosen in Step 0.5 (or `null` if skipped)
+   - `blockedBy` = page IDs of preceding tasks **already created in this run**
+   - `content` = the full 5-section markdown
+2. Call:
+   ```bash
+   echo '<json>' | node .claude/scripts/notion/create-task.js
+   ```
+3. Record the returned `id` so later tasks can reference it as a blocker.
+
+All created tasks land with `Stage = Backlog` (the create-task.js default) — decomposition feeds the grooming queue, not the active sprint.
+
+After creating, offer to promote the first unblocked task to Sprint:
+```bash
+node .claude/scripts/notion/update-status.js <first-task-id> --stage Sprint
+```
+Then suggest starting implementation with `notion-task-to-code` on that task.
 
 ---
 
@@ -61,79 +109,47 @@ After creating, suggest starting implementation with `notion-task-to-code` on th
 ### Overview Table
 
 ```markdown
-# Task Decomposition: {Назва фічі}
+# Task Decomposition: {Feature name}
 
-**Source:** [Solution Decision або опис рішення]
 **Tasks:** {N} total
 **Starting number:** spovishun-{next_N}
 
-## Огляд
-| # | Задача | Шар(и) | Обсяг | Залежить від |
-|---|--------|--------|-------|--------------|
-| 1 | ...    | domain | S     | —            |
-| 2 | ...    | data   | M     | #1           |
-| 3 | ...    | presentation | S | #1, #2   |
+## Overview
+| # | Task | Layer(s) | Size | Depends on |
+|---|------|----------|------|------------|
+| 1 | ...  | domain   | S    | —          |
+| 2 | ...  | data     | M    | #1         |
+| 3 | ...  | presentation | S | #1, #2  |
 ```
 
 ### Per-Task Card (repeat for each task)
 
 ```markdown
 ---
-### Task spovishun-{N}: {Назва задачі}
+### Task spovishun-{N}: {Task name}
 
-## 🎯 Мета
-[Що виконує ця задача і чому це потрібно]
+## 🎯 Goal
+[What this task accomplishes and why it's needed]
 
-## 🌿 Назва гілки
+## 🌿 Branch name
 feature/spovishun-{N}-{slug}
 
-## 📋 Кроки
-1. [Конкретний крок реалізації з назвами файлів / функцій]
+## 📋 Steps
+1. [Concrete implementation step with file/function names]
 2. [...]
-3. Написати / оновити тести для [конкретна поведінка]
+3. Write/update tests for [specific behavior]
 
 ## ✅ Definition of Done
-- [ ] [Перевірювана умова 1]
-- [ ] [Перевірювана умова 2]
-- [ ] Всі існуючі тести проходять
-- [ ] Код відповідає правилам шарів Clean Architecture
+- [ ] [Verifiable condition 1]
+- [ ] [Verifiable condition 2]
+- [ ] All existing tests pass
+- [ ] Code follows Clean Architecture layer rules
 
 <details>
 <summary>🤖 prompt</summary>
 
-You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Architecture).
-
-## Context
-[Project tech stack: Kotlin 2.3.0, JVM 21, Koin 3.x, Exposed ORM 0.55.0, Flyway, SQLite (dev) / PostgreSQL (prod)]
-[Relevant architecture layer: presentation / domain / data / di / common]
-[Key existing patterns to follow: ResultContainer, safeDbQuery, Command → Controller → Service flow]
-
-## Task
-[Task title and number]
-
-## Goal
-[What this task should accomplish]
-
-## Steps
-1. [Step 1]
-2. [Step 2]
-3. Write/update tests
-
-## Definition of Done
-- [ ] [Condition 1]
-- [ ] [Condition 2]
-- [ ] All existing tests pass (`./gradlew test`)
-- [ ] Code follows Clean Architecture layer rules
-
-## Key files
-- `path/to/RelevantFile.kt` — [why it matters]
-
-## Constraints
-- Use `safeDbQuery {}` / `safeDbTransaction {}` — never raw `transaction {}`
-- Only `DatabaseFactory.kt` may use `Dispatchers.IO`
-- Return `ResultContainer` from all service and repository methods
-- Inject all dependencies via Koin — never instantiate directly
-- Prefer `val` over `var`; use `data class` for DTOs; use `sealed class` for closed hierarchies
+[Professional English prompt for AI agent execution.
+Include: task context, tech stack, relevant files, expected output, architectural constraints.]
 
 </details>
 ```
@@ -146,7 +162,7 @@ You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Arc
 - Fetch the board to get the correct next task number (never guess or hardcode)
 - Every task card MUST have all 5 sections: Goal, Branch, Steps, DoD, AI prompt
 - Steps must be **concrete**: include file names, function names, not vague instructions
-- DoD conditions must be **verifiable/testable**, not subjective ("code is clean")
+- DoD conditions must be **verifiable/testable**, not subjective
 - Branch slug: max 3 words, kebab-case, from `develop`
 - AI prompt inside `<details>` toggle must be in **English**
 - Order tasks by dependency — earlier tasks unblock later ones
@@ -156,18 +172,8 @@ You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Arc
 **MUST NOT DO:**
 - Create a separate "write tests" task — tests go with the code
 - Auto-create tasks in Notion without user confirmation
-- Produce fewer than 2 tasks (if the solution is that simple, question whether decomposition was needed)
+- Produce fewer than 2 tasks
 - Make tasks larger than ~4 hours of focused work
-- Use vague branch slugs like "feature-work" or "changes"
-- Skip the AI prompt toggle — every task must be agent-executable
-
----
-
-## Key IDs
-| Resource | ID |
-|----------|----|
-| Board collection | `3193462f-68a9-80b8-99b9-000bcbf3b536` |
-| CLAUDE.md | `31c3462f68a9819c8150ff31d729293e` |
 
 ---
 
@@ -175,5 +181,6 @@ You are implementing a feature for the Spovishun Telegram bot (Kotlin, Clean Arc
 - `solution-designer` — previous step: produces the Solution Decision to decompose
 - `idea-brainstormer` — two steps back: structures the original raw idea
 - `newtask` — creates an individual task in Notion + feature branch
+- `newepic` — creates an Epic page when decomposition needs one
 - `notion-spovishun-task-manager` — board CRUD; use for bulk task creation
-- `notion-task-to-code` — AI prompt format reference; use after tasks are created to start implementation
+- `notion-task-to-code` — use after tasks are created to start implementation

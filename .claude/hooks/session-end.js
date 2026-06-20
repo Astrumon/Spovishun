@@ -1,25 +1,36 @@
 #!/usr/bin/env node
 /**
- * Stop hook — detects changes in architectural files and reminds to update Notion documentation.
+ * Stop hook — detects changes in architectural files and reminds to update documentation.
  *
  * Runs after each Claude response (Stop event).
- * If trigger files are changed (DB tables, migrations, DI modules, commands, CLAUDE.md) —
- * outputs a systemMessage to the Claude Code UI.
- * If no triggers or git is unavailable — stays silent.
+ * Reads SPOVISHUN_TRIGGER_PATTERNS env var (comma-separated regex strings) to customize which
+ * files trigger the doc-sync reminder. Falls back to a generic set if not set.
  * Always exits with exit(0) — errors do not block work.
  */
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-const TRIGGER_PATTERNS = [
-  /data\/db\/table\/.*\.kt$/,
-  /db\/migration\/V\d+.*\.sql$/,
-  /di\/.*Module\.kt$/,
-  /Application\.kt$/,
+const DEFAULT_TRIGGER_PATTERNS = [
+  /db\/migration.*\.sql$/i,
+  /migration.*\.sql$/i,
+  /schema\.(sql|kt|ts|py|rb)$/i,
+  /module\.(kt|ts|py|rb|go)$/i,
+  /Application\.(kt|ts|py|rb|go)$/i,
   /CLAUDE\.md$/,
-  /commands\/.*Command\.kt$/,
-  /build\.gradle\.kts$/,
+  /build\.(gradle|gradle\.kts|xml|json)$/i,
 ];
+
+function loadPatterns() {
+  const env = process.env.SPOVISHUN_TRIGGER_PATTERNS;
+  if (!env) return DEFAULT_TRIGGER_PATTERNS;
+  try {
+    return env.split(',').map(s => new RegExp(s.trim(), 'i'));
+  } catch {
+    return DEFAULT_TRIGGER_PATTERNS;
+  }
+}
 
 function getChangedFiles() {
   try {
@@ -31,28 +42,22 @@ function getChangedFiles() {
   }
 }
 
-function findTriggers(files) {
-  return files.filter(f => TRIGGER_PATTERNS.some(pattern => pattern.test(f)));
-}
-
 try {
-  const fs = require('fs');
-  const path = require('path');
-
+  const patterns = loadPatterns();
   const changedFiles = getChangedFiles();
-  const triggered = findTriggers(changedFiles);
+  const triggered = changedFiles.filter(f => patterns.some(p => p.test(f)));
 
   if (triggered.length > 0) {
-    const fileList = triggered.map(f => `  • ${f}`).join('\n');
-    const message = `Doc-sync: architectural files changed:\n${fileList}\n\nRun doc-updater to sync Notion documentation.`;
+    const fileList = triggered.map(f => `  - ${f}`).join('\n');
+    const message = `Doc-sync: architectural files changed:\n${fileList}\n\nRun /update-doc-full to sync documentation.`;
     process.stdout.write(JSON.stringify({ systemMessage: message }) + '\n');
   }
 
-  const stateFile = path.join(__dirname, '..', 'session-state.json');
+  const stateFile = path.join(process.cwd(), '.claude', 'session-state.json');
   const state = {
     lastSession: new Date().toISOString(),
-    changedFiles: changedFiles,
-    docSyncNeeded: triggered.length > 0
+    changedFiles,
+    docSyncNeeded: triggered.length > 0,
   };
   fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 } catch (err) {

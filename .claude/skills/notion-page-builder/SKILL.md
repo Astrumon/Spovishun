@@ -1,24 +1,24 @@
 ---
+x-spovishun: notion-page-builder
 name: notion-page-builder
-description: Use this skill when creating or updating Notion pages via MCP. Triggers on requests to create pages, update content, add structured data, set icons, migrate content into Notion, or any operation involving Notion MCP tools. Always consult this skill before any Notion MCP operation — even simple ones like "create a page" or "add content to Notion".
+description: "Creates and updates Notion pages via MCP. Covers icon rules, content structure, replace_content limitations, image placeholders, and database schema fetching before entry creation. Triggers: create a Notion page, add content to Notion, update Notion page content, build a Notion page, set icon on Notion page, створи сторінку в Notion, додай контент до Notion, онови вміст Notion."
 ---
-
 # Notion Page Builder
 
 ## Workflow: Creating Pages
 
-1. Create page with `Notion:notion-create-pages` - pass `icon` directly in the page object (no separate patch needed)
+1. Create page with `notion-create-pages` — pass `icon` directly in the page object (no separate patch needed)
 2. Add content using Notion-flavored Markdown in the `content` field
 
 ## Page Icon Rules
 - NEVER put emoji in the page title
 - ALWAYS pass icon in the `icon` field of the page object during creation
-- Pages without a parent cannot have icons set via API - always create under existing parent
+- Pages without a parent cannot have icons set via API — always create under existing parent
 
 ## Important Limitations
-- `replace_content` fails if child pages would be deleted - always include child page url references
+- `replace_content` fails if child pages would be deleted — always include child page url references
 - Use `insert_content_after` to add content without touching existing children
-- Images cannot be uploaded via API - use placeholder: `Add image manually: filename.jpg`
+- Images cannot be uploaded via API — use placeholder: `Add image manually: filename.jpg`
 
 <details>
 <summary>Extended: content structure standard order, naming conventions, database schemas</summary>

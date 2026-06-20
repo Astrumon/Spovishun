@@ -1,0 +1,110 @@
+# Koin Patterns
+
+## Module Setup
+
+```kotlin
+val appModule = module {
+    // Data layer
+    single<UserRepository> { UserRepositoryImpl(get()) }
+
+    // Service layer
+    single { UserService(get()) }
+    single { NotificationService(get(), get()) }
+
+    // Controller layer
+    single { BotController(get(), get()) }
+}
+
+fun main() {
+    startKoin {
+        modules(appModule)
+    }
+}
+```
+
+## Profile-Based Configuration
+
+```kotlin
+val devModule = module {
+    single<MemberRepository> { MemberRepositoryMockImpl() }
+}
+val prodModule = module {
+    single<MemberRepository> { MemberRepositoryImpl() }
+}
+
+val profile = System.getenv("PROFILE") ?: "dev"
+startKoin { modules(if (profile == "prod") prodModule else devModule) }
+```
+
+## Coroutine Scope Provider
+
+A background `CoroutineScope(SupervisorJob() + dispatcher)` without a `CoroutineExceptionHandler`
+silently swallows uncaught exceptions — no crash, no log, no alert. Provide the handler as its own
+DI dependency and compose it into the scope. Key it with a **typed qualifier** (annotation class),
+not a string `@Named`.
+
+This example uses **Koin Annotations** (KSP):
+
+```kotlin
+import org.koin.core.annotation.Module
+import org.koin.core.annotation.Qualifier
+import org.koin.core.annotation.Single
+
+// Typed qualifier — refactor-safe, no string typos like @Named("...") risks.
+@Qualifier
+annotation class GlobalCoroutineExceptionHandler
+
+@Module
+class CoroutineModule {
+
+    // Handler logs (SLF4J) AND reports to observability, so the failure is visible.
+    @Single
+    @GlobalCoroutineExceptionHandler
+    fun provideExceptionHandler(observability: ObservabilitySink): CoroutineExceptionHandler =
+        CoroutineExceptionHandler { _, throwable ->
+            if (throwable is CancellationException) throw throwable
+            logger.error("Unhandled coroutine error", throwable)  // SLF4J
+            observability.report(throwable)                       // Sentry / Crashlytics
+        }
+
+    @Single
+    fun provideAppScope(
+        dispatcher: CoroutineDispatcher,
+        @GlobalCoroutineExceptionHandler handler: CoroutineExceptionHandler,
+    ): CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher + handler)
+}
+```
+
+- Prefer a typed qualifier (annotation class) over string `@Named` — it is checked at compile time and survives renames.
+- The scope's context MUST carry all three elements: `SupervisorJob()` + dispatcher + handler.
+- Inject `CoroutineScope` via constructor into feature classes — never instantiate it inside them.
+
+## Best Practices
+
+- Prefer constructor injection — dependencies are explicit and testable.
+- Use interfaces for all services and repositories — enables mocking.
+- `single` for stateful/expensive objects (DB connections, services).
+- `factory` for lightweight, stateless objects created per request.
+- Never inject the DI container itself — it's a service-locator anti-pattern.
+- All repository bindings use the interface type: `single<MemberRepository> { MemberRepositoryImpl() }`.
+
+## Naming Conventions
+
+- Interface: `UserRepository`
+- Implementation: `UserRepositoryImpl` (DB), `UserRepositoryMockImpl` (in-memory)
+- Module file: `DevRepositoryModule.kt`, `ProdRepositoryModule.kt`, `ServiceModule.kt`
+- Never use `UseCase` — use `Service` instead.
+
+## Adding a New Service (Checklist)
+
+1. Define interface in `domain/`.
+2. Implement in `data/` (or `domain/` if no DB access needed).
+3. Register in the appropriate Koin module.
+4. Inject in the consuming class via constructor.
+5. Add a MockImpl in `data/` for unit testing.
+
+## Common Pitfalls
+
+- Circular dependencies — Koin throws at startup; redesign with an intermediate service.
+- `get()` inside `factory {}` re-resolves every call — use `single {}` for expensive objects.
+- `by inject()` at field level creates late-init binding — prefer constructor injection for testability.

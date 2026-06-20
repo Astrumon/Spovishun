@@ -1,0 +1,13 @@
+{
+  "name": "spovishun-telegram-bot-skills",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Claude Code skills/agents/rules for Spovishun, installed from the spovishun-skills plugin (dogfooding).",
+  "scripts": {
+    "skills:install": "spovishun-skills install --target=claude",
+    "skills:doctor": "spovishun-skills doctor"
+  },
+  "devDependencies": {
+    "spovishun-skills": "^1.11.1"
+  }
+}

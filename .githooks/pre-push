@@ -1,0 +1,27 @@
+#!/bin/sh
+# Pre-push hook: refuse direct pushes to protected branches (main, develop).
+#
+# The server-side ruleset is the real gate; this is a fast local guard that
+# stops an accidental IDE/CLI push before it ever reaches the remote.
+#
+# Override for a deliberate, exceptional push with:
+#   git push --no-verify
+#
+# This hook is version-controlled. Enable it once per clone:
+#   git config core.hooksPath .githooks
+set +e
+
+protected_re='^refs/heads/(main|develop)$'
+
+# stdin lines: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if printf '%s' "$remote_ref" | grep -Eq "$protected_re"; then
+        branch="${remote_ref#refs/heads/}"
+        echo "[pre-push] BLOCKED — refusing to push directly to '$branch'." >&2
+        echo "[pre-push] Push your feature branch and open a PR instead." >&2
+        echo "[pre-push] (intentional override: git push --no-verify)" >&2
+        exit 1
+    fi
+done
+
+exit 0

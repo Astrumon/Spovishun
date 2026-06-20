@@ -1,8 +1,8 @@
 ---
-name: "changelog-generator"
-description: Use this skill to generate CHANGELOG entries from git commit history following Conventional Commits and Keep a Changelog format. Triggers on "generate changelog", "release notes", "what changed in v", or before creating a release tag.
+x-spovishun: changelog-generator
+name: changelog-generator
+description: "Generates CHANGELOG entries from git commit history using Conventional Commits and Keep a Changelog format. Detects semantic version bumps and renders structured release notes. Triggers: generate changelog, release notes, what changed in v, changelog for this release, згенеруй changelog, нотатки до релізу, що змінилося у версії."
 ---
-
 # Changelog Generator
 
 ## Overview
