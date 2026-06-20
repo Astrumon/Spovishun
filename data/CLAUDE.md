@@ -1,14 +1,19 @@
-# data/
+# :data
 
-Contains: `db/` (Exposed table objects + `*RepositoryImpl`), `memory/` (`*RepositoryMockImpl`), `mapper/`.
+Persistence module. Depends on `:domain` (implements its repository interfaces) and `:common`.
 
-## Forbidden imports
+Packages: `db/table/` (Exposed `Table` objects), `db/repository/` (`*RepositoryImpl`),
+`db/` (`DatabaseFactory`, `DatabaseConfig`), `mapper/`, `releasenotes/`, `tools/` (MigrationGenerator).
+
+## Forbidden dependencies
 - Telegram SDK (`com.github.kotlintelegrambot.*`)
-- Any `domain/service/` class (never call services from data layer)
+- Any `:domain` service class (never call services from the data layer)
+- A Gradle dependency on `:bot` or `:app`
 
 ## DB access
 Every DB operation must use `safeDbQuery { }` from `data.db.DatabaseFactory` — never a bare `transaction {}`, `withContext(Dispatchers.IO)`, or manual `ResultContainer.catching { dbQuery { } }`.
 `safeDbQuery` handles both dispatching and exception-to-`DatabaseException` conversion in one call.
+`DatabaseFactory` is the only place allowed to touch `Dispatchers.IO`.
 
 ```kotlin
 // Correct
@@ -24,12 +29,13 @@ override suspend fun findAll() = transaction { Members.selectAll().map { MemberM
 override suspend fun findAll() = dbQuery { ... }.let { ResultContainer.catching { it } }
 ```
 
-## MockImpl repos
-Use a `MutableList` / `MutableMap` as in-memory storage.
-Must implement the same `*Repository` interface as the DB impl — they are the test doubles used in all integration tests.
-MockImpls must behave consistently with DB semantics (uniqueness checks, not-found returns null, etc.).
+## Testing the data layer
+There are no in-memory MockImpl repositories — repositories are exercised against a real database:
+- **Unit** (`src/test/`) — H2 in PostgreSQL-compatibility mode via `H2TestDatabaseFactory`.
+- **Integration** (`:app` `integrationTest`) — a real PostgreSQL; the suite skips itself when
+  `E2E_DATABASE_URL` is unset.
 
 ## Migrations
 Files in `src/main/resources/db/migration/postgresql/` — Flyway runs against PostgreSQL for both dev and prod.
-Always update the `Table` object and generate the migration together via `./gradlew generateMigration`.
-Never edit an applied migration file.
+Always update the `Table` object and generate the migration together via `./gradlew generateMigration`
+(registered in this module). Never edit an applied migration file.

@@ -1,16 +1,18 @@
 # CLAUDE.md
 
-SpovishunTelegramBotV2 — Kotlin Telegram bot (Clean Architecture).
-Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog, Koin 3.x, Exposed 0.55.0, Flyway 10.x, PostgreSQL (dev + prod).
+SpovishunTelegramBotV2 — Kotlin Telegram bot (Clean Architecture, multi-module).
+Stack: Kotlin 2.3.0, JVM 21, Gradle Kotlin DSL + Version Catalog + buildSrc convention plugins,
+Koin 4.x, Exposed 0.55.0, Flyway 12.x, PostgreSQL (dev + prod).
+Modules: `:common :domain :data :bot :app` (see Source Structure); `:app` is the composition root.
 
 ## Commands
 ```bash
-./gradlew runDev             # PROFILE=dev — local PostgreSQL + Flyway migrations
-./gradlew runProd            # PROFILE=prod — prod PostgreSQL (Docker on Oracle Cloud VM) + Flyway migrations
-./gradlew test               # unit tests
-./gradlew integrationTest    # in-process tests (MockImpl repos)
-./gradlew e2eTest            # real Telegram API (skips if env vars unset)
-./gradlew generateMigration  # interactive: create next versioned migration file
+./gradlew runDev             # :app, PROFILE=dev — local PostgreSQL + Flyway migrations
+./gradlew runProd            # :app, PROFILE=prod — prod PostgreSQL (Docker on Oracle Cloud VM) + Flyway migrations
+./gradlew test               # unit tests (all modules)
+./gradlew integrationTest    # :app — real services/commands over a real PostgreSQL; skips if E2E_DATABASE_URL unset
+./gradlew e2eTest            # :app — real Telegram API + PostgreSQL (skips if env vars unset)
+./gradlew generateMigration  # :data — interactive: create next versioned migration file
 ./gradlew ktlintFormat       # auto-fix formatting (run before committing)
 ./gradlew ktlintCheck        # verify formatting — CI hard gate
 ./gradlew detekt             # static analysis — CI non-blocking (see Linting)
@@ -22,13 +24,14 @@ Two tools with split responsibility — never overlapping:
   Rules come from `.editorconfig`. It is the single formatting authority — `detekt-formatting` is
   intentionally NOT enabled (would run the same rules twice). ktlint is a **hard CI gate**.
 - **detekt** (`dev.detekt`, 2.0 alpha) owns **code structure/smells**: complexity, return count, magic
-  numbers, generic catches. Config in `config/detekt/detekt.yml` (`buildUponDefaultConfig = true`).
-  Pre-existing findings are captured in `config/detekt/baseline.xml`; new code is held to the standard.
+  numbers, generic catches. Shared config in `config/detekt/detekt.yml` (`buildUponDefaultConfig = true`),
+  applied to every module by the `spovishun.kotlin-common` convention plugin. Pre-existing findings are
+  captured **per module** in `<module>/detekt-baseline.xml`; new code is held to the standard.
   detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha supports Kotlin 2.3 /
   Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once detekt 2.0 is stable.
 
-Workflow: run `./gradlew ktlintFormat` before committing; regenerate the baseline with
-`./gradlew detektBaseline` only when intentionally accepting new debt (review the diff).
+Workflow: run `./gradlew ktlintFormat` before committing; regenerate a module's baseline with
+`./gradlew :<module>:detektBaseline` only when intentionally accepting new debt (review the diff).
 
 ### Pre-commit hook (ktlint)
 A version-controlled hook at `.githooks/pre-commit` runs ktlint over the **staged** Kotlin files on
@@ -39,25 +42,32 @@ Enable it once per clone:
 git config core.hooksPath .githooks
 ```
 It only formats staged content (unstaged changes are stashed during the run), so partial commits are
-safe. The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `val x = call(…)`
+safe. The hook passes the staged files via `-PinternalKtlintGitFilter`; the `spovishun.kotlin-common`
+convention plugin reads that property and narrows each module's ktlint to just the staged files it owns.
+The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `val x = call(…)`
 on one line); all other `ktlint_official` rules apply.
 
 ## Source Structure
+Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :app`).
+Shared config lives in `buildSrc` convention plugins (`spovishun.kotlin-common`,
+`spovishun.kotlin-library`); the root `build.gradle.kts` is a pure aggregator (single-sources `version`,
+lints its own scripts). Each module owns its `detekt-baseline.xml` and a `CLAUDE.md`.
+
 ```
-src/main/kotlin/
-  Application.kt        — starts Koin + long-polling; initializeKoin() usable in tests
-  common/               — pure Kotlin: ResultContainer, exceptions, extensions, logging
-  config/               — AppConfig (env var bindings via dotenv)
-  domain/               — model/, repository/ (interfaces), service/, cache/
-  data/                 — db/ (Exposed impls + tables), memory/ (MockImpl repos), mapper/
-  di/                   — Koin modules; selects DB connection string via PROFILE env var
-  presentation/         — bot/ (TelegramBot, MessageHandler, commands/), controller/, util/
-  tools/                — MigrationGenerator (dev tool, not part of the bot)
+:common  — pure Kotlin, framework-free: result/ (ResultContainer), exception/, extension/, util/
+:domain  — model/, repository/ (interfaces), service/, cache/, config/  (depends on :common)
+:data    — db/table/, db/repository/ (Exposed impls), db/ (DatabaseFactory), mapper/, releasenotes/,
+           tools/ (MigrationGenerator)  (depends on :domain, :common)
+:bot     — presentation/: bot/ (TelegramBot, MessageHandler, commands/), controller/, scheduler/, util/
+           (depends on :domain, :common — not :data)
+:app     — composition root: Main.kt, Application.kt (initializeKoin()), config/ (AppConfig),
+           di/ (Koin modules); owns the test/integrationTest/e2eTest source sets  (depends on all)
 ```
 
 ## Layer Rules
-Dependency direction: `presentation → domain ← data`; `common` ← all layers.
-See per-layer CLAUDE.md files in `domain/`, `data/`, `presentation/` for details and examples.
+Dependency direction: `:bot → :domain ← :data`; `:common` ← all modules; `:app` wires everything.
+The build enforces this — `:domain` has no dependency on `:data`/`:bot`, `:bot` has none on `:data`.
+See per-module `CLAUDE.md` files (`common/`, `domain/`, `data/`, `bot/`, `app/`) for details and examples.
 
 ## Key Patterns
 
@@ -67,22 +77,25 @@ Chain with `.flatMap {}`, resolve with `.fold(onSuccess = {}, onFailure = {})`.
 Wrap DB calls with `ResultContainer.catching { }`.
 
 **DB access** — always `safeDbQuery { }` (wraps `dbQuery {}` + `ResultContainer.catching`), never bare `transaction {}` or `ResultContainer.catching { dbQuery { } }` manually.
-`safeDbQuery` and `safeDbTransaction` live in `data/db/DatabaseFactory.kt`. Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
+`safeDbQuery` and `safeDbTransaction` live in `:data` `data/db/DatabaseFactory.kt`. Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
 
 **Command flow** — `Command` parses args → calls `Controller` → handles `CommandResponse` via `when` → sends to Telegram.
 Controllers return `CommandResponse` (never raw strings). Commands own emoji prefixes and final text assembly.
 Never call a `Service` directly from a `Command`.
 
 **Role checks** — `MemberService.hasAdminAccess()` / `hasModeratorAccess()` query the DB.
-`BotAdminUtils` (`presentation/util/`) queries Telegram API only to derive initial role on first registration.
+`BotAdminUtils` (`:bot` `presentation/util/`) queries Telegram API only to derive initial role on first registration.
 
-**Profile DI** — single `repositoryModule` in `di/RepositoryModule.kt` binds all 5 repositories to `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, self-hosted PostgreSQL 16 in docker-compose for prod). MockImpls are used only in integration tests. All bindings use the interface type: `single<MemberRepository> { ... }`.
+**Profile DI** — single `repositoryModule` in `:app` `di/RepositoryModule.kt` binds all 5 repositories to `:data` `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, self-hosted PostgreSQL 16 in docker-compose for prod). All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
+All test source sets live in `:app` (`test`, `integrationTest`, `e2eTest`); `:data` additionally
+unit-tests repositories against H2.
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
-  Use `runTest {}`, `coEvery`/`coVerify`, `clearAllMocks()` in `@BeforeTest`.
-- **Integration** — extend `BaseIntegrationTest`: real MockImpl repos + real services/commands;
-  only `Bot` and `BotAdminUtils` are mocked.
+  Use `runTest {}`, `coEvery`/`coVerify`, `clearAllMocks()` in `@BeforeTest`. `:data` repository unit
+  tests run against H2 (`H2TestDatabaseFactory`, PostgreSQL-compatibility mode) — there are no MockImpl repos.
+- **Integration** — extend `BaseIntegrationTest`: real services/commands over a **real PostgreSQL**;
+  only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips via `assumeTrue` when `E2E_DATABASE_URL` is unset.
 - **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`, `E2E_DATABASE_URL`.
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
@@ -110,7 +123,7 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
     project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
     (a bare directory arg fails on Node ≥ 22, which tries to load the dir as a module). Integration
     tests skip themselves unless `NOTION_TOKEN` is set.
-  - Per-layer `domain|data|presentation/CLAUDE.md` and gitignored local state
+  - Per-module `common|domain|data|bot|app/CLAUDE.md` (at each module root) and gitignored local state
     (`settings.local.json`, `session-state.json`, learnings queue, `.claude/tmp/`).
 
 ## Agent Workflow
@@ -167,7 +180,7 @@ Epics live as records of the Epics inline DB on the Documentation page `3633462f
 Rules in `.claude/rules/` are always active — they load automatically, no explicit invocation needed.
 
 ## Migrations
-Files in `src/main/resources/db/migration/postgresql/` — both dev and prod use Flyway against PostgreSQL.
+Files in `:data` `src/main/resources/db/migration/postgresql/` — both dev and prod use Flyway against PostgreSQL.
 Run `./gradlew generateMigration`, review SQL, commit `Table` object + migration file together.
 Never edit a migration that has been applied to any database.
 

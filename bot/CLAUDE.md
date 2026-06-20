@@ -1,10 +1,15 @@
-# presentation/
+# :bot
 
-Contains: `bot/` (TelegramBot, MessageHandler, `commands/`), `controller/`, `util/` (BotAdminUtils).
+Presentation module (Telegram). Depends on `:domain` and `:common`. Does NOT depend on `:data` —
+repository wiring happens in `:app`.
 
-## Forbidden imports
+Packages (under `presentation/`): `bot/` (TelegramBot, commands/, handler/), `controller/`,
+`scheduler/`, `util/` (BotAdminUtils).
+
+## Forbidden dependencies
 - Exposed / JDBC (`org.jetbrains.exposed.*`) — no DB access in this layer
-- Any `domain/service/` import directly in a `Command` class
+- Any `:domain` service import directly in a `Command` class (go through a `Controller`)
+- A Gradle dependency on `:data`
 
 ## Command flow
 ```
@@ -14,7 +19,7 @@ Command → Controller → returns CommandResponse → Command formats + sends t
 2. **Controller** — call `Service`(s), apply role checks, return `CommandResponse`. Never returns Telegram types or raw strings.
 3. **BotAdminUtils** — query Telegram API only to derive initial role for a new member during registration.
 
-`CommandResponse` sealed class (`presentation/CommandResponse.kt`):
+`CommandResponse` sealed class:
 - `Success(message: String)` — formatted HTML body, no emoji prefix
 - `AccessDenied(reason: String)` — e.g. `"moderator"` or `"admin"`
 - `NotFound(resource: String, identifier: String)`
@@ -49,8 +54,8 @@ Use `MemberService.hasAdminAccess()` / `hasModeratorAccess()` (DB-based) for per
 Use `BotAdminUtils.getMemberRole()` only when deriving the initial role for a new member.
 
 ## TelegramBot
-Runs `CoroutineScope(SupervisorJob())` — one failing command never kills the bot.
-All handlers are `suspend fun`.
+Runs on an injected `CoroutineScope` carrying `SupervisorJob` + a scope-level `CoroutineExceptionHandler`
+— one failing command never kills the bot. All handlers are `suspend fun`.
 
 ## MessageHandler
 Routes updates to commands via `when`. No logic beyond routing.
@@ -59,5 +64,5 @@ Do NOT unit test `MessageHandler` or `TelegramBot`.
 ## Adding a new command
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)
-3. Register in `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
+3. Register in `:app` `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
 4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`
