@@ -69,4 +69,13 @@ class AdminApiAuthTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
     }
+
+    @Test
+    fun should_return401_when_tokenMissingOnLogsStream() = testApplication {
+        application { adminApiModule(token, dockerClient, healthRepository) }
+
+        val response = client.get("/api/v1/containers/abc/logs/stream")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }
