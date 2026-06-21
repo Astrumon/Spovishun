@@ -20,9 +20,14 @@ contract), `docker/` (`DockerApiClient` + raw models + pure `DockerResponseMappe
 - `GET /metrics` — Docker `/info` + per-running-container stats (memory + cpu%).
 - `GET /containers` — `/containers/json`.
 - `GET /containers/{id}/logs?tail=N` — de-multiplexed container logs (default tail 100).
+- `GET /containers/{id}/logs/stream` — SSE live tail (spovishun-111). Relays the upstream
+  `logs?follow=true&timestamps=true` stream; each message is `event: log` + `data:` = `LogLineDto`
+  JSON `{ts, stream, line}`. `tail=0` upstream → only new lines; the snapshot stays on the GET above.
+  Client disconnect cancels the SSE coroutine, which releases the upstream connection.
 
 Docker data comes only from docker-socket-proxy (GET-only: `INFO=1`, `CONTAINERS=1`) at
-`DOCKER_API_URL`. Missing/invalid bearer token → 401.
+`DOCKER_API_URL`; the live stream adds only `follow=true&timestamps=true` (still GET). Missing/invalid
+bearer token → 401.
 
 ## DTO contract
 `dto/` is the deliberate single source of the JSON contract that the future `spovishun-admin` client

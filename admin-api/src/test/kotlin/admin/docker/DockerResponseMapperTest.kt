@@ -111,4 +111,36 @@ class DockerResponseMapperTest {
     fun should_returnEmpty_when_logStreamIsEmpty() {
         assertTrue(DockerResponseMapper.deframeLogs(ByteArray(0)).isEmpty())
     }
+
+    @Test
+    fun should_splitTimestampAndText_when_parsingLogLine() {
+        val dto = DockerResponseMapper.parseLogLine(1, "2026-06-21T10:00:01.123456789Z Bot started")
+
+        assertEquals("2026-06-21T10:00:01.123456789Z", dto.ts)
+        assertEquals("stdout", dto.stream)
+        assertEquals("Bot started", dto.line)
+    }
+
+    @Test
+    fun should_mapStderr_when_streamTypeIsTwo() {
+        val dto = DockerResponseMapper.parseLogLine(2, "2026-06-21T10:00:02Z WARN retry")
+
+        assertEquals("stderr", dto.stream)
+        assertEquals("WARN retry", dto.line)
+    }
+
+    @Test
+    fun should_keepWholeLineWithEmptyTs_when_noTimestampPrefix() {
+        val dto = DockerResponseMapper.parseLogLine(1, "plain")
+
+        assertEquals("", dto.ts)
+        assertEquals("plain", dto.line)
+    }
+
+    @Test
+    fun should_stripTrailingCarriageReturn_when_parsingLogLine() {
+        val dto = DockerResponseMapper.parseLogLine(1, "2026-06-21T10:00:03Z hello\r")
+
+        assertEquals("hello", dto.line)
+    }
 }
