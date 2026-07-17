@@ -34,8 +34,22 @@ bearer token → 401.
 duplicates — keep it engine-agnostic and stable.
 
 ## Config (env)
-`ADMIN_API_ENABLED`, `ADMIN_API_BIND` (tailnet IP in prod, `127.0.0.1` dev), `ADMIN_API_PORT`,
-`ADMIN_API_TOKEN` (required when enabled), `DOCKER_API_URL`.
+Read by `AdminApiConfig.fromEnv()` (the module owns its own env contract; composition root stays
+oblivious). Full sample lives in the repo `.env.example`.
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `ADMIN_API_ENABLED` | `false` | Master switch. When `true`, `ADMIN_API_TOKEN` is required (fail-fast `require`). |
+| `ADMIN_API_BIND` | `127.0.0.1` | Interface the Ktor server binds **inside** the process/container. In prod docker-compose set to `0.0.0.0` — tailnet-only exposure is enforced by the host port publish, not this bind. |
+| `ADMIN_API_PORT` | `8081` | Listen port. |
+| `ADMIN_API_TOKEN` | — | Bearer secret (constant-time compared). **Confidential — stored in Bitwarden**, never committed. Generate with `openssl rand -hex 32`. |
+| `DOCKER_API_URL` | `http://docker-socket-proxy:2375` | Read-only Docker Engine API via docker-socket-proxy (GET-only: `INFO=1`, `CONTAINERS=1`). |
+| `ADMIN_API_BIND_IP` | `127.0.0.1` | **docker-compose only** (not read by the app) — host IP the container port is published on. Set to the VM tailnet IP in prod; NEVER `0.0.0.0`. |
+
+### Base URLs
+- **Dev (local):** `http://127.0.0.1:8081/api/v1`
+- **Prod (tailnet only):** `http://<VM-tailnet-IP>:8081/api/v1` (e.g. `http://100.105.149.58:8081/api/v1`) — reachable only from the Tailscale network.
+- All requests require `Authorization: Bearer <ADMIN_API_TOKEN>`; missing/invalid → 401.
 
 ## Testing
 Module-local `src/test` (JUnit5 + MockK), like `:data`. Auth branches via Ktor `testApplication`
