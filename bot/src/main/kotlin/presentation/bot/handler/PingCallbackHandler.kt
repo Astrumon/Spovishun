@@ -18,14 +18,15 @@ object PingCallback {
 class PingCallbackHandler(
     private val pingController: PingController,
     private val botAdminUtils: BotAdminUtils,
-) {
-    suspend fun handle(
+) : CallbackHandler {
+    override val prefix = PingCallback.PREFIX
+
+    override suspend fun handle(
         bot: Bot,
         update: Update,
     ) {
         val callbackQuery = update.callbackQuery ?: return
         val data = callbackQuery.data ?: return
-        if (!data.startsWith(PingCallback.PREFIX)) return
 
         bot.answerCallbackQuery(callbackQuery.id)
 

@@ -17,6 +17,8 @@ import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
+import com.ua.astrumon.presentation.bot.handler.CallbackHandler
+import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
@@ -89,7 +91,8 @@ val presentationModule = module {
 
     // Bot components
     single { CommandRegistry(getAll()) }
-    single { PingCallbackHandler(get(), get()) }
+    single { PingCallbackHandler(get(), get()) } bind CallbackHandler::class
+    single { CallbackRouter(getAll()) }
     single { TelegramBot(get(), get(), get(), get()) }
     single { MessageHandler(get(), get(), get()) }
     single { BotAdminUtils() }
