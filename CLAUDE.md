@@ -122,6 +122,9 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
 - **Project-owned (NOT plugin-managed), survive re-installs:**
   - `.claude/rules/kotlin/spovishun-architecture.md` — Spovishun concretions (`ResultContainer`,
     `safeDbQuery`/Exposed, Koin) that the generic installed `kotlin-style.md` omits.
+  - `.claude/skills/release/` + `.claude/skills/hotfix/` — the GitFlow release/hotfix automation
+    (`/release <version>`, `/hotfix <version>`, spovishun-80). No `x-spovishun` frontmatter key,
+    not in the lockfile — the plugin never generates, overwrites, or prunes them.
   - `.claude/scripts/notion/tests/` + `TEST-RESULTS.md` — the Notion CLI test suite (migrated from the
     old root `scripts/notion/`). The scripts themselves are now plugin-managed; only these tests are
     project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
