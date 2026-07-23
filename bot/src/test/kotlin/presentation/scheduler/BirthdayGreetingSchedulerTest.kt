@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -23,6 +24,8 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertFalse
 
 class BirthdayGreetingSchedulerTest {
     private val birthdayService: BirthdayService = mockk()
@@ -78,8 +81,36 @@ class BirthdayGreetingSchedulerTest {
         scheduler.start(bot)
         testScheduler.runCurrent()
 
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) }
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
+        val sentTexts = mutableListOf<String>()
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = capture(sentTexts), parseMode = ParseMode.HTML) }
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = capture(sentTexts), parseMode = ParseMode.HTML) }
+        sentTexts.forEach { text ->
+            assertContains(text, "@alice")
+            assertFalse(text.contains("Alice alice"), "raw username must not leak next to the name")
+        }
+        scope.cancel()
+    }
+
+    @Test
+    fun `greet should use tg user link mention for member without real username`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val memberNoUsername = Member(3L, 300L, "user_300", "Карл <&>", BirthDate(25, 12))
+
+        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
+            ResultContainer.success(listOf(memberNoUsername))
+        coEvery { birthdayService.wasGreetedThisYear(3L, 2025) } returns ResultContainer.success(false)
+        coEvery { birthdayService.findChatIdsForMember(3L) } returns ResultContainer.success(listOf(-100L))
+        coEvery { birthdayService.recordGreetingSent(3L, 2025, any()) } returns ResultContainer.success(Unit)
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        val sentText = slot<String>()
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = capture(sentText), parseMode = ParseMode.HTML) }
+        assertContains(sentText.captured, "<a href=\"tg://user?id=300\">Карл &lt;&amp;&gt;</a>")
+        assertFalse(sentText.captured.contains("user_300"), "synthetic username must not leak into the greeting")
         scope.cancel()
     }
 

@@ -166,9 +166,9 @@ object BotMessages {
         private val greetingKeys = (1..5).map { "birthday.greeting.$it" }
 
         fun randomGreeting(
-            firstNameEscaped: String,
+            mentionHtml: String,
             random: KotlinRandom = KotlinRandom.Default,
-        ): String = format(greetingKeys.random(random), firstNameEscaped)
+        ): String = format(greetingKeys.random(random), mentionHtml)
     }
 
     object WhatsNew {

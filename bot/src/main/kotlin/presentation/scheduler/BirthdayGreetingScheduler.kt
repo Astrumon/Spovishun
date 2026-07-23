@@ -3,10 +3,10 @@ package com.ua.astrumon.presentation.scheduler
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
-import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.util.toHtmlMention
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -73,7 +73,7 @@ class BirthdayGreetingScheduler(
                     .fold(onSuccess = { it }, onFailure = { emptyList() })
                 if (chatIds.isEmpty()) continue
 
-                val text = BotMessages.Birthday.randomGreeting(member.firstName.escapeHtml() + " ${member.username}")
+                val text = BotMessages.Birthday.randomGreeting(member.toHtmlMention())
                 chatIds.forEach { chatId ->
                     bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
                 }
