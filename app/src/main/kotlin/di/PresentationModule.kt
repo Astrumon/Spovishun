@@ -17,10 +17,14 @@ import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
+import com.ua.astrumon.presentation.bot.handler.AddToGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.CallbackHandler
 import com.ua.astrumon.presentation.bot.handler.CallbackRouter
+import com.ua.astrumon.presentation.bot.handler.DeleteGroupCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
@@ -92,6 +96,10 @@ val presentationModule = module {
     // Bot components
     single { CommandRegistry(getAll()) }
     single { PingCallbackHandler(get(), get()) } bind CallbackHandler::class
+    single { DeleteGroupCallbackHandler(get()) } bind CallbackHandler::class
+    single { AddToGroupCallbackHandler(get()) } bind CallbackHandler::class
+    single { RemoveFromGroupCallbackHandler(get()) } bind CallbackHandler::class
+    single { GrantRoleCallbackHandler(get()) } bind CallbackHandler::class
     single { CallbackRouter(getAll()) }
     single { TelegramBot(get(), get(), get(), get()) }
     single { MessageHandler(get(), get(), get()) }
