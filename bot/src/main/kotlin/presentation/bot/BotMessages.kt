@@ -153,6 +153,21 @@ object BotMessages {
         val failureInvalidUsername: String get() = get("group.failure.invalid_username")
     }
 
+    object Picker {
+        val noMembers: String get() = get("picker.no_members")
+        val groupPromptDel: String get() = get("picker.group_prompt.del")
+        val groupPromptAddTo: String get() = get("picker.group_prompt.addto")
+        val groupPromptRemoveFrom: String get() = get("picker.group_prompt.removefrom")
+        val memberPromptAddTo: String get() = get("picker.member_prompt.addto")
+        val memberPromptRemoveFrom: String get() = get("picker.member_prompt.removefrom")
+        val memberPromptGrant: String get() = get("picker.member_prompt.grant")
+        val rolePrompt: String get() = get("picker.role_prompt")
+        val confirmButton: String get() = get("picker.delgroup.confirm_button")
+        val cancelButton: String get() = get("picker.delgroup.cancel_button")
+        val cancelled: String get() = get("picker.delgroup.cancelled")
+        val confirmPrompt: String get() = get("picker.delgroup.confirm_prompt")
+    }
+
     object Birthday {
         val usage: String get() = get("birthday.usage")
         val invalidDate: String get() = get("birthday.invalid_date")

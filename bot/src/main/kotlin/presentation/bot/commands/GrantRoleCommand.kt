@@ -3,6 +3,9 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.handler.GrantRoleCallback
+import com.ua.astrumon.presentation.bot.handler.PickerCopy
+import com.ua.astrumon.presentation.bot.handler.sendPicker
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.toText
 
@@ -16,6 +19,15 @@ class GrantRoleCommand(
         update: Update,
     ) {
         val (chatId, userId, args) = update.messageContext() ?: return
+
+        if (args.isEmpty()) {
+            bot.sendPicker(
+                chatId,
+                groupController.chatMembersForAdminPicker(chatId, userId),
+                PickerCopy(BotMessages.Picker.memberPromptGrant, BotMessages.Picker.noMembers, BotMessages.Error.onlyAdminsRoles),
+            ) { "${GrantRoleCallback.PREFIX}${it.id}" }
+            return
+        }
 
         val text = groupController.grantRole(chatId = chatId, userId = userId, args = args).toText(
             successPrefix = BotMessages.Success.prefix,

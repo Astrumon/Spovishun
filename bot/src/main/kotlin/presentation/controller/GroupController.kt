@@ -1,5 +1,6 @@
 package com.ua.astrumon.presentation.controller
 
+import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
@@ -10,6 +11,7 @@ import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.badge
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
+import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
@@ -254,5 +256,136 @@ class GroupController(
         if (succeeded.isNotEmpty()) lines.add(BotMessages.Group.rolesGranted(succeeded.joinToString(", "), role.name.lowercase()))
         if (failed.isNotEmpty()) lines.add(BotMessages.Group.rolesNotFound(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
+    }
+
+    // --- Inline-picker listings (spovishun-123) ---
+
+    suspend fun groupsForModeratorPicker(
+        chatId: Long,
+        userId: Long,
+    ): PickerListing {
+        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
+        return groupService.getAllGroupsWithMembers(chatId).fold(
+            onSuccess = { groups -> PickerListing.Show(groups.map { PickerOption(it.id, it.name) }) },
+            onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
+        )
+    }
+
+    suspend fun chatMembersForModeratorPicker(
+        chatId: Long,
+        userId: Long,
+    ): PickerListing {
+        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
+        return chatMemberOptions(chatId)
+    }
+
+    suspend fun chatMembersForAdminPicker(
+        chatId: Long,
+        userId: Long,
+    ): PickerListing {
+        requireAdminAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
+        return chatMemberOptions(chatId)
+    }
+
+    suspend fun groupMembersForPicker(
+        chatId: Long,
+        userId: Long,
+        groupId: Long,
+    ): PickerListing {
+        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
+        val group = resolveGroup(chatId, groupId)
+            ?: return PickerListing.Reject(CommandResponse.NotFound("Група", groupId.toString()))
+        return memberService.getAllMembersInChat(chatId).fold(
+            onSuccess = { members ->
+                val inGroup = members.filter { it.username in group.members }
+                PickerListing.Show(inGroup.map { PickerOption(it.userId, "@${it.username}") })
+            },
+            onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
+        )
+    }
+
+    // --- Inline-picker actions by id (spovishun-123) ---
+
+    suspend fun deleteGroupById(
+        chatId: Long,
+        userId: Long,
+        groupId: Long,
+    ): CommandResponse {
+        requireModeratorAccess(chatId, userId)?.let { return it }
+        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
+        return groupService.deleteGroup(chatId, group.key).fold(
+            onSuccess = { CommandResponse.Success(BotMessages.Group.deleted(group.name.escapeHtml())) },
+            onFailure = { CommandResponse.Error(it.userMessage) },
+        )
+    }
+
+    suspend fun addUserToGroupById(
+        chatId: Long,
+        userId: Long,
+        groupId: Long,
+        memberId: Long,
+    ): CommandResponse {
+        requireModeratorAccess(chatId, userId)?.let { return it }
+        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
+        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
+        return groupService.addMemberToGroup(chatId, group.key, username).fold(
+            onSuccess = { CommandResponse.Success(BotMessages.Group.addedTo("@${username.escapeHtml()}", group.name.escapeHtml())) },
+            onFailure = { CommandResponse.Success(BotMessages.Group.notAdded("@${username.escapeHtml()} (${addFailureReason(it)})")) },
+        )
+    }
+
+    suspend fun removeUserFromGroupById(
+        chatId: Long,
+        userId: Long,
+        groupId: Long,
+        memberId: Long,
+    ): CommandResponse {
+        requireModeratorAccess(chatId, userId)?.let { return it }
+        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
+        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
+        return groupService.removeMemberFromGroup(chatId, group.key, username).fold(
+            onSuccess = { CommandResponse.Success(BotMessages.Group.removedFrom("@${username.escapeHtml()}", group.name.escapeHtml())) },
+            onFailure = { CommandResponse.Success(BotMessages.Group.notFoundInGroup("@${username.escapeHtml()}")) },
+        )
+    }
+
+    suspend fun grantRoleById(
+        chatId: Long,
+        userId: Long,
+        memberId: Long,
+        role: MemberRole,
+    ): CommandResponse {
+        requireAdminAccess(chatId, userId)?.let { return it }
+        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
+        return memberService.setMemberRole(chatId, memberId, role).fold(
+            onSuccess = { CommandResponse.Success(BotMessages.Group.rolesGranted("@${username.escapeHtml()}", role.name.lowercase())) },
+            onFailure = { CommandResponse.Success(BotMessages.Group.rolesNotFound("@${username.escapeHtml()}")) },
+        )
+    }
+
+    private suspend fun chatMemberOptions(chatId: Long): PickerListing = memberService.getAllMembersInChat(chatId).fold(
+        onSuccess = { members -> PickerListing.Show(members.map { PickerOption(it.userId, "@${it.username}") }) },
+        onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
+    )
+
+    private suspend fun resolveGroup(
+        chatId: Long,
+        groupId: Long,
+    ): GroupWithMembers? = groupService.getAllGroupsWithMembers(chatId).getOrNull()?.firstOrNull { it.id == groupId }
+
+    private suspend fun resolveMemberUsername(
+        chatId: Long,
+        memberId: Long,
+    ): String? = memberService
+        .getAllMembersInChat(chatId)
+        .getOrNull()
+        ?.firstOrNull { it.userId == memberId }
+        ?.username
+
+    private fun addFailureReason(exception: BaseException): String = when (exception) {
+        is ValidationException -> BotMessages.Group.failureNotRegistered
+        is DuplicateResourceException -> BotMessages.Group.failureAlreadyIn
+        is ResourceNotFoundException -> BotMessages.Group.failureNotFound
+        else -> BotMessages.Group.failureError
     }
 }
