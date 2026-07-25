@@ -1,23 +1,23 @@
 package com.ua.astrumon.admin.server
 
-import com.ua.astrumon.admin.auth.TokenAuthenticator
 import com.ua.astrumon.admin.docker.DockerApiClient
+import com.ua.astrumon.admin.docker.DockerContainer
 import com.ua.astrumon.admin.docker.DockerResponseMapper
+import com.ua.astrumon.admin.docker.DockerStats
 import com.ua.astrumon.admin.docker.LogStreamDeframer
 import com.ua.astrumon.admin.docker.RawLogFrame
 import com.ua.astrumon.admin.dto.ContainerLogsDto
 import com.ua.astrumon.admin.dto.DatabaseHealthDto
 import com.ua.astrumon.admin.dto.HealthDto
 import com.ua.astrumon.admin.dto.LogLineDto
+import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.admin.repository.ServerHealthRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.UserIdPrincipal
 import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.bearer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -32,7 +32,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
-private const val AUTH_PROVIDER = "admin"
 private const val DEFAULT_LOG_TAIL = 100
 private const val LOG_STREAM_EVENT = "log"
 
@@ -43,7 +42,9 @@ private val logger = LoggerFactory.getLogger("AdminApiRoutes")
  * Installs the admin observability API onto a Ktor [Application].
  *
  * Extracted from [AdminApiServer] so tests can mount it with `testApplication` and mocked
- * dependencies (spovishun-110).
+ * dependencies (spovishun-110). Docker client failures are surfaced as [DockerClientException] and
+ * mapped to HTTP status codes; [StatusPages] is a safety net for anything that still escapes routing
+ * (spovishun-143).
  */
 fun Application.adminApiModule(
     token: String,
@@ -54,13 +55,8 @@ fun Application.adminApiModule(
         json()
     }
     install(SSE)
-    install(Authentication) {
-        bearer(AUTH_PROVIDER) {
-            authenticate { credential ->
-                if (TokenAuthenticator.matches(credential.token, token)) UserIdPrincipal(AUTH_PROVIDER) else null
-            }
-        }
-    }
+    installErrorMapping()
+    installBearerAuth(token)
     routing {
         authenticate(AUTH_PROVIDER) {
             route("/api/v1") {
@@ -86,16 +82,22 @@ private fun Route.healthRoute(healthRepository: ServerHealthRepository) {
 
 private fun Route.metricsRoute(dockerClient: DockerApiClient) {
     get("/metrics") {
-        val info = dockerClient.info()
-        val running = dockerClient.containers().filter { it.state == "running" }
-        val stats = running.map { it to dockerClient.stats(it.id) }
-        call.respond(DockerResponseMapper.toMetricsDto(info, stats))
+        val result = dockerClient.info().flatMap { info ->
+            dockerClient.containers().flatMap { containers ->
+                val running = containers.filter { it.state == "running" }
+                collectStats(dockerClient, running).map { stats ->
+                    DockerResponseMapper.toMetricsDto(info, stats)
+                }
+            }
+        }
+        call.respondResult(result)
     }
 }
 
 private fun Route.containersRoute(dockerClient: DockerApiClient) {
     get("/containers") {
-        call.respond(DockerResponseMapper.toContainerDtos(dockerClient.containers()))
+        val result = dockerClient.containers().map { DockerResponseMapper.toContainerDtos(it) }
+        call.respondResult(result)
     }
 }
 
@@ -107,8 +109,10 @@ private fun Route.logsRoute(dockerClient: DockerApiClient) {
             return@get
         }
         val tail = call.request.queryParameters["tail"]?.toIntOrNull() ?: DEFAULT_LOG_TAIL
-        val logs = DockerResponseMapper.deframeLogs(dockerClient.logs(id, tail))
-        call.respond(ContainerLogsDto(containerId = id, tail = tail, logs = logs))
+        val result = dockerClient.logs(id, tail).map { rawBytes ->
+            ContainerLogsDto(containerId = id, tail = tail, logs = DockerResponseMapper.deframeLogs(rawBytes))
+        }
+        call.respondResult(result)
     }
 }
 
@@ -118,6 +122,30 @@ private fun Route.logsStreamRoute(dockerClient: DockerApiClient) {
         if (id.isNullOrBlank()) return@sse
         relayLogs(dockerClient, id)
     }
+}
+
+// Fetches per-container stats one by one, short-circuiting on the first failure so a single
+// unreachable stats call surfaces as one domain error rather than a partial result.
+private suspend fun collectStats(
+    dockerClient: DockerApiClient,
+    running: List<DockerContainer>,
+): ResultContainer<List<Pair<DockerContainer, DockerStats>>> {
+    val collected = mutableListOf<Pair<DockerContainer, DockerStats>>()
+    for (container in running) {
+        when (val stats = dockerClient.stats(container.id)) {
+            is ResultContainer.Success -> collected.add(container to stats.data)
+            is ResultContainer.Failure -> return stats
+        }
+    }
+    return ResultContainer.success(collected)
+}
+
+// Resolves a client result into a response: the DTO on success, the mapped status on failure.
+private suspend inline fun <reified T : Any> ApplicationCall.respondResult(result: ResultContainer<T>) {
+    result.fold(
+        onSuccess = { respond(it) },
+        onFailure = { respond(it.toHttpStatus()) },
+    )
 }
 
 // Relays the live upstream stream until the client disconnects. Cancellation is re-thrown so the

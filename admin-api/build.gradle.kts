@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.sse)
+    implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // Ktor client (read-only Docker API via docker-socket-proxy)
