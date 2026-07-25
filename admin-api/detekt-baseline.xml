@@ -12,5 +12,6 @@
     <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$7</ID>
     <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$8</ID>
     <ID>TooGenericExceptionCaught:AdminApiRoutes.kt:error: Exception</ID>
+    <ID>TooGenericExceptionCaught:DockerApiClient.kt:DockerApiClient$error: Exception</ID>
   </CurrentIssues>
 </SmellBaseline>

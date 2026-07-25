@@ -24,7 +24,7 @@ class AdminApiAuthTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        coEvery { dockerClient.containers() } returns emptyList()
+        coEvery { dockerClient.containers() } returns ResultContainer.Success(emptyList())
         coEvery { healthRepository.check() } returns ResultContainer.Success(ServerHealth(dbSizeBytes = 1_024))
     }
 
