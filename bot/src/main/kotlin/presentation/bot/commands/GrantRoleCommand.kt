@@ -4,9 +4,9 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallback
-import com.ua.astrumon.presentation.bot.handler.pickerKeyboard
+import com.ua.astrumon.presentation.bot.handler.deliver
+import com.ua.astrumon.presentation.bot.handler.toRender
 import com.ua.astrumon.presentation.controller.GroupController
-import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.toText
 
 class GrantRoleCommand(
@@ -39,20 +39,12 @@ class GrantRoleCommand(
         chatId: Long,
         userId: Long,
     ) {
-        when (val listing = groupController.chatMembersForAdminPicker(chatId, userId)) {
-            is PickerListing.Reject ->
-                bot.reply(chatId, listing.response.toText(onAccessDenied = { BotMessages.Error.onlyAdminsRoles }))
-
-            is PickerListing.Show ->
-                if (listing.options.isEmpty()) {
-                    bot.reply(chatId, BotMessages.Picker.noMembers)
-                } else {
-                    bot.replyWithKeyboard(
-                        chatId,
-                        BotMessages.Picker.memberPromptGrant,
-                        pickerKeyboard(listing.options) { "${GrantRoleCallback.PREFIX}${it.id}" },
-                    )
-                }
-        }
+        val render = groupController.chatMembersForAdminPicker(chatId, userId).toRender(
+            prompt = BotMessages.Picker.memberPromptGrant,
+            emptyMessage = BotMessages.Picker.noMembers,
+            accessDeniedMessage = BotMessages.Error.onlyAdminsRoles,
+            callbackData = { "${GrantRoleCallback.PREFIX}${it.id}" },
+        )
+        bot.deliver(chatId, render)
     }
 }

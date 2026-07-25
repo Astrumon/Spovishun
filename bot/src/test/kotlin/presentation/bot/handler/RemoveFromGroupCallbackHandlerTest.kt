@@ -1,11 +1,7 @@
 package presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.CallbackQuery
-import com.github.kotlintelegrambot.entities.Chat
-import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
-import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.GroupController
@@ -32,19 +28,7 @@ class RemoveFromGroupCallbackHandlerTest {
         handler = RemoveFromGroupCallbackHandler(groupController)
     }
 
-    private fun update(data: String): Update {
-        val chat = Chat(id = chatId, type = "group")
-        val message = Message(messageId = 5L, date = 0L, chat = chat)
-        val callbackQuery = CallbackQuery(
-            id = "cb",
-            from = User(id = clickerId, isBot = false, firstName = "A"),
-            message = message,
-            inlineMessageId = null,
-            data = data,
-            chatInstance = "i",
-        )
-        return Update(updateId = 1L, callbackQuery = callbackQuery)
-    }
+    private fun update(data: String): Update = callbackUpdate(chatId, clickerId, data)
 
     @Test
     fun `should open group-scoped member picker when only group is selected`() = runTest {

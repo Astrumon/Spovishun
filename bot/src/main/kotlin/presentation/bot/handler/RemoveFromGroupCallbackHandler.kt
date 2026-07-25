@@ -4,7 +4,6 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.GroupController
-import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.toText
 
 object RemoveFromGroupCallback {
@@ -49,25 +48,12 @@ class RemoveFromGroupCallbackHandler(
         ctx: CallbackContext,
         groupId: Long,
     ) {
-        when (val listing = groupController.groupMembersForPicker(ctx.chatId, ctx.clickerId, groupId)) {
-            is PickerListing.Reject ->
-                bot.replaceWithText(
-                    ctx.chatId,
-                    ctx.messageId,
-                    listing.response.toText(onAccessDenied = { BotMessages.Error.onlyAdminsModerators }),
-                )
-
-            is PickerListing.Show ->
-                if (listing.options.isEmpty()) {
-                    bot.replaceWithText(ctx.chatId, ctx.messageId, BotMessages.Picker.noMembers)
-                } else {
-                    bot.replaceWithKeyboard(
-                        ctx.chatId,
-                        ctx.messageId,
-                        BotMessages.Picker.memberPromptRemoveFrom,
-                        pickerKeyboard(listing.options) { "${RemoveFromGroupCallback.PREFIX}$groupId:${it.id}" },
-                    )
-                }
-        }
+        val render = groupController.groupMembersForPicker(ctx.chatId, ctx.clickerId, groupId).toRender(
+            prompt = BotMessages.Picker.memberPromptRemoveFrom,
+            emptyMessage = BotMessages.Picker.noMembers,
+            accessDeniedMessage = BotMessages.Error.onlyAdminsModerators,
+            callbackData = { "${RemoveFromGroupCallback.PREFIX}$groupId:${it.id}" },
+        )
+        bot.deliverInPlace(ctx.chatId, ctx.messageId, render)
     }
 }
