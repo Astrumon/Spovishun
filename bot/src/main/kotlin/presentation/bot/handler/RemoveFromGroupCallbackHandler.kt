@@ -30,7 +30,12 @@ class RemoveFromGroupCallbackHandler(
         val parts = ctx.payload.split(":")
         val groupId = parts.getOrNull(0)?.toLongOrNull() ?: return
         if (parts.size == 1) {
-            showMemberPicker(bot, ctx, groupId)
+            bot.advancePicker(
+                ctx.chatId,
+                ctx.messageId,
+                groupController.groupMembersForPicker(ctx.chatId, ctx.clickerId, groupId),
+                PickerCopy(BotMessages.Picker.memberPromptRemoveFrom, BotMessages.Picker.noMembers, BotMessages.Error.onlyAdminsModerators),
+            ) { "${RemoveFromGroupCallback.PREFIX}$groupId:${it.id}" }
         } else {
             val memberId = parts[1].toLongOrNull() ?: return
             val text = groupController.removeUserFromGroupById(ctx.chatId, ctx.clickerId, groupId, memberId).toText(
@@ -41,19 +46,5 @@ class RemoveFromGroupCallbackHandler(
             )
             bot.replaceWithText(ctx.chatId, ctx.messageId, text)
         }
-    }
-
-    private suspend fun showMemberPicker(
-        bot: Bot,
-        ctx: CallbackContext,
-        groupId: Long,
-    ) {
-        val render = groupController.groupMembersForPicker(ctx.chatId, ctx.clickerId, groupId).toRender(
-            prompt = BotMessages.Picker.memberPromptRemoveFrom,
-            emptyMessage = BotMessages.Picker.noMembers,
-            accessDeniedMessage = BotMessages.Error.onlyAdminsModerators,
-            callbackData = { "${RemoveFromGroupCallback.PREFIX}$groupId:${it.id}" },
-        )
-        bot.deliverInPlace(ctx.chatId, ctx.messageId, render)
     }
 }

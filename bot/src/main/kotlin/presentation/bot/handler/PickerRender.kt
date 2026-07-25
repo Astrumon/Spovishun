@@ -8,6 +8,13 @@ import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.toText
 
+/** UI copy for a single picker step: the [prompt] plus its empty and access-denied fallbacks. */
+internal data class PickerCopy(
+    val prompt: String,
+    val emptyMessage: String,
+    val accessDeniedMessage: String,
+)
+
 /** A picker step reduced to what to display: either plain [Text] or a [Keyboard] prompt. */
 internal sealed interface PickerRender {
     data class Text(
@@ -21,27 +28,42 @@ internal sealed interface PickerRender {
 }
 
 /**
- * Collapses a [PickerListing] into a [PickerRender], centralizing the reject / empty / keyboard decision
- * shared by every picker command and handler. Callers only choose how to deliver it — a fresh reply
- * ([deliver]) or an in-place replace ([deliverInPlace]).
+ * Renders a picker listing as a **new** reply — the shared entry point for every args-less command.
+ * Centralizes the reject / empty / keyboard decision so commands supply only [copy] and [callbackData].
  */
-internal fun PickerListing.toRender(
-    prompt: String,
-    emptyMessage: String,
-    accessDeniedMessage: String,
+internal fun Bot.sendPicker(
+    chatId: Long,
+    listing: PickerListing,
+    copy: PickerCopy,
+    callbackData: (PickerOption) -> String,
+) = deliver(chatId, listing.toRender(copy, callbackData))
+
+/**
+ * Advances a picker listing **in place** (delete + send) — the shared mid-flow step for callback
+ * handlers. Same decision logic as [sendPicker], different delivery.
+ */
+internal fun Bot.advancePicker(
+    chatId: Long,
+    messageId: Long,
+    listing: PickerListing,
+    copy: PickerCopy,
+    callbackData: (PickerOption) -> String,
+) = deliverInPlace(chatId, messageId, listing.toRender(copy, callbackData))
+
+private fun PickerListing.toRender(
+    copy: PickerCopy,
     callbackData: (PickerOption) -> String,
 ): PickerRender = when (this) {
-    is PickerListing.Reject -> PickerRender.Text(response.toText(onAccessDenied = { accessDeniedMessage }))
+    is PickerListing.Reject -> PickerRender.Text(response.toText(onAccessDenied = { copy.accessDeniedMessage }))
     is PickerListing.Show ->
         if (options.isEmpty()) {
-            PickerRender.Text(emptyMessage)
+            PickerRender.Text(copy.emptyMessage)
         } else {
-            PickerRender.Keyboard(prompt, pickerKeyboard(options, callbackData))
+            PickerRender.Keyboard(copy.prompt, pickerKeyboard(options, callbackData))
         }
 }
 
-/** Sends a [PickerRender] as a new message — used by the args-less command entry points. */
-internal fun Bot.deliver(
+private fun Bot.deliver(
     chatId: Long,
     render: PickerRender,
 ) {
@@ -54,8 +76,7 @@ internal fun Bot.deliver(
     }
 }
 
-/** Advances a [PickerRender] in place (delete + send) — used by callback handlers mid-flow. */
-internal fun Bot.deliverInPlace(
+private fun Bot.deliverInPlace(
     chatId: Long,
     messageId: Long,
     render: PickerRender,

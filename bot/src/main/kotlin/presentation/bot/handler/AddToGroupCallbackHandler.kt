@@ -30,7 +30,12 @@ class AddToGroupCallbackHandler(
         val parts = ctx.payload.split(":")
         val groupId = parts.getOrNull(0)?.toLongOrNull() ?: return
         if (parts.size == 1) {
-            showMemberPicker(bot, ctx, groupId)
+            bot.advancePicker(
+                ctx.chatId,
+                ctx.messageId,
+                groupController.chatMembersForModeratorPicker(ctx.chatId, ctx.clickerId),
+                PickerCopy(BotMessages.Picker.memberPromptAddTo, BotMessages.Picker.noMembers, BotMessages.Error.onlyAdminsModerators),
+            ) { "${AddToGroupCallback.PREFIX}$groupId:${it.id}" }
         } else {
             val memberId = parts[1].toLongOrNull() ?: return
             val text = groupController.addUserToGroupById(ctx.chatId, ctx.clickerId, groupId, memberId).toText(
@@ -41,19 +46,5 @@ class AddToGroupCallbackHandler(
             )
             bot.replaceWithText(ctx.chatId, ctx.messageId, text)
         }
-    }
-
-    private suspend fun showMemberPicker(
-        bot: Bot,
-        ctx: CallbackContext,
-        groupId: Long,
-    ) {
-        val render = groupController.chatMembersForModeratorPicker(ctx.chatId, ctx.clickerId).toRender(
-            prompt = BotMessages.Picker.memberPromptAddTo,
-            emptyMessage = BotMessages.Picker.noMembers,
-            accessDeniedMessage = BotMessages.Error.onlyAdminsModerators,
-            callbackData = { "${AddToGroupCallback.PREFIX}$groupId:${it.id}" },
-        )
-        bot.deliverInPlace(ctx.chatId, ctx.messageId, render)
     }
 }

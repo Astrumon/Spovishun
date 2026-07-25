@@ -3,9 +3,9 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallback
-import com.ua.astrumon.presentation.bot.handler.deliver
-import com.ua.astrumon.presentation.bot.handler.toRender
+import com.ua.astrumon.presentation.bot.handler.sendPicker
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.toText
 
@@ -21,7 +21,11 @@ class RemoveUserFromGroupCommand(
         val (chatId, userId, args) = update.messageContext() ?: return
 
         if (args.isEmpty()) {
-            showGroupPicker(bot, chatId, userId)
+            bot.sendPicker(
+                chatId,
+                groupController.groupsForModeratorPicker(chatId, userId),
+                PickerCopy(BotMessages.Picker.groupPromptRemoveFrom, BotMessages.Group.empty, BotMessages.Error.onlyAdminsModerators),
+            ) { "${RemoveFromGroupCallback.PREFIX}${it.id}" }
             return
         }
 
@@ -33,19 +37,5 @@ class RemoveUserFromGroupCommand(
         )
 
         bot.reply(chatId, text)
-    }
-
-    private suspend fun showGroupPicker(
-        bot: Bot,
-        chatId: Long,
-        userId: Long,
-    ) {
-        val render = groupController.groupsForModeratorPicker(chatId, userId).toRender(
-            prompt = BotMessages.Picker.groupPromptRemoveFrom,
-            emptyMessage = BotMessages.Group.empty,
-            accessDeniedMessage = BotMessages.Error.onlyAdminsModerators,
-            callbackData = { "${RemoveFromGroupCallback.PREFIX}${it.id}" },
-        )
-        bot.deliver(chatId, render)
     }
 }
