@@ -4,15 +4,19 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.toText
 
-/** UI copy for a single picker step: the [prompt] plus its empty and access-denied fallbacks. */
+/**
+ * UI copy for a single picker step: the [prompt] plus its empty and access-denied fallbacks.
+ * A null [accessDeniedMessage] keeps the generic `toText()` wording — for pickers with no role gate.
+ */
 internal data class PickerCopy(
     val prompt: String,
     val emptyMessage: String,
-    val accessDeniedMessage: String,
+    val accessDeniedMessage: String? = null,
 )
 
 /** A picker step reduced to what to display: either plain [Text] or a [Keyboard] prompt. */
@@ -54,7 +58,12 @@ private fun PickerListing.toRender(
     copy: PickerCopy,
     callbackData: (PickerOption) -> String,
 ): PickerRender = when (this) {
-    is PickerListing.Reject -> PickerRender.Text(response.toText(onAccessDenied = { copy.accessDeniedMessage }))
+    is PickerListing.Reject ->
+        PickerRender.Text(
+            response.toText(onAccessDenied = { reason ->
+                copy.accessDeniedMessage ?: BotMessages.Error.accessDenied(reason)
+            }),
+        )
     is PickerListing.Show ->
         if (options.isEmpty()) {
             PickerRender.Text(copy.emptyMessage)

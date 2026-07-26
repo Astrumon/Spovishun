@@ -198,6 +198,9 @@ object BotMessages {
 
         val noRegistered: String get() = get("random.no_registered")
         val emptyGroup: String get() = get("random.empty_group")
+        val menuPrompt: String get() = get("random.menu_prompt")
+        val allMembersOption: String get() = get("random.all_members_option")
+        val noGroups: String get() = get("random.no_groups")
     }
 
     object Registration {

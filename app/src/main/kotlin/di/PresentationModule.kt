@@ -24,6 +24,7 @@ import com.ua.astrumon.presentation.bot.handler.DeleteGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.RandomCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
@@ -100,6 +101,7 @@ val presentationModule = module {
     single { AddToGroupCallbackHandler(get()) } bind CallbackHandler::class
     single { RemoveFromGroupCallbackHandler(get()) } bind CallbackHandler::class
     single { GrantRoleCallbackHandler(get()) } bind CallbackHandler::class
+    single { RandomCallbackHandler(get(), get()) } bind CallbackHandler::class
     single { CallbackRouter(getAll()) }
     single { TelegramBot(get(), get(), get(), get()) }
     single { MessageHandler(get(), get(), get()) }

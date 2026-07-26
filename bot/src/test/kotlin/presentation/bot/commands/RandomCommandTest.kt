@@ -11,6 +11,8 @@ import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.RandomCommand
+import com.ua.astrumon.presentation.controller.PickerListing
+import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
@@ -18,6 +20,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -47,16 +50,37 @@ class RandomCommandTest {
     }
 
     @Test
-    fun `should call pickRandomAll when no args given`() = runTest {
+    fun `should show the group picker when no args given and the chat has groups`() = runTest {
         val update = buildUpdate("/random")
+        coEvery { randomController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            PickerListing.Show(listOf(PickerOption(RandomController.ALL_MEMBERS_ID, "🎲 Усі"), PickerOption(11L, "Devs")))
+
+        command.execute(bot, update)
+
+        coVerify(exactly = 0) { randomController.pickRandomAll(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
+        verify {
+            bot.sendMessage(
+                chatId = ChatId.fromId(chatId),
+                text = any(),
+                parseMode = ParseMode.HTML,
+                replyMarkup = any(),
+            )
+        }
+    }
+
+    @Test
+    fun `should fall back to pickRandomAll when no args given and the chat has no groups`() = runTest {
+        val update = buildUpdate("/random")
+        coEvery { randomController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            PickerListing.Show(emptyList())
         coEvery { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            CommandResponse.Success("🎲 Випало: @alice")
+            CommandResponse.Success("🎲: @alice")
 
         command.execute(bot, update)
 
         coVerify { randomController.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
-        coVerify(exactly = 0) { randomController.pickRandomFromGroup(any(), any(), any(), any(), any(), any()) }
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲 Випало: @alice", ParseMode.HTML) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "🎲: @alice", ParseMode.HTML) }
     }
 
     @Test
