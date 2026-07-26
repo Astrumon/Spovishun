@@ -62,4 +62,66 @@ class RandomController(
         val picked = members.random()
         return CommandResponse.Success(BotMessages.Random.result(picked))
     }
+
+    /**
+     * Options for the args-less `/random` picker: the whole-chat option first, then one per group.
+     * An empty [PickerListing.Show] means the chat has no groups — the caller falls back to [pickRandomAll].
+     */
+    suspend fun groupsForPicker(
+        chatId: Long,
+        userId: Long,
+        username: String,
+        firstName: String,
+        userRole: MemberRole,
+    ): PickerListing {
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        return groupService.getAllGroupsWithMembers(chatId).fold(
+            onSuccess = { groups ->
+                if (groups.isEmpty()) {
+                    PickerListing.Show(emptyList())
+                } else {
+                    val allMembers = PickerOption(ALL_MEMBERS_ID, BotMessages.Random.allMembersOption)
+                    PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.name) })
+                }
+            },
+            onFailure = {
+                logger.error("Failed to get groups for groupsForPicker: {}", it::class.simpleName)
+                PickerListing.Reject(CommandResponse.Error(BotMessages.Error.loadGroupsInternal))
+            },
+        )
+    }
+
+    suspend fun pickRandomFromGroupById(
+        chatId: Long,
+        userId: Long,
+        username: String,
+        firstName: String,
+        userRole: MemberRole,
+        groupId: Long,
+    ): CommandResponse {
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+
+        val groupsResult = groupService.getAllGroupsWithMembers(chatId)
+        if (groupsResult.isFailure) {
+            logger.error(
+                "Failed to get groups for pickRandomFromGroupById: {}",
+                groupsResult.exceptionOrNull()?.let { it::class.simpleName },
+            )
+            return CommandResponse.Error(BotMessages.Error.loadGroupsInternal)
+        }
+
+        val group = groupsResult.getOrNull()?.firstOrNull { it.id == groupId }
+            ?: return CommandResponse.NotFound("Група", groupId.toString())
+
+        if (group.members.isEmpty()) return CommandResponse.Success(BotMessages.Random.emptyGroup)
+
+        val picked = group.members.random()
+        return CommandResponse.Success(BotMessages.Random.result(picked))
+    }
+
+    companion object {
+        /** Sentinel picker-option id for "the whole chat" — group ids are DB serials and start at 1. */
+        const val ALL_MEMBERS_ID = 0L
+    }
 }

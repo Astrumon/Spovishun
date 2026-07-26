@@ -10,6 +10,9 @@ import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.controller.PickerListing
+import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.RandomController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -17,6 +20,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RandomControllerTest {
@@ -151,5 +155,90 @@ class RandomControllerTest {
 
         assertTrue(result is CommandResponse.NotFound)
         assertTrue((result as CommandResponse.NotFound).available.isEmpty())
+    }
+
+    // --- groupsForPicker ---
+
+    @Test
+    fun `groupsForPicker should list the all-members option first followed by every group`() = runTest {
+        val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice"))
+        val qa = GroupWithMembers(12L, chatId, "qa", "QA", listOf("bob"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs, qa))
+
+        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(result is PickerListing.Show)
+        assertEquals(
+            listOf(
+                PickerOption(RandomController.ALL_MEMBERS_ID, BotMessages.Random.allMembersOption),
+                PickerOption(11L, "Devs"),
+                PickerOption(12L, "QA"),
+            ),
+            result.options,
+        )
+    }
+
+    @Test
+    fun `groupsForPicker should return an empty listing when the chat has no groups`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
+
+        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(result is PickerListing.Show)
+        assertTrue(result.options.isEmpty())
+    }
+
+    @Test
+    fun `groupsForPicker should reject when groupService fails`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
+
+        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(result is PickerListing.Reject)
+        assertTrue(result.response is CommandResponse.Error)
+    }
+
+    // --- pickRandomFromGroupById ---
+
+    @Test
+    fun `pickRandomFromGroupById should return Success with one of the group members`() = runTest {
+        val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice", "bob"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs))
+
+        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("alice") || result.message.contains("bob"))
+    }
+
+    @Test
+    fun `pickRandomFromGroupById should return Success with empty_group message when group has no members`() = runTest {
+        val empty = GroupWithMembers(11L, chatId, "empty", "Empty", emptyList())
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(empty))
+
+        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("немає учасників"))
+    }
+
+    @Test
+    fun `pickRandomFromGroupById should return NotFound when no group has the given id`() = runTest {
+        val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice"))
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs))
+
+        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 99L)
+
+        assertTrue(result is CommandResponse.NotFound)
+        assertEquals("99", result.identifier)
+    }
+
+    @Test
+    fun `pickRandomFromGroupById should return Error when groupService fails`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
+
+        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+
+        assertTrue(result is CommandResponse.Error)
     }
 }
