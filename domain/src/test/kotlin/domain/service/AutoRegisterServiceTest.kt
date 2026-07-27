@@ -138,7 +138,7 @@ class AutoRegisterServiceTest {
     fun `isUserRegistered should return true when member exists in chat`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
 
-        assertTrue(autoRegisterService.isUserRegistered(chatId, username))
+        assertTrue(autoRegisterService.isUserRegistered(chatId, username).getOrThrow())
     }
 
     @Test
@@ -147,16 +147,19 @@ class AutoRegisterServiceTest {
             ResourceNotFoundException("Member", username),
         )
 
-        assertFalse(autoRegisterService.isUserRegistered(chatId, username))
+        assertFalse(autoRegisterService.isUserRegistered(chatId, username).getOrThrow())
     }
 
     @Test
-    fun `isUserRegistered should return false when lookup fails`() = runTest {
+    fun `isUserRegistered should return failure when lookup fails`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(
             DatabaseException("DB error"),
         )
 
-        assertFalse(autoRegisterService.isUserRegistered(chatId, username))
+        val result = autoRegisterService.isUserRegistered(chatId, username)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DatabaseException)
     }
 
     // --- cache ---
@@ -202,7 +205,7 @@ class AutoRegisterServiceTest {
     fun `isUserRegistered should return true from cache without DB call`() = runTest {
         userCache.put(chatId, username, memberWithChat)
 
-        assertTrue(autoRegisterService.isUserRegistered(chatId, username))
+        assertTrue(autoRegisterService.isUserRegistered(chatId, username).getOrThrow())
         coVerify(exactly = 0) { memberService.getMemberWithChatByUsername(any(), any()) }
     }
 }

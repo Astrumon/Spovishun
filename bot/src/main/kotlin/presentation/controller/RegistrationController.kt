@@ -54,19 +54,18 @@ class RegistrationController(
         firstName: String,
         userRole: MemberRole,
     ): CommandResponse {
-        val alreadyRegistered = autoRegisterService.isUserRegistered(chatId, username)
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val alreadyRegistered = autoRegisterService.isUserRegistered(chatId, username).getOrNull()
+            ?: return CommandResponse.Error(BotMessages.Registration.failed(firstName))
 
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         if (result.isFailure) {
             return CommandResponse.Error(BotMessages.Registration.failed(firstName))
         }
 
-        return if (alreadyRegistered) {
-            CommandResponse.Success(BotMessages.Registration.alreadyRegistered(firstName))
-        } else if (userRole == MemberRole.ADMIN) {
-            CommandResponse.Success(BotMessages.Registration.successAdmin(firstName))
-        } else {
-            CommandResponse.Success(BotMessages.Registration.success(firstName))
+        return when {
+            alreadyRegistered -> CommandResponse.Success(BotMessages.Registration.alreadyRegistered(firstName))
+            userRole == MemberRole.ADMIN -> CommandResponse.Success(BotMessages.Registration.successAdmin(firstName))
+            else -> CommandResponse.Success(BotMessages.Registration.success(firstName))
         }
     }
 }

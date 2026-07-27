@@ -69,7 +69,7 @@ class RegistrationControllerTest {
 
     @Test
     fun `register should return Success when registration succeeds`() = runTest {
-        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns ResultContainer.success(false)
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
@@ -80,7 +80,7 @@ class RegistrationControllerTest {
 
     @Test
     fun `register should return Success with already registered message when duplicate`() = runTest {
-        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns true
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns ResultContainer.success(true)
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
@@ -91,7 +91,7 @@ class RegistrationControllerTest {
 
     @Test
     fun `register should include admin role text for admin users`() = runTest {
-        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns ResultContainer.success(false)
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.ADMIN)
 
@@ -102,12 +102,23 @@ class RegistrationControllerTest {
 
     @Test
     fun `register should return Error when ensureUserRegistered fails`() = runTest {
-        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns false
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns ResultContainer.success(false)
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
             ResultContainer.failure(DatabaseException("connection timeout"))
 
         val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
         assertTrue(result is CommandResponse.Error)
+    }
+
+    @Test
+    fun `register should return Error when registration lookup fails`() = runTest {
+        coEvery { autoRegisterService.isUserRegistered(chatId, "alice") } returns
+            ResultContainer.failure(DatabaseException("connection timeout"))
+
+        val result = registrationController.register(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(result is CommandResponse.Error)
+        coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) }
     }
 }

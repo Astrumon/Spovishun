@@ -10,6 +10,8 @@ import com.ua.astrumon.data.bot.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.bot.repository.GroupRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
+import com.ua.astrumon.domain.bot.cache.ChatCache
+import com.ua.astrumon.domain.bot.cache.UserCache
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
@@ -82,6 +84,10 @@ abstract class BaseE2ETest {
     protected lateinit var groupService: GroupService
     protected lateinit var autoRegisterService: AutoRegisterService
 
+    // Caches wired into AutoRegisterService — recreated per test so cases can inspect/evict entries
+    protected lateinit var userCache: UserCache
+    protected lateinit var chatCache: ChatCache
+
     // Command handlers (for direct dispatch)
     private lateinit var commandRegistry: CommandRegistry
     private lateinit var messageHandler: MessageHandler
@@ -93,14 +99,15 @@ abstract class BaseE2ETest {
     @BeforeAll
     fun initDatabase() {
         assumeTrue(E2EConfig.isConfigured && E2EDbConfig.isConfigured, "E2E env vars not set — skipping e2e tests")
+        val databaseUrl = requireNotNull(E2EDbConfig.databaseUrl) { "E2E_DATABASE_URL must be set" }
         TestDatabaseFactory.initialize(
-            url = E2EDbConfig.databaseUrl!!,
+            url = databaseUrl,
             driver = E2EDbConfig.databaseDriver,
             username = E2EDbConfig.databaseUsername,
             password = E2EDbConfig.databasePassword,
             poolSize = E2EDbConfig.databasePoolSize,
         )
-        cleaner = TestDatabaseCleaner(E2EDbConfig.databaseUrl!!)
+        cleaner = TestDatabaseCleaner(databaseUrl)
     }
 
     @BeforeTest
@@ -116,7 +123,9 @@ abstract class BaseE2ETest {
         memberService = MemberService(memberRepo, memberChatRepo)
         chatService = ChatService(chatRepo)
         groupService = GroupService(groupRepo, groupMemberRepo)
-        autoRegisterService = AutoRegisterService(memberService, chatService)
+        userCache = UserCache()
+        chatCache = ChatCache()
+        autoRegisterService = AutoRegisterService(memberService, chatService, userCache, chatCache)
 
         val botAdminUtils = BotAdminUtils()
 
