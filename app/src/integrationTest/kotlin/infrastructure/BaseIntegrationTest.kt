@@ -11,6 +11,8 @@ import com.ua.astrumon.data.bot.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.bot.repository.GroupRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
+import com.ua.astrumon.domain.bot.cache.ChatCache
+import com.ua.astrumon.domain.bot.cache.UserCache
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
@@ -61,6 +63,10 @@ abstract class BaseIntegrationTest {
     protected lateinit var groupService: GroupService
     protected lateinit var autoRegisterService: AutoRegisterService
 
+    // Caches wired into AutoRegisterService — recreated per test so cases can inspect/evict entries
+    protected lateinit var userCache: UserCache
+    protected lateinit var chatCache: ChatCache
+
     // Telegram API mocks (the only mocked boundary)
     protected lateinit var bot: Bot
     protected lateinit var botAdminUtils: BotAdminUtils
@@ -99,14 +105,15 @@ abstract class BaseIntegrationTest {
     @BeforeAll
     fun initDatabase() {
         assumeTrue(IntegrationDbConfig.isConfigured, "E2E_DATABASE_URL not set — skipping integration tests")
+        val databaseUrl = requireNotNull(IntegrationDbConfig.databaseUrl) { "E2E_DATABASE_URL must be set" }
         TestDatabaseFactory.initialize(
-            url = IntegrationDbConfig.databaseUrl!!,
+            url = databaseUrl,
             driver = IntegrationDbConfig.databaseDriver,
             username = IntegrationDbConfig.databaseUsername,
             password = IntegrationDbConfig.databasePassword,
             poolSize = IntegrationDbConfig.databasePoolSize,
         )
-        cleaner = TestDatabaseCleaner(IntegrationDbConfig.databaseUrl!!)
+        cleaner = TestDatabaseCleaner(databaseUrl)
     }
 
     @BeforeTest
@@ -118,11 +125,22 @@ abstract class BaseIntegrationTest {
         runBlocking { cleaner.cleanupByChatId(testChatId) }
         clearAllMocks()
 
+        initServices()
+        initTelegramMocks()
+        initControllers()
+        initCommands()
+    }
+
+    private fun initServices() {
         memberService = MemberService(memberRepo, memberChatRepo)
         chatService = ChatService(chatRepo)
         groupService = GroupService(groupRepo, groupMemberRepo)
-        autoRegisterService = AutoRegisterService(memberService, chatService)
+        userCache = UserCache()
+        chatCache = ChatCache()
+        autoRegisterService = AutoRegisterService(memberService, chatService, userCache, chatCache)
+    }
 
+    private fun initTelegramMocks() {
         bot = mockk(relaxed = true)
         botAdminUtils = mockk()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
@@ -131,13 +149,17 @@ abstract class BaseIntegrationTest {
             TelegramBotResult.Success(
                 Chat(id = testChatId, type = "supergroup"),
             )
+    }
 
+    private fun initControllers() {
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)
         registrationController = RegistrationController(autoRegisterService)
         pingController = PingController(memberService, groupService, autoRegisterService)
         randomController = RandomController(memberService, groupService, autoRegisterService)
+    }
 
+    private fun initCommands() {
         startCommand = StartCommand(registrationController, botAdminUtils)
         registerCommand = RegisterCommand(registrationController, botAdminUtils)
         membersCommand = MembersCommand(membersController, botAdminUtils)
