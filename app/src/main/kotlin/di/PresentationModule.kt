@@ -35,24 +35,12 @@ import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
-import com.ua.astrumon.presentation.scheduler.SchedulerExceptionHandler
 import com.ua.astrumon.presentation.util.BotAdminUtils
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-/** Typed qualifiers for the per-scheduler [CoroutineScope] bindings. */
-class BirthdaySchedulerScope
-
-class ReleaseAnnouncerScope
-
-val presentationModule = module {
+internal val presentationModule = module {
     // Controllers
     single { GroupController(get(), get(), get()) }
     single { MembersController(get(), get()) }
@@ -78,19 +66,7 @@ val presentationModule = module {
     single { WhatsNewCommand(get()) } bind BotCommand::class
     single { RandomCommand(get(), get()) } bind BotCommand::class
 
-    // Scheduler coroutine infrastructure
-    single<CoroutineDispatcher> { Dispatchers.Default }
-    single<CoroutineExceptionHandler> { SchedulerExceptionHandler.create() }
-    single<CoroutineScope>(named<BirthdaySchedulerScope>()) {
-        CoroutineScope(
-            SupervisorJob() + get<CoroutineDispatcher>() + get<CoroutineExceptionHandler>() + CoroutineName("birthday-scheduler"),
-        )
-    }
-    single<CoroutineScope>(named<ReleaseAnnouncerScope>()) {
-        CoroutineScope(SupervisorJob() + get<CoroutineDispatcher>() + get<CoroutineExceptionHandler>() + CoroutineName("release-announcer"))
-    }
-
-    // Schedulers
+    // Schedulers — the qualified scopes they run on are declared in ConfigModule.
     single { BirthdayGreetingScheduler(get(), get(), get(named<BirthdaySchedulerScope>())) }
     single { ReleaseAnnouncer(get(), get(), get(), get(named<ReleaseAnnouncerScope>())) }
 

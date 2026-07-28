@@ -23,6 +23,10 @@ Every DB operation must use `safeDbQuery { }` from `data.db.DatabaseFactory` —
 `safeDbQuery` handles both dispatching and exception-to-`DatabaseException` conversion in one call.
 `DatabaseFactory` is the only place allowed to touch `Dispatchers.IO`.
 
+`DatabaseFactory` retains the `HikariDataSource` it creates (in an `AtomicReference` — the shutdown hook
+closes it from another thread) and exposes an idempotent `close()`. `:app` calls it last in
+`Application.shutdown()`; nothing else should.
+
 ```kotlin
 // Correct
 override suspend fun findByUsername(username: String): ResultContainer<Member?> =
