@@ -14,10 +14,13 @@ Top level: `Main.kt` (entry point), `Application.kt` (`initializeKoin()`, reusab
 - `RepositoryModule` — binds each `*Repository` interface to its `:data` `*RepositoryImpl`
 - `ServiceModule` — domain services
 - `PresentationModule` — controllers, commands (`bind BotCommand::class`), bot, schedulers
-- `AdminApiModule` — `AdminApiConfig`, `DockerApiClient`, `AdminApiServer`
+- `AdminApiDiModule` — `AdminApiConfig`, `DockerApiClient`, `AdminApiServer`. Named `…DiModule` to stay
+  distinct from the Ktor routing module `Application.adminApiModule` in `:admin-api` (spovishun-156)
 
-All five module declarations are `internal` — `Application.kt` is their only consumer and `:app` is the
-top of the dependency graph. Bind by interface; constructor injection only. `PROFILE` selects the DB
+`AppModules.kt` collects the five into `appModules` — the single list `Application.initializeKoin()`
+starts Koin with and `KoinModuleGraphTest` verifies. Register a new module there, not in `Application.kt`,
+so it cannot reach production wiring unverified. All declarations are `internal`; `:app` is the top of
+the dependency graph. Bind by interface; constructor injection only. `PROFILE` selects the DB
 connection string (local PostgreSQL for dev, self-hosted PostgreSQL for prod) — not which
 implementations are bound.
 
@@ -40,6 +43,9 @@ queries already running on `Dispatchers.IO`.
   (Ktor client). Requires the `TEST_*` / `E2E_DATABASE_URL` env vars; skips otherwise.
 
 Do NOT unit test Koin modules, `TelegramBot`, `MessageHandler`, or `DatabaseFactory`.
+Exception: `KoinModuleGraphTest` runs `koin-test`'s `verify()` over all five modules. That is a static
+reflection check of the graph (nothing is instantiated), not a test of module logic — it exists so a
+forgotten binding fails in CI instead of on production startup (spovishun-156).
 
 ## Logging
 `logback.xml` and the logging backend live with this entry-point module.

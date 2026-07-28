@@ -28,7 +28,6 @@ dotenv = { group = "io.github.cdimascio", name = "dotenv-kotlin", version.ref = 
 
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
-koin-ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin" }
 
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
@@ -70,6 +69,7 @@ telegram-bot = { group = "io.github.kotlin-telegram-bot.kotlin-telegram-bot", na
 
 # Tests
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+koin-test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
