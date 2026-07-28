@@ -4,11 +4,7 @@ import com.ua.astrumon.admin.config.AdminApiConfig
 import com.ua.astrumon.admin.server.AdminApiServer
 import com.ua.astrumon.config.AppConfig
 import com.ua.astrumon.data.db.DatabaseFactory
-import com.ua.astrumon.di.adminApiModule
-import com.ua.astrumon.di.configModule
-import com.ua.astrumon.di.presentationModule
-import com.ua.astrumon.di.repositoryModule
-import com.ua.astrumon.di.serviceModule
+import com.ua.astrumon.di.appModules
 import com.ua.astrumon.presentation.bot.TelegramBot
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
@@ -53,13 +49,7 @@ object Application : KoinComponent {
         logger.info("Starting application with profile: {}", profile)
 
         startKoin {
-            modules(
-                configModule,
-                repositoryModule,
-                serviceModule,
-                presentationModule,
-                adminApiModule,
-            )
+            modules(appModules)
         }
     }
 

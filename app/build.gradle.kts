@@ -42,6 +42,8 @@ dependencies {
 
     // Tests
     testImplementation(libs.kotlin.test)
+    // koin-test provides verify() — the static DI-graph check in KoinModuleGraphTest (spovishun-156).
+    testImplementation(libs.koin.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.h2)
