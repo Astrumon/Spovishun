@@ -20,7 +20,7 @@ import com.ua.astrumon.domain.bot.repository.MemberRepository
 import com.ua.astrumon.domain.bot.repository.ReleaseNotesRepository
 import org.koin.dsl.module
 
-val repositoryModule = module {
+internal val repositoryModule = module {
     single<MemberChatRepository> { MemberChatRepositoryImpl() }
     single<MemberRepository> { MemberRepositoryImpl() }
     single<GroupRepository> { GroupRepositoryImpl() }

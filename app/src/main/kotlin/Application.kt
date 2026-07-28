@@ -15,6 +15,7 @@ import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.slf4j.LoggerFactory
 
 object Application : KoinComponent {
@@ -30,6 +31,10 @@ object Application : KoinComponent {
 
     suspend fun run() {
         initializeKoin()
+        // Registered only once the graph exists: [shutdown] resolves its dependencies from Koin, so a
+        // signal arriving before startKoin() would throw inside the hook and skip the rest of the
+        // teardown (spovishun-155).
+        Runtime.getRuntime().addShutdownHook(Thread(::shutdown, "shutdown-hook"))
         initializeDatabase()
 
         val bot = telegramBot.create(config.telegramBotToken)
@@ -56,6 +61,24 @@ object Application : KoinComponent {
                 adminApiModule,
             )
         }
+    }
+
+    /**
+     * Closes the object graph on process shutdown (spovishun-155).
+     *
+     * Ordered outside-in: the admin API stops first (it has its own grace period) so no request is in
+     * flight against the Docker client; `stopKoin()` then fires the `onClose` callbacks that cancel the
+     * scheduler scopes and release the Docker `HttpClient`; the connection pool goes last.
+     *
+     * Cancelling a scope is cooperative and does not block, so a query already running on
+     * `Dispatchers.IO` may still be unwinding when the pool closes — the cancellation stops new work
+     * from starting, it does not drain what is in flight.
+     */
+    fun shutdown() {
+        logger.info("Shutting down application")
+        if (adminApiConfig.enabled) adminApiServer.stop()
+        stopKoin()
+        DatabaseFactory.close()
     }
 
     private fun initializeDatabase() {

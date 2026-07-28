@@ -98,6 +98,16 @@ class DockerApiClient(
             }
     }
 
+    /**
+     * Releases the underlying HTTP engine and its connection pool.
+     *
+     * Driven by the `onClose` callback on the Koin binding, so `stopKoin()` during process shutdown
+     * tears the client down instead of leaking the CIO engine threads (spovishun-155).
+     *
+     * Closes the [httpClient] it was handed — only inject a client you are willing to hand over.
+     */
+    fun close() = httpClient.close()
+
     // Logs the target URL (root-cause diagnostics: empty/invalid host, docker name off the compose
     // network), runs the request, then classifies the outcome: 2xx -> success; non-2xx -> HttpError;
     // transport throw -> mapped domain error. Cancellation is re-thrown so structured concurrency is

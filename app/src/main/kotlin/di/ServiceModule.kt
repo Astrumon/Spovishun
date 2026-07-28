@@ -13,7 +13,7 @@ import org.koin.dsl.module
 import java.time.Clock
 import java.time.ZoneId
 
-val serviceModule = module {
+internal val serviceModule = module {
     single { UserCache() }
     single { ChatCache() }
     single { MemberService(get(), get()) }
