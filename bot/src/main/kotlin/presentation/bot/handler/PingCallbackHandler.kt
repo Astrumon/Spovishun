@@ -1,8 +1,6 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.ChatId
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.common.util.sanitizeUsername
@@ -15,6 +13,10 @@ object PingCallback {
     const val PREFIX = "ping:"
 }
 
+/**
+ * `/ping` picker: `ping:{groupId}` pings that group, `ping:0`
+ * ([PingController.ALL_MEMBERS_ID]) pings every registered member of the chat.
+ */
 class PingCallbackHandler(
     private val pingController: PingController,
     private val botAdminUtils: BotAdminUtils,
@@ -26,29 +28,23 @@ class PingCallbackHandler(
         update: Update,
     ) {
         val callbackQuery = update.callbackQuery ?: return
-        val data = callbackQuery.data ?: return
-
         bot.answerCallbackQuery(callbackQuery.id)
-
-        val groupId = data.removePrefix(PingCallback.PREFIX).toLongOrNull() ?: return
-        val message = callbackQuery.message ?: return
-        val chatId = message.chat.id
+        val ctx = update.callbackContext(prefix) ?: return
+        val groupId = ctx.payload.toLongOrNull() ?: return
 
         val user = callbackQuery.from
         val username = sanitizeUsername(user.username, user.id)
-        val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
+        val userRole = botAdminUtils.getMemberRole(bot, ctx.chatId, user.id)
 
-        val text = pingController.pingGroupById(chatId, user.id, username, user.firstName, userRole, groupId).toText(
-            onNotFound = { BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") },
-        )
-
-        runCatching {
-            bot.deleteMessage(
-                chatId = ChatId.fromId(chatId),
-                messageId = message.messageId,
-            )
+        val response = if (groupId == PingController.ALL_MEMBERS_ID) {
+            pingController.pingAll(ctx.chatId, ctx.clickerId, username, user.firstName, userRole, emptyList())
+        } else {
+            pingController.pingGroupById(ctx.chatId, ctx.clickerId, username, user.firstName, userRole, groupId)
         }
 
-        bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
+        val text = response.toText(
+            onNotFound = { BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") },
+        )
+        bot.replaceWithText(ctx.chatId, ctx.messageId, text)
     }
 }

@@ -101,6 +101,7 @@ object BotMessages {
 
         val menuPrompt: String get() = get("ping.menuPrompt")
         val noGroups: String get() = get("ping.noGroups")
+        val allMembersOption: String get() = get("ping.all_members_option")
     }
 
     object Group {

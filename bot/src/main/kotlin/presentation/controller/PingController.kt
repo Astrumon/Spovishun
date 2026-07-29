@@ -1,10 +1,8 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
-import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
@@ -45,15 +43,29 @@ class PingController(
         return CommandResponse.Success("$header\n\n$mentions")
     }
 
-    suspend fun listGroupsForMenu(
+    /**
+     * Options for the args-less `/ping` picker: the whole-chat option first, then one per group.
+     * The whole-chat option is always present, so the menu still renders in a chat with no groups.
+     */
+    suspend fun groupsForPicker(
         chatId: Long,
         userId: Long,
         username: String,
         firstName: String,
         userRole: MemberRole,
-    ): ResultContainer<List<GroupWithMembers>> {
+    ): PickerListing {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
-        return groupService.getAllGroupsWithMembers(chatId)
+
+        return groupService.getAllGroupsWithMembers(chatId).fold(
+            onSuccess = { groups ->
+                val allMembers = PickerOption(ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption)
+                PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.name) })
+            },
+            onFailure = {
+                logger.error("Failed to get groups for groupsForPicker: {}", it::class.simpleName)
+                PickerListing.Reject(CommandResponse.Error(BotMessages.Error.loadGroupsInternal))
+            },
+        )
     }
 
     suspend fun pingGroupById(
@@ -142,5 +154,10 @@ class PingController(
         val header = BotMessages.Ping.headerGroup(group?.name ?: groupKey, icons, extra)
         val mentions = validMembers.joinToString(" ") { "@$it" }
         return CommandResponse.Success("$header\n\n$mentions")
+    }
+
+    companion object {
+        /** Sentinel picker-option id for "the whole chat" — group ids are DB serials and start at 1. */
+        const val ALL_MEMBERS_ID = 0L
     }
 }

@@ -20,7 +20,7 @@ internal fun pickerKeyboard(
 /**
  * Advances a multi-step picker by removing the message that held the tapped button and sending the next
  * one with a fresh keyboard. Delete + send (not `editMessageText`) because the telegram lib exposes an
- * inaccessible `retrofit2.Response` in the edit method's signature; the same pattern is used by [PingCallbackHandler].
+ * inaccessible `retrofit2.Response` in the edit method's signature.
  */
 internal fun Bot.replaceWithKeyboard(
     chatId: Long,
