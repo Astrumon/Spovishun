@@ -11,6 +11,9 @@ import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.controller.PickerListing
+import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.PingController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -18,6 +21,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PingControllerTest {
@@ -242,5 +246,48 @@ class PingControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає кого пінгувати"))
+    }
+
+    // --- groupsForPicker ---
+
+    @Test
+    fun `groupsForPicker should put the all-members option first`() = runTest {
+        val groups = listOf(
+            GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")),
+            GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob")),
+        )
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
+
+        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(listing is PickerListing.Show)
+        assertEquals(
+            listOf(
+                PickerOption(PingController.ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption),
+                PickerOption(1L, "devs"),
+                PickerOption(2L, "qa"),
+            ),
+            listing.options,
+        )
+    }
+
+    @Test
+    fun `groupsForPicker should return the all-members option alone when the chat has no groups`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
+
+        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(listing is PickerListing.Show)
+        assertEquals(listOf(PickerOption(PingController.ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption)), listing.options)
+    }
+
+    @Test
+    fun `groupsForPicker should return Reject when loading groups fails`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
+
+        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(listing is PickerListing.Reject)
+        assertTrue(listing.response is CommandResponse.Error)
     }
 }

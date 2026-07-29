@@ -8,12 +8,11 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
-import com.ua.astrumon.common.exception.DatabaseException
-import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
+import com.ua.astrumon.presentation.controller.PickerListing
+import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
@@ -83,40 +82,42 @@ class PingGroupCommandTest {
 
     @Test
     fun `should show inline keyboard when no args and groups exist`() = runTest {
-        val groups = listOf(
-            GroupWithMembers(1L, chatId, "devs", "devs", listOf("alice")),
-            GroupWithMembers(2L, chatId, "qa", "qa", listOf("bob")),
-        )
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.success(groups)
+        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            PickerListing.Show(
+                listOf(
+                    PickerOption(PingController.ALL_MEMBERS_ID, "📢 Усі учасники"),
+                    PickerOption(1L, "devs"),
+                    PickerOption(2L, "qa"),
+                ),
+            )
 
         command.execute(bot, update)
 
-        coVerify { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        coVerify { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
         coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
     }
 
     @Test
-    fun `should send noGroups message when no args and groups list is empty`() = runTest {
+    fun `should still show the keyboard when no args and the chat has no groups`() = runTest {
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.success(emptyList())
+        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            PickerListing.Show(listOf(PickerOption(PingController.ALL_MEMBERS_ID, "📢 Усі учасники")))
 
         command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("ще немає груп") }, ParseMode.HTML) }
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
     }
 
     @Test
-    fun `should send error message when no args and listGroupsForMenu fails`() = runTest {
+    fun `should send error message when no args and groupsForPicker rejects`() = runTest {
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.listGroupsForMenu(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
-            ResultContainer.failure(DatabaseException("db error"))
+        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+            PickerListing.Reject(CommandResponse.Error("Failed to load groups"))
 
         command.execute(bot, update)
 
-        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Failed to load groups", ParseMode.HTML) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "❌ Failed to load groups", ParseMode.HTML) }
     }
 
     @Test
