@@ -119,7 +119,7 @@ unit-tests repositories against H2.
   tests run against H2 (`H2TestDatabaseFactory`, PostgreSQL-compatibility mode) — there are no MockImpl repos.
 - **Integration** — extend `BaseIntegrationTest`: real services/commands over a **real PostgreSQL**;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips via `assumeTrue` when `E2E_DATABASE_URL` is unset.
-- **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`, `E2E_DATABASE_URL`.
+- **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `E2E_DATABASE_URL`. Reserved for assertions only Telegram can answer — HTML parse mode, message limits, inline keyboards, mention entities, `getChatMember` (spovishun-160); anything else belongs in `integrationTest`.
 - Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
 
 ## Skills Source (generated — do not hand-edit)

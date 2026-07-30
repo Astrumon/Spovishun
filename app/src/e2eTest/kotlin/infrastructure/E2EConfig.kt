@@ -15,19 +15,10 @@ object E2EConfig {
     val helperBotToken: String? = get("TEST_HELPER_BOT_TOKEN")
     val testChatId: Long? = get("TEST_CHAT_ID")?.toLongOrNull()
 
-    /**
-     * Real administrators of the test chat, used by `AdminDetectionE2ETest` to check role
-     * derivation against the live API.
-     *
-     * Deliberately absent from [isConfigured]: it is supplied in CI but not in every local `.env`,
-     * and a developer missing it should lose that one case rather than the whole suite. The tests
-     * that need it skip themselves.
-     */
-    val testAdmins: Set<Long> = get("TEST_ADMINS")
-        ?.split(",")
-        ?.mapNotNull { it.trim().toLongOrNull() }
-        ?.toSet()
-        ?: emptySet()
+    // There is deliberately no TEST_ADMINS here. Administrator expectations come from
+    // getChatAdministrators at run time — see AdminDetectionE2ETest. A configured list can only
+    // drift out of sync with the chat, and the one that existed held a placeholder id for long
+    // enough that nothing ever caught it (spovishun-160).
 
     val isConfigured: Boolean
         get() = mainBotToken != null && helperBotToken != null && testChatId != null
