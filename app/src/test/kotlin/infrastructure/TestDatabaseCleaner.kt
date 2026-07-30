@@ -17,19 +17,32 @@ import org.jetbrains.exposed.sql.selectAll
  * Deletion order respects FK constraints:
  *   GroupMembers → Groups → MemberChats → Members → Chats
  *
- * Safety: refuses to run against a URL that looks like production.
+ * ## Safety
+ * The guard is an allowlist on the host, not just a blocklist on the name. Test databases always
+ * live on the machine running the tests — a local PostgreSQL for developers, the `postgres` service
+ * published on localhost in CI — while the production database is only ever reachable at a remote
+ * host. A blocklist alone would have to guess every name production might use; requiring a loopback
+ * host makes "which database is this?" a question about where it is, which cannot be misspelled
+ * into a pass (spovishun-160). The name check stays as a second line of defence for a production
+ * instance that someone tunnels to localhost.
  */
 class TestDatabaseCleaner(
     private val databaseUrl: String,
 ) {
-    private val prodUrlPatterns = listOf("neon.tech", "neon-", "prod")
-
     init {
         val lower = databaseUrl.lowercase()
-        for (pattern in prodUrlPatterns) {
-            check(pattern !in lower) {
-                "SAFETY: refusing to run test cleanup against URL containing '$pattern'. URL: $databaseUrl"
-            }
+        val authority = lower.substringAfter("://", "").substringBefore("/")
+        val host = authority.substringBeforeLast(":")
+        val databaseName = lower.substringAfterLast("/", "")
+        // The message names the host and database but never the URL: a JDBC URL may carry
+        // credentials in its authority, and these failures surface in CI logs and in the JUnit XML
+        // that e2e.yml uploads as an artifact (spovishun-160).
+        check(host in LOCAL_HOSTS) {
+            "SAFETY: refusing to run test cleanup against non-local host '$host'. " +
+                "Test databases must be reachable on ${LOCAL_HOSTS.joinToString("/")}."
+        }
+        check(FORBIDDEN_NAME_PATTERNS.none { it in databaseName }) {
+            "SAFETY: refusing to run test cleanup against database '$databaseName' — the name marks it as production."
         }
     }
 
@@ -66,5 +79,10 @@ class TestDatabaseCleaner(
 
             Chats.deleteWhere { Chats.chatId eq chatId }
         }
+    }
+
+    private companion object {
+        val LOCAL_HOSTS = setOf("localhost", "127.0.0.1", "[::1]")
+        val FORBIDDEN_NAME_PATTERNS = listOf("prod")
     }
 }

@@ -39,8 +39,32 @@ queries already running on `Dispatchers.IO`.
 - `test` (`./gradlew test`) — unit tests with MockK; H2 available for any DB-touching helpers.
 - `integrationTest` (`./gradlew integrationTest`) — real services/commands over a real PostgreSQL;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips when `E2E_DATABASE_URL` is unset.
-- `e2eTest` (`./gradlew e2eTest`) — real Telegram API + real PostgreSQL via `TelegramHelperBot`
-  (Ktor client). Requires the `TEST_*` / `E2E_DATABASE_URL` env vars; skips otherwise.
+- `e2eTest` (`./gradlew e2eTest`) — real Telegram API + real PostgreSQL. Requires the `TEST_*` /
+  `E2E_DATABASE_URL` env vars; skips otherwise. Note that unsetting them is not enough locally —
+  `E2EConfig` falls back to the repo-root `.env` and `E2EDbConfig` to `.env.e2e`.
+
+### What belongs in e2e (spovishun-160)
+**e2e is only for assertions that need Telegram's own answer.** Anything provable over real
+PostgreSQL with a mocked `Bot` belongs in `integrationTest`, which already covers every command and
+role gate. Concretely, e2e owns: HTML parse mode, the 4096-character limit, inline-keyboard
+acceptance, mention entities, and `getChatMember`/`getChatAdministrators` role derivation.
+
+`BaseE2ETest` makes that possible by wrapping the real `Bot` in a MockK spy that records the
+`TelegramBotResult<Message>` of every send — Telegram's view of the delivered message. It stubs
+nothing; the calls are real. A helper bot cannot be used to read replies back: Telegram never
+delivers one bot's messages to another, which is why the old `TelegramHelperBot` polling API was
+dead code.
+
+Two consequences to respect when adding tests:
+- **Every `dispatch()` posts to a real chat.** Telegram allows roughly 20 messages per minute per
+  chat; the suite sits at ~11 per run. The harness honours `retry_after` on a 429, but do not treat
+  that as headroom — a test that only checks database rows must not live here.
+- **`dispatch()` fails on an unregistered command name.** Keep `BaseE2ETest`'s registry in lockstep
+  with `di/PresentationModule`. Plain non-command messages are `MessageHandler`'s job and stay in
+  `MessageHandlerIntegrationTest`.
+
+Full coverage matrix and rationale: Notion → Documentation → Testing → *E2E Suite Audit & Layer Split
+(spovishun-160)* (`notion.so/3ad3462f68a98122b5abfad51a4fcefb`).
 
 Do NOT unit test Koin modules, `TelegramBot`, `MessageHandler`, or `DatabaseFactory`.
 Exception: `KoinModuleGraphTest` runs `koin-test`'s `verify()` over all five modules. That is a static

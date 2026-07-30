@@ -8,6 +8,12 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/**
+ * Group CRUD and its role gates are covered end to end over PostgreSQL in
+ * `GroupCommandIntegrationTest`. The two cases kept here are the ones whose payload Telegram has an
+ * opinion about: the creation confirmation (which embeds a user-supplied name) and the bold-headed
+ * listing.
+ */
 class GroupCommandE2ETest : BaseE2ETest() {
     @BeforeTest
     fun setUpAdmin() {
@@ -16,59 +22,23 @@ class GroupCommandE2ETest : BaseE2ETest() {
     }
 
     @Test
-    fun `groups command completes without exception when no groups exist`() {
-        dispatch("/groups")
-        assertTrue(allGroups().isEmpty(), "No groups should be in repo")
-    }
+    fun `newgroup command creates the group and confirms it in the chat`() {
+        val text = dispatchExpectingReply("/newgroup e2egroup").text.orEmpty()
 
-    @Test
-    fun `newgroup command creates the group in the repository`() {
-        dispatch("/newgroup e2egroup")
         assertTrue(allGroups().any { it.name == "e2egroup" }, "Expected 'e2egroup' to be created")
+        assertTrue(text.contains("e2egroup"), "The confirmation must name the group that was created")
+        assertTrue(text.contains("/ping e2egroup"), "The confirmation must show how to call the new group")
     }
 
     @Test
-    fun `newgroup command duplicate leaves exactly one group`() {
-        runBlocking { groupService.createGroup(testChatId, "dupgroup").getOrThrow() }
-        dispatch("/newgroup dupgroup")
-        val count = allGroups().count { it.name == "dupgroup" }
-        assertTrue(count == 1, "Expected exactly one 'dupgroup', got $count")
-    }
-
-    @Test
-    fun `groups command lists a pre-created group`() {
+    fun `groups command delivers the group listing with parsed HTML`() {
         runBlocking { groupService.createGroup(testChatId, "listedgroup").getOrThrow() }
-        dispatch("/groups")
-        assertTrue(allGroups().any { it.name == "listedgroup" }, "Expected 'listedgroup' to be in repo")
-    }
 
-    @Test
-    fun `addtogroup command adds member to group in repository`() {
-        runBlocking {
-            groupService.createGroup(testChatId, "addgroup").getOrThrow()
-            memberService.createMember(testChatId, 997L, "groupmember", "GroupMember", MemberRole.MEMBER)
-        }
-        dispatch("/addtogroup addgroup @groupmember")
-        val group = allGroups().find { it.name == "addgroup" }
-        assertTrue(group?.members?.contains("groupmember") == true, "Expected 'groupmember' in group")
-    }
+        val sent = dispatchExpectingReply("/groups")
+        val text = sent.text.orEmpty()
 
-    @Test
-    fun `removefromgroup command removes member from group in repository`() {
-        runBlocking {
-            groupService.createGroup(testChatId, "removegroup").getOrThrow()
-            memberService.createMember(testChatId, 996L, "removemember", "RemoveMember", MemberRole.MEMBER)
-            groupService.addMemberToGroup(testChatId, "removegroup", "removemember").getOrThrow()
-        }
-        dispatch("/removefromgroup removegroup @removemember")
-        val group = allGroups().find { it.name == "removegroup" }
-        assertFalse(group?.members?.contains("removemember") == true, "Expected 'removemember' to be removed from group")
-    }
-
-    @Test
-    fun `delgroup command removes group from repository`() {
-        runBlocking { groupService.createGroup(testChatId, "todeletegroup").getOrThrow() }
-        dispatch("/delgroup todeletegroup")
-        assertFalse(allGroups().any { it.name == "todeletegroup" }, "Expected 'todeletegroup' to be deleted")
+        assertTrue(text.contains("listedgroup"), "Expected 'listedgroup' in the delivered listing")
+        assertFalse(text.contains("<b>"), "Bold tags must be consumed by Telegram")
+        assertTrue(sent.entities.orEmpty().isNotEmpty(), "Parsed HTML must produce message entities")
     }
 }

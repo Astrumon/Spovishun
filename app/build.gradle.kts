@@ -126,7 +126,11 @@ tasks.register<Test>("e2eTest") {
     classpath = e2eTestSourceSet.runtimeClasspath
     useJUnitPlatform()
     maxParallelForks = 1
-    shouldRunAfter(tasks.named("integrationTest"))
+    // Hard ordering, not a preference: both tasks point at the same database and TestDatabaseFactory
+    // opens with flyway.clean(), which drops the schema. Under `shouldRunAfter` a combined invocation
+    // (./gradlew integrationTest e2eTest) let the two overlap and one wiped the schema out from under
+    // the other — "flyway_schema_history does not exist" (spovishun-160).
+    mustRunAfter(tasks.named("integrationTest"))
     // E2EConfig/E2EDbConfig read the root `.env.e2e` via dotenv from the JVM working directory; pin it
     // to the repo root so local runs find it (the task otherwise defaults to this subproject's dir).
     workingDir = rootProject.projectDir

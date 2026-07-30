@@ -222,9 +222,8 @@ Copy `.env.example` to `.env` and fill in the values. The variables below are gr
 | `E2E_DATABASE_USERNAME` | `postgres` | |
 | `E2E_DATABASE_PASSWORD` | `secret` | |
 | `TEST_BOT_TOKEN` | `123456:ABC...` | e2e: token of the bot under test |
-| `TEST_HELPER_BOT_TOKEN` | `654321:ZYX...` | e2e: second bot used to drive interactions |
+| `TEST_HELPER_BOT_TOKEN` | `654321:ZYX...` | e2e: supplies a real user id for the synthetic updates |
 | `TEST_CHAT_ID` | `-100123` | e2e: chat the tests run in |
-| `TEST_ADMINS` | `111,222` | e2e: admin user IDs |
 
 ### Tooling (optional)
 | Variable | Example | Notes |
