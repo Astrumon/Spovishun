@@ -5,11 +5,13 @@ on:
     branches: [develop, main]
   workflow_dispatch:
 
-# Keyed on the ref: a repo-global group would cancel PR A's in-flight e2e run whenever anyone
-# pushed to PR B (spovishun-159).
+# Repo-global on purpose: every e2e run drives the same TEST_BOT_TOKEN against the same
+# TEST_CHAT_ID (see E2EConfig), so two concurrent runs would read each other's messages. The group
+# must therefore serialize across branches — but with cancel-in-progress: false, so a push to one
+# PR queues behind another PR's run instead of killing it (spovishun-159).
 concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  group: e2e-tests
+  cancel-in-progress: false
 
 jobs:
   e2e:
