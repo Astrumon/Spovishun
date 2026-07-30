@@ -1,0 +1,51 @@
+# Seeds the Gradle cache on the default branch (spovishun-159).
+#
+# gradle/actions/setup-gradle only writes the Gradle User Home cache from the default branch; on a
+# `pull_request` event github.ref is refs/pull/N/merge, so the action switches itself to read-only.
+# Before this workflow existed no job ever ran on a push to develop, so no cache was ever written —
+# and every CI run rebuilt all six modules from scratch. This job is the writer; ci.yml and e2e.yml
+# are read-only consumers of what it produces.
+#
+# Caches written on the default branch are restorable by every PR run; caches written on a feature
+# branch are only visible to runs on that same branch (which is what makes the workflow_dispatch
+# trigger useful for measuring warm-cache timings before a merge).
+
+name: Cache warmup
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: cache-warmup-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    name: Warm Gradle cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Explicit: this is the writer. Without it a workflow_dispatch run on a feature branch
+          # would inherit the read-only default and seed nothing.
+          cache-read-only: false
+          # setup-gradle refuses to persist configuration-cache entries unencrypted. Absent key =
+          # no configuration cache in the saved bundle; the build itself still succeeds.
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      # Compilation dominates CI cost (~2:20 of the 3:08 test job); test execution itself is seconds.
+      # Warming compile + both lint tools keeps this to a single ~2 min job per merge instead of a
+      # full second CI pass. --continue so a detekt finding still leaves the cache populated.
+      - name: Warm compile and lint caches
+        run: ./gradlew testClasses ktlintCheck detekt --continue

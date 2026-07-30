@@ -3,6 +3,13 @@ name: CI
 on:
   pull_request:
     branches: [develop, main]
+  # Manual runs are how cold-vs-warm cache timings are measured on a feature branch before merge.
+  workflow_dispatch:
+
+# Superseded pushes on the same PR stop consuming runner minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -17,12 +24,17 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # PR runs consume the cache seeded by cache-warmup.yml on develop; they must not write,
+          # because a PR cache is scoped to its own merge ref and would only compete for the repo's
+          # cache budget. A workflow_dispatch run writes, so warm-cache timings can be measured.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          # Required before setup-gradle will store/restore configuration-cache entries.
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       # ktlint is a hard gate — formatting violations fail the PR.
       - name: Run ktlint
-        run: |
-          chmod +x gradlew
-          ./gradlew ktlintCheck
+        run: ./gradlew ktlintCheck
 
       # detekt is non-blocking while it ships only as a 2.0 alpha (the stable line is
       # incompatible with Kotlin 2.3 / Gradle 9). Findings are surfaced but do not fail the PR.
@@ -66,18 +78,18 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      # Both suites run in one Gradle invocation — a second invocation would pay for another JVM
+      # start and configuration phase. The DB env only matters to integrationTest; test ignores it.
       - name: Run tests
-        run: |
-          chmod +x gradlew
-          ./gradlew test
-
-      - name: Run integration tests
         env:
           E2E_DATABASE_URL: jdbc:postgresql://localhost:5432/spovishun_e2e
           E2E_DATABASE_USERNAME: postgres
           E2E_DATABASE_PASSWORD: postgres
-        run: ./gradlew integrationTest
+        run: ./gradlew test integrationTest
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4

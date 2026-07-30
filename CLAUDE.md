@@ -47,6 +47,25 @@ convention plugin reads that property and narrows each module's ktlint to just t
 The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `val x = call(…)`
 on one line); all other `ktlint_official` rules apply.
 
+## CI/CD & Build Cache
+Workflows in `.github/workflows/`: `ci.yml` (PR gate — parallel `lint` + `test` jobs), `e2e.yml`
+(real Telegram API + PostgreSQL), `cache-warmup.yml`, `deploy.yml`, `close-notion-task.yml`.
+Gate semantics: **`ktlintCheck` blocks the PR; `detekt` runs `continue-on-error`** (see Linting).
+
+`gradle.properties` enables `org.gradle.parallel`, `org.gradle.caching`, and
+`org.gradle.configuration-cache` — all three verified against every task set this project runs.
+
+**Cache topology (spovishun-159) — do not "fix" the read-only setting.** `gradle/actions/setup-gradle`
+only writes the Gradle User Home cache from the default branch; on a `pull_request` event
+`github.ref` is `refs/pull/N/merge`, so it goes read-only. `cache-warmup.yml` is therefore the sole
+writer: it runs on `push` to `develop` (and on `workflow_dispatch`, which is how warm-cache timings
+are measured on a feature branch before merge) and seeds compile + lint cache entries. `ci.yml` and
+`e2e.yml` are read-only consumers on PR events. Letting PR runs write would not help — a PR cache is
+scoped to its own merge ref — and would evict the shared `develop` cache.
+Configuration-cache entries are only persisted when `cache-encryption-key` is passed; the repo
+secret `GRADLE_ENCRYPTION_KEY` supplies it. Without the secret the build still succeeds, it just
+stores no configuration cache.
+
 ## Source Structure
 Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :admin-api :app`).
 Shared config lives in `buildSrc` convention plugins (`spovishun.kotlin-common`,

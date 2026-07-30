@@ -5,9 +5,13 @@ on:
     branches: [develop, main]
   workflow_dispatch:
 
+# Repo-global on purpose: every e2e run drives the same TEST_BOT_TOKEN against the same
+# TEST_CHAT_ID (see E2EConfig), so two concurrent runs would read each other's messages. The group
+# must therefore serialize across branches — but with cancel-in-progress: false, so a push to one
+# PR queues behind another PR's run instead of killing it (spovishun-159).
 concurrency:
   group: e2e-tests
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   e2e:
@@ -38,6 +42,10 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Read-only consumer of the cache seeded by cache-warmup.yml on develop.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Run e2e tests
         env:
@@ -48,9 +56,7 @@ jobs:
           E2E_DATABASE_URL: jdbc:postgresql://localhost:5432/spovishun_e2e
           E2E_DATABASE_USERNAME: postgres
           E2E_DATABASE_PASSWORD: postgres
-        run: |
-          chmod +x gradlew
-          ./gradlew e2eTest
+        run: ./gradlew e2eTest
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
