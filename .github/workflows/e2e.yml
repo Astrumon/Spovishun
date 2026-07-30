@@ -5,8 +5,10 @@ on:
     branches: [develop, main]
   workflow_dispatch:
 
+# Keyed on the ref: a repo-global group would cancel PR A's in-flight e2e run whenever anyone
+# pushed to PR B (spovishun-159).
 concurrency:
-  group: e2e-tests
+  group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -38,6 +40,10 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Read-only consumer of the cache seeded by cache-warmup.yml on develop.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Run e2e tests
         env:
@@ -48,9 +54,7 @@ jobs:
           E2E_DATABASE_URL: jdbc:postgresql://localhost:5432/spovishun_e2e
           E2E_DATABASE_USERNAME: postgres
           E2E_DATABASE_PASSWORD: postgres
-        run: |
-          chmod +x gradlew
-          ./gradlew e2eTest
+        run: ./gradlew e2eTest
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
