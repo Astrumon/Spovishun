@@ -7,6 +7,7 @@ import com.ua.astrumon.data.bot.mapper.toMemberWithChat
 import com.ua.astrumon.data.bot.table.MemberChats
 import com.ua.astrumon.data.bot.table.Members
 import com.ua.astrumon.data.db.eqIgnoreCase
+import com.ua.astrumon.data.db.inListIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.model.Member
@@ -41,6 +42,16 @@ class MemberRepositoryImpl : MemberRepository {
             .where { Members.username eqIgnoreCase username }
             .singleOrNull()
             ?.toMember()
+    }
+
+    override suspend fun findAllByUsernames(usernames: Collection<String>): ResultContainer<List<Member>> = safeDbQuery {
+        if (usernames.isEmpty()) {
+            return@safeDbQuery emptyList()
+        }
+        Members
+            .selectAll()
+            .where { Members.username inListIgnoreCase usernames }
+            .map { it.toMember() }
     }
 
     override suspend fun saveOrUpdate(

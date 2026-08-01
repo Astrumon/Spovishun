@@ -49,6 +49,18 @@ class MemberService(
             }
         }
 
+    /**
+     * Resolves [usernames] in a single query, keeping the caller's order and silently dropping
+     * anyone no longer in the member table — the batch counterpart of [getMemberByUsername], for
+     * callers that would otherwise loop and issue one query per name.
+     */
+    suspend fun getMembersByUsernames(usernames: List<String>): ResultContainer<List<Member>> = memberRepository
+        .findAllByUsernames(usernames)
+        .map { found ->
+            val byUsername = found.associateBy { it.username.lowercase() }
+            usernames.mapNotNull { byUsername[it.lowercase()] }
+        }
+
     suspend fun getMemberWithChatByUsername(
         chatId: Long,
         username: String,

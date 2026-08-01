@@ -9,4 +9,5 @@ fun ResultRow.toGroup() = Group(
     chatId = this[Groups.chatId],
     name = this[Groups.name],
     memberUsernames = emptyList(),
+    readinessEnabled = this[Groups.readinessEnabled],
 )

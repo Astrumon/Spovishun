@@ -64,6 +64,18 @@ class ChatRepositoryImpl : ChatRepository {
         Unit
     }
 
+    override suspend fun setReadinessEnabled(
+        chatId: Long,
+        enabled: Boolean,
+    ): ResultContainer<Unit> = safeDbQuery {
+        val updatedCount = Chats.update({ Chats.chatId eq chatId }) {
+            it[readinessEnabled] = enabled
+        }
+        if (updatedCount == 0) {
+            throw ResourceNotFoundException("Chat", chatId.toString())
+        }
+    }
+
     override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> = safeDbQuery {
         Chats
             .selectAll()

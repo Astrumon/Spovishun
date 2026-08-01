@@ -15,6 +15,7 @@ import com.ua.astrumon.data.bot.repository.MemberChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
 import com.ua.astrumon.domain.bot.cache.ChatCache
 import com.ua.astrumon.domain.bot.cache.UserCache
+import com.ua.astrumon.domain.bot.config.ReadinessConfig
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
@@ -35,6 +36,8 @@ import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
@@ -44,12 +47,17 @@ import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.time.Duration.Companion.hours
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class BaseIntegrationTest {
@@ -84,6 +92,9 @@ abstract class BaseIntegrationTest {
     protected lateinit var membersController: MembersController
     protected lateinit var registrationController: RegistrationController
     protected lateinit var pingController: PingController
+    protected lateinit var readinessSessionStore: ReadinessSessionStore
+    protected lateinit var readinessSessionRunner: ReadinessSessionRunner
+    private lateinit var readinessScope: CoroutineScope
     protected lateinit var randomController: RandomController
 
     // Commands — real
@@ -136,6 +147,7 @@ abstract class BaseIntegrationTest {
         initServices()
         initTelegramMocks()
         initControllers()
+        initReadiness()
         initCommands()
     }
 
@@ -157,14 +169,41 @@ abstract class BaseIntegrationTest {
             TelegramBotResult.Success(
                 Chat(id = testChatId, type = "supergroup"),
             )
+        // A relaxed mock erases the generic and hands back an Object, which the readiness runner
+        // cannot read a messageId from. Return a real result so the poll registers a session.
+        every { bot.sendMessage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+            TelegramBotResult.Success(
+                Message(
+                    messageId = SENT_MESSAGE_ID,
+                    date = 0L,
+                    chat = Chat(id = testChatId, type = "supergroup"),
+                ),
+            )
     }
 
     private fun initControllers() {
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)
         registrationController = RegistrationController(autoRegisterService, birthdayService)
-        pingController = PingController(memberService, groupService, autoRegisterService)
+        pingController = PingController(memberService, groupService, chatService, autoRegisterService)
         randomController = RandomController(memberService, groupService, autoRegisterService)
+    }
+
+    /**
+     * A real store and runner, so the readiness branch is exercised end to end. The TTL is long
+     * enough that no poll expires mid-test; [readinessScope] is cancelled in tearDown so the pending
+     * expiry coroutines do not leak between tests.
+     */
+    private fun initReadiness() {
+        readinessSessionStore = ReadinessSessionStore()
+        readinessScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        readinessSessionRunner = ReadinessSessionRunner(
+            readinessSessionStore,
+            readinessScope,
+            object : ReadinessConfig {
+                override val readinessTtl = READINESS_TEST_TTL
+            },
+        )
     }
 
     private fun initCommands() {
@@ -177,14 +216,15 @@ abstract class BaseIntegrationTest {
         deleteGroupCommand = DeleteGroupCommand(groupController)
         addUserToGroupCommand = AddUserToGroupCommand(groupController)
         removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController)
-        pingAllCommand = PingAllCommand(pingController, botAdminUtils)
-        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils)
+        pingAllCommand = PingAllCommand(pingController, botAdminUtils, readinessSessionRunner)
+        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner)
         randomCommand = RandomCommand(randomController, botAdminUtils)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
     }
 
     @AfterTest
     fun tearDown() {
+        if (::readinessScope.isInitialized) readinessScope.cancel()
         if (!IntegrationDbConfig.isConfigured) return
         try {
             runBlocking { cleaner.cleanupByChatId(testChatId) }
@@ -241,4 +281,24 @@ abstract class BaseIntegrationTest {
         chatId: Long = testChatId,
         role: MemberRole = MemberRole.MEMBER,
     ): MemberWithChat = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, role).getOrThrow()
+
+    /** Readiness is on by default; tests that assert the classic plain ping opt out through these. */
+    protected suspend fun disableChatReadiness(chatId: Long = testChatId) {
+        chatService.setReadinessEnabled(chatId, enabled = false).getOrThrow()
+    }
+
+    protected suspend fun disableGroupReadiness(
+        key: String,
+        chatId: Long = testChatId,
+    ) {
+        groupService.setReadinessEnabled(chatId, key, enabled = false).getOrThrow()
+    }
+
+    private companion object {
+        /** Far longer than any test takes, so a poll never expires while assertions run. */
+        val READINESS_TEST_TTL = 1.hours
+
+        /** Message id the mocked Telegram reports for every send — the key a readiness poll opens on. */
+        const val SENT_MESSAGE_ID = 900L
+    }
 }

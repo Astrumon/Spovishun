@@ -48,7 +48,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
         }
         val group = allGroups().first { it.name == "callback_squad" }
 
-        val handler = PingCallbackHandler(pingController, botAdminUtils)
+        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner)
         val sent = expectingReply("the ping callback") {
             runBlocking {
                 handler.handle(mainBot, buildCallbackUpdate(data = "${PingCallback.PREFIX}${group.id}", messageId = 1L))

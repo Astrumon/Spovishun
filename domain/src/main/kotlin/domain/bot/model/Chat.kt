@@ -8,4 +8,5 @@ data class Chat(
     val type: String?,
     val registeredAt: Instant,
     val announcementsEnabled: Boolean = true,
+    val readinessEnabled: Boolean = true,
 )

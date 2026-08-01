@@ -100,7 +100,11 @@ Chain with `.flatMap {}`, resolve with `.fold(onSuccess = {}, onFailure = {})`.
 Wrap DB calls with `ResultContainer.catching { }`.
 
 **DB access** — always `safeDbQuery { }` (wraps `dbQuery {}` + `ResultContainer.catching`), never bare `transaction {}` or `ResultContainer.catching { dbQuery { } }` manually.
-`safeDbQuery` and `safeDbTransaction` live in `:data` `data/db/DatabaseFactory.kt`. Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
+`safeDbQuery` and `safeDbTransaction` live in `:data` `data/db/DatabaseFactory.kt`.
+No class may hardcode `Dispatchers.IO` — it appears in exactly two places: `DatabaseFactory.kt`, and the
+`BlockingTelegramDispatcher`-qualified binding in `:app` `di/ConfigModule.kt` that carries blocking
+Telegram API calls off the CPU-sized `Dispatchers.Default` pool (spovishun-119). Everything else injects
+a `CoroutineDispatcher`.
 
 **Command flow** — `Command` parses args → calls `Controller` → handles `CommandResponse` via `when` → sends to Telegram.
 Controllers return `CommandResponse` (never raw strings). Commands own emoji prefixes and final text assembly.

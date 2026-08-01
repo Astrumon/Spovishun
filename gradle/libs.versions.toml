@@ -9,6 +9,8 @@ slf4j = "2.0.16"
 exposed = "0.55.0"
 ktor = "3.0.3"
 telegram-bot = "6.3.0"
+# Pinned to what telegram-bot 6.3.0 already pulls in at runtime — see the compileOnly note in bot/build.gradle.kts.
+retrofit = "2.9.0"
 postgresql = "42.7.7"
 hikari = "5.1.0"
 logback = "1.5.32"
@@ -66,6 +68,7 @@ ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host", ver
 
 # Telegram
 telegram-bot = { group = "io.github.kotlin-telegram-bot.kotlin-telegram-bot", name = "telegram", version.ref = "telegram-bot" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 
 # Tests
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }

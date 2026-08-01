@@ -20,6 +20,7 @@ class ChatMapperTest {
         every { row[Chats.type] } returns "supergroup"
         every { row[Chats.registeredAt] } returns now
         every { row[Chats.announcementsEnabled] } returns true
+        every { row[Chats.readinessEnabled] } returns true
 
         val chat = row.toChat()
 
@@ -28,6 +29,7 @@ class ChatMapperTest {
         assertEquals("supergroup", chat.type)
         assertEquals(now, chat.registeredAt)
         assertEquals(true, chat.announcementsEnabled)
+        assertEquals(true, chat.readinessEnabled)
     }
 
     @Test
@@ -39,10 +41,12 @@ class ChatMapperTest {
         every { row[Chats.type] } returns null
         every { row[Chats.registeredAt] } returns now
         every { row[Chats.announcementsEnabled] } returns false
+        every { row[Chats.readinessEnabled] } returns false
 
         val chat = row.toChat()
 
         assertNull(chat.title)
         assertNull(chat.type)
+        assertEquals(false, chat.readinessEnabled)
     }
 }

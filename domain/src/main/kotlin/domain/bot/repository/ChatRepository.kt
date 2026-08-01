@@ -20,4 +20,9 @@ interface ChatRepository {
     ): ResultContainer<Unit>
 
     suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>>
+
+    suspend fun setReadinessEnabled(
+        chatId: Long,
+        enabled: Boolean,
+    ): ResultContainer<Unit>
 }

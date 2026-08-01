@@ -10,4 +10,5 @@ fun ResultRow.toChat() = Chat(
     type = this[Chats.type],
     registeredAt = this[Chats.registeredAt],
     announcementsEnabled = this[Chats.announcementsEnabled],
+    readinessEnabled = this[Chats.readinessEnabled],
 )

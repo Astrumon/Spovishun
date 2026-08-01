@@ -16,6 +16,7 @@ import com.ua.astrumon.data.bot.repository.MemberChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
 import com.ua.astrumon.domain.bot.cache.ChatCache
 import com.ua.astrumon.domain.bot.cache.UserCache
+import com.ua.astrumon.domain.bot.config.ReadinessConfig
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
@@ -39,6 +40,8 @@ import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.bot.commands.WhatsNewCommand
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
 import com.ua.astrumon.presentation.controller.MembersController
@@ -49,6 +52,10 @@ import com.ua.astrumon.presentation.controller.WhatsNewController
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.every
 import io.mockk.spyk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
@@ -57,6 +64,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -122,6 +130,10 @@ abstract class BaseE2ETest {
     /** Exposed for the callback handlers, which tests construct directly. */
     protected lateinit var pingController: PingController
 
+    /** Same reason as [pingController] — the ping commands and handler both need it. */
+    protected lateinit var readinessSessionRunner: ReadinessSessionRunner
+
+    private lateinit var readinessScope: CoroutineScope
     private lateinit var chatService: ChatService
     private lateinit var autoRegisterService: AutoRegisterService
     private lateinit var commandRegistry: CommandRegistry
@@ -173,6 +185,15 @@ abstract class BaseE2ETest {
         // Caches are recreated per test so nothing carries over between cases.
         autoRegisterService = AutoRegisterService(memberService, chatService, UserCache(), ChatCache())
         botAdminUtils = BotAdminUtils()
+        // TTL far beyond any test run, so no poll expires mid-assertion; the scope is cancelled in tearDown.
+        readinessScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        readinessSessionRunner = ReadinessSessionRunner(
+            ReadinessSessionStore(),
+            readinessScope,
+            object : ReadinessConfig {
+                override val readinessTtl = READINESS_TEST_TTL
+            },
+        )
     }
 
     /**
@@ -220,7 +241,7 @@ abstract class BaseE2ETest {
         val randomController = RandomController(memberService, groupService, autoRegisterService)
         val birthdayController = BirthdayController(birthdayService, memberService)
         val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService)
-        pingController = PingController(memberService, groupService, autoRegisterService)
+        pingController = PingController(memberService, groupService, chatService, autoRegisterService)
 
         // Kept in lockstep with :app di/PresentationModule — a command missing here would make
         // dispatch() fail loudly rather than silently prove nothing.
@@ -235,8 +256,8 @@ abstract class BaseE2ETest {
                 DeleteGroupCommand(groupController),
                 AddUserToGroupCommand(groupController),
                 RemoveUserFromGroupCommand(groupController),
-                PingAllCommand(pingController, botAdminUtils),
-                PingGroupCommand(pingController, botAdminUtils),
+                PingAllCommand(pingController, botAdminUtils, readinessSessionRunner),
+                PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner),
                 BirthdayCommand(birthdayController),
                 WhatsNewCommand(whatsNewController),
                 RandomCommand(randomController, botAdminUtils),
@@ -246,6 +267,7 @@ abstract class BaseE2ETest {
 
     @AfterTest
     fun tearDownE2E() {
+        if (::readinessScope.isInitialized) readinessScope.cancel()
         if (!E2EConfig.isConfigured || !E2EDbConfig.isConfigured) return
         runBlocking { cleaner.cleanupByChatId(testChatId) }
     }
@@ -362,5 +384,8 @@ abstract class BaseE2ETest {
         const val TOO_MANY_REQUESTS = 429
         const val MAX_RATE_LIMIT_RETRIES = 2
         val RETRY_AFTER = Regex("""retry after (\d+)""")
+
+        /** Far longer than any test takes, so a readiness poll never expires mid-assertion. */
+        val READINESS_TEST_TTL = 1.hours
     }
 }

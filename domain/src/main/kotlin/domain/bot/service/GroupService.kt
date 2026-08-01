@@ -19,6 +19,7 @@ class GroupService(
                         key = group.name,
                         name = group.name,
                         members = members,
+                        readinessEnabled = group.readinessEnabled,
                     )
                 }
             }
@@ -60,9 +61,16 @@ class GroupService(
                 key = group.name,
                 name = group.name,
                 members = members,
+                readinessEnabled = group.readinessEnabled,
             )
         }
     }
+
+    suspend fun setReadinessEnabled(
+        chatId: Long,
+        key: String,
+        enabled: Boolean,
+    ): ResultContainer<Unit> = groupRepository.setReadinessEnabled(chatId, key, enabled)
 }
 
 data class GroupWithMembers(
@@ -71,4 +79,5 @@ data class GroupWithMembers(
     val key: String,
     val name: String,
     val members: List<String>,
+    val readinessEnabled: Boolean = true,
 )

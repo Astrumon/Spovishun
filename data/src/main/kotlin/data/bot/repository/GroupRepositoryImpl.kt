@@ -13,6 +13,7 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 
 class GroupRepositoryImpl : GroupRepository {
     override suspend fun getAllGroups(chatId: Long): ResultContainer<List<Group>> = safeDbQuery {
@@ -64,6 +65,19 @@ class GroupRepositoryImpl : GroupRepository {
             (Groups.chatId eq chatId) and (Groups.name eq key)
         }
         if (deletedCount == 0) {
+            throw ResourceNotFoundException("Group", key)
+        }
+    }
+
+    override suspend fun setReadinessEnabled(
+        chatId: Long,
+        key: String,
+        enabled: Boolean,
+    ): ResultContainer<Unit> = safeDbQuery {
+        val updatedCount = Groups.update({ (Groups.chatId eq chatId) and (Groups.name eq key) }) {
+            it[readinessEnabled] = enabled
+        }
+        if (updatedCount == 0) {
             throw ResourceNotFoundException("Group", key)
         }
     }

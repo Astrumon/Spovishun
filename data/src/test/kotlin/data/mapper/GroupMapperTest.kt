@@ -17,6 +17,7 @@ class GroupMapperTest {
         every { row[Groups.id] } returns EntityID(42L, Groups)
         every { row[Groups.chatId] } returns 100L
         every { row[Groups.name] } returns "devs"
+        every { row[Groups.readinessEnabled] } returns true
 
         val group = row.toGroup()
 
@@ -24,5 +25,17 @@ class GroupMapperTest {
         assertEquals(100L, group.chatId)
         assertEquals("devs", group.name)
         assertTrue(group.memberUsernames.isEmpty())
+        assertEquals(true, group.readinessEnabled)
+    }
+
+    @Test
+    fun `toGroup should carry a disabled readiness flag`() {
+        val row = mockk<ResultRow>()
+        every { row[Groups.id] } returns EntityID(42L, Groups)
+        every { row[Groups.chatId] } returns 100L
+        every { row[Groups.name] } returns "devs"
+        every { row[Groups.readinessEnabled] } returns false
+
+        assertEquals(false, row.toGroup().readinessEnabled)
     }
 }
