@@ -6,10 +6,12 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
+import com.ua.astrumon.domain.bot.model.BirthDate
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RegisterCommandIntegrationTest : BaseIntegrationTest() {
@@ -71,5 +73,38 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
         val fallbackUsername = "user_$testUserId"
         val member = memberService.getMemberByUsername(fallbackUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
+    }
+
+    @Test
+    fun `register with birthday flag should save member and birthday in one command`() = runTest {
+        val update = buildUpdate("/register \$b 01.01")
+
+        registerCommand.execute(bot, update)
+
+        val member = memberService.getMemberByUsername(testUsername).getOrThrow()
+        assertEquals(BirthDate(1, 1), member.birthday)
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("зареєстровані") && it.contains("День народження збережено") },
+                ParseMode.HTML,
+            )
+        }
+    }
+
+    @Test
+    fun `register with invalid birthday flag should not register the member`() = runTest {
+        val update = buildUpdate("/register \$b abc")
+
+        registerCommand.execute(bot, update)
+
+        assertTrue(memberService.getMemberByUsername(testUsername).isFailure)
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("формат") },
+                ParseMode.HTML,
+            )
+        }
     }
 }

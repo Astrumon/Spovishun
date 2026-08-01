@@ -215,12 +215,10 @@ abstract class BaseE2ETest {
     private fun initCommands() {
         val groupController = GroupController(groupService, memberService, autoRegisterService)
         val membersController = MembersController(memberService, autoRegisterService)
-        val registrationController = RegistrationController(autoRegisterService)
+        val birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
+        val registrationController = RegistrationController(autoRegisterService, birthdayService)
         val randomController = RandomController(memberService, groupService, autoRegisterService)
-        val birthdayController = BirthdayController(
-            BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo),
-            memberService,
-        )
+        val birthdayController = BirthdayController(birthdayService, memberService)
         val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService)
         pingController = PingController(memberService, groupService, autoRegisterService)
 

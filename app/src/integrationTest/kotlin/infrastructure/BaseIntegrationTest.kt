@@ -7,6 +7,7 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
+import com.ua.astrumon.data.bot.repository.BirthdayGreetingRepositoryImpl
 import com.ua.astrumon.data.bot.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.GroupMemberRepositoryImpl
 import com.ua.astrumon.data.bot.repository.GroupRepositoryImpl
@@ -17,6 +18,7 @@ import com.ua.astrumon.domain.bot.cache.UserCache
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
+import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
@@ -57,6 +59,11 @@ abstract class BaseIntegrationTest {
     private val chatRepo = ChatRepositoryImpl()
     private val groupRepo = GroupRepositoryImpl()
     private val groupMemberRepo = GroupMemberRepositoryImpl()
+    private val birthdayGreetingRepo = BirthdayGreetingRepositoryImpl()
+
+    // Private: subclasses that need the birthday service build their own (see BirthdayCommandIntegrationTest);
+    // this instance only backs RegistrationController's `/register $b DD.MM` path.
+    private val birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
 
     // Real services
     protected lateinit var memberService: MemberService
@@ -155,7 +162,7 @@ abstract class BaseIntegrationTest {
     private fun initControllers() {
         groupController = GroupController(groupService, memberService, autoRegisterService)
         membersController = MembersController(memberService, autoRegisterService)
-        registrationController = RegistrationController(autoRegisterService)
+        registrationController = RegistrationController(autoRegisterService, birthdayService)
         pingController = PingController(memberService, groupService, autoRegisterService)
         randomController = RandomController(memberService, groupService, autoRegisterService)
     }
