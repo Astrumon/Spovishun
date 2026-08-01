@@ -1,6 +1,7 @@
 package infrastructure
 
 import com.github.kotlintelegrambot.Bot
+import com.github.kotlintelegrambot.entities.CallbackQuery
 import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
@@ -197,6 +198,33 @@ abstract class BaseIntegrationTest {
         val chat = Chat(id = chatId, type = chatType)
         val message = Message(messageId = 1L, date = 0L, chat = chat, from = user, text = text)
         return Update(updateId = 1L, message = message)
+    }
+
+    /**
+     * Builds a callback-query [Update] for the routing chain (spovishun-161).
+     *
+     * `:bot` has an equivalent factory in its own `test` source set, but that output is not on
+     * `:app`'s classpath — only `:app`'s `main` and `test` outputs are.
+     */
+    protected fun buildCallbackUpdate(
+        data: String,
+        clickerId: Long = testUserId,
+        chatId: Long = testChatId,
+        messageId: Long = 5L,
+        callbackId: String = "cb",
+    ): Update {
+        val user = User(id = clickerId, isBot = false, firstName = testFirstName, username = testUsername)
+        val chat = Chat(id = chatId, type = "supergroup")
+        val message = Message(messageId = messageId, date = 0L, chat = chat)
+        val callbackQuery = CallbackQuery(
+            id = callbackId,
+            from = user,
+            message = message,
+            inlineMessageId = null,
+            data = data,
+            chatInstance = "i",
+        )
+        return Update(updateId = 1L, callbackQuery = callbackQuery)
     }
 
     protected suspend fun registerMember(

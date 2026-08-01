@@ -84,6 +84,18 @@ val integrationTestSourceSet = sourceSets.create("integrationTest") {
 configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
+// ktor client + JSON serialization are used ONLY by AdminApiIntegrationTest, which drives the real
+// embedded CIO server over a real socket (spovishun-161). :admin-api itself is already on the compile
+// classpath (implementation → testImplementation → integrationTestImplementation); only a client is
+// missing, since :admin-api declares its ktor artifacts as `implementation` (runtime-only for :app).
+dependencies {
+    "integrationTestImplementation"(libs.ktor.client.core)
+    "integrationTestImplementation"(libs.ktor.client.cio)
+    "integrationTestImplementation"(libs.ktor.client.content.negotiation)
+    "integrationTestImplementation"(libs.ktor.serialization.kotlinx.json)
+    "integrationTestImplementation"(libs.kotlinx.serialization.json)
+}
+
 tasks.register<Test>("integrationTest") {
     description = "Runs integration tests"
     group = "verification"

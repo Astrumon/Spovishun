@@ -39,9 +39,29 @@ queries already running on `Dispatchers.IO`.
 - `test` (`./gradlew test`) — unit tests with MockK; H2 available for any DB-touching helpers.
 - `integrationTest` (`./gradlew integrationTest`) — real services/commands over a real PostgreSQL;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips when `E2E_DATABASE_URL` is unset.
+  Beyond commands it also covers (spovishun-161) the two schedulers, the full `CallbackRouter`
+  press → route → handler → reply chain, and `:admin-api` — that last one starts the real
+  `AdminApiServer` (CIO) on a free port and drives it with a ktor client, which is why the source
+  set carries `ktor-client-*` deps of its own in `build.gradle.kts`.
 - `e2eTest` (`./gradlew e2eTest`) — real Telegram API + real PostgreSQL. Requires the `TEST_*` /
   `E2E_DATABASE_URL` env vars; skips otherwise. Note that unsetting them is not enough locally —
   `E2EConfig` falls back to the repo-root `.env` and `E2EDbConfig` to `.env.e2e`.
+
+### Driving background work in `integrationTest` (spovishun-161)
+Neither scheduler entry point returns: `ReleaseAnnouncer.notifyIfNewVersion()` is fire-and-forget and
+`BirthdayGreetingScheduler.start()` loops on a 24-hour `delay`. Virtual time cannot drive either here
+— the collaborators suspend on real database IO, which no `TestCoroutineScheduler` tracks, so
+`runCurrent()`/`advanceUntilIdle()` return before the query does. Await the *observable end* of the
+pass instead: join the launched child (announcer), or complete a `CompletableDeferred` from the last
+repository call the pass makes (birthday scheduler). Never a `delay`/`Thread.sleep`.
+
+Two traps that cost real debugging time:
+- **MockK `callOriginal()` does not work on a `spyk` of a class with `suspend` members** — the pass
+  hangs with no error. Gate on a **repository interface** wrapped by Kotlin `by` delegation instead;
+  it is real code, needs no MockK, and each override is one line.
+- **Callback picker ids are Telegram `userId`s, not `members.id`** — `PickerOption(member.userId, …)`
+  and `GroupController.resolveMemberUsername` match on `userId`, even though the parameter is named
+  `memberId` all the way down. Passing a row id resolves nobody and the action silently no-ops.
 
 ### What belongs in e2e (spovishun-160)
 **e2e is only for assertions that need Telegram's own answer.** Anything provable over real
