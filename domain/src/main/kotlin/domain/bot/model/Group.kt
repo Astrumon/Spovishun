@@ -5,4 +5,5 @@ data class Group(
     val chatId: Long,
     val name: String,
     val memberUsernames: List<String>,
+    val readinessEnabled: Boolean = true,
 )

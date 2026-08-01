@@ -20,4 +20,10 @@ interface GroupRepository {
         chatId: Long,
         key: String,
     ): ResultContainer<Unit>
+
+    suspend fun setReadinessEnabled(
+        chatId: Long,
+        key: String,
+        enabled: Boolean,
+    ): ResultContainer<Unit>
 }

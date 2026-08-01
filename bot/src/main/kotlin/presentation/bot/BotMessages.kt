@@ -102,6 +102,34 @@ object BotMessages {
         val menuPrompt: String get() = get("ping.menuPrompt")
         val noGroups: String get() = get("ping.noGroups")
         val allMembersOption: String get() = get("ping.all_members_option")
+
+        object Readiness {
+            val buttonAccept: String get() = get("ping.readiness.button.accept")
+            val buttonDecline: String get() = get("ping.readiness.button.decline")
+            val statusAccepted: String get() = get("ping.readiness.status.accepted")
+            val statusDeclined: String get() = get("ping.readiness.status.declined")
+            val statusPending: String get() = get("ping.readiness.status.pending")
+            val usage: String get() = get("ping.readiness.usage")
+            val notInvited: String get() = get("ping.readiness.not_invited")
+            val sessionClosed: String get() = get("ping.readiness.session_closed")
+            val enabled: String get() = get("ping.readiness.enabled")
+            val disabled: String get() = get("ping.readiness.disabled")
+
+            fun rosterItem(
+                status: String,
+                mention: String,
+            ): String = format("ping.readiness.roster_item", status, mention)
+
+            fun summary(
+                accepted: Int,
+                declined: Int,
+                pending: Int,
+            ): String = format("ping.readiness.summary", accepted, declined, pending)
+
+            fun enabledGroup(groupNameEscaped: String): String = format("ping.readiness.enabled_group", groupNameEscaped)
+
+            fun disabledGroup(groupNameEscaped: String): String = format("ping.readiness.disabled_group", groupNameEscaped)
+        }
     }
 
     object Group {

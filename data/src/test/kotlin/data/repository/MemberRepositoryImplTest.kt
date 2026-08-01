@@ -107,4 +107,44 @@ class MemberRepositoryImplTest {
         assertTrue(result.isSuccess)
         assertNull(result.getOrThrow())
     }
+
+    @Test
+    fun `findAllByUsernames should return every match in one call`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+        repository.saveOrUpdate(2L, "bob", "Bob")
+        repository.saveOrUpdate(3L, "carol", "Carol")
+
+        val result = repository.findAllByUsernames(listOf("alice", "carol"))
+
+        assertTrue(result.isSuccess)
+        assertEquals(setOf("alice", "carol"), result.getOrThrow().map { it.username }.toSet())
+    }
+
+    @Test
+    fun `findAllByUsernames should match case-insensitively like findByUsername`() = runTest {
+        repository.saveOrUpdate(1L, "Alice", "Alice")
+
+        val result = repository.findAllByUsernames(listOf("aLiCe"))
+
+        assertEquals(listOf("Alice"), result.getOrThrow().map { it.username })
+    }
+
+    @Test
+    fun `findAllByUsernames should silently drop usernames with no member row`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+
+        val result = repository.findAllByUsernames(listOf("alice", "ghost"))
+
+        assertEquals(listOf("alice"), result.getOrThrow().map { it.username })
+    }
+
+    @Test
+    fun `findAllByUsernames should return empty without querying for an empty input`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+
+        val result = repository.findAllByUsernames(emptyList())
+
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrThrow().isEmpty())
+    }
 }

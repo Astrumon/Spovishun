@@ -1,5 +1,6 @@
 package data.repository
 
+import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.data.bot.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.bot.table.Chats
 import com.ua.astrumon.data.bot.table.GroupMembers
@@ -83,5 +84,40 @@ class ChatRepositoryImplTest {
         assertEquals(100L, chat.chatId)
         assertNull(chat.title)
         assertNull(chat.type)
+    }
+
+    @Test
+    fun `a new chat should have readiness enabled`() = runTest {
+        val result = repository.save(100L, null, null)
+
+        assertTrue(result.getOrThrow().readinessEnabled)
+    }
+
+    @Test
+    fun `setReadinessEnabled should persist the flag`() = runTest {
+        repository.save(100L, null, null)
+
+        val update = repository.setReadinessEnabled(100L, false)
+
+        assertTrue(update.isSuccess)
+        assertEquals(false, repository.findById(100L).getOrThrow()?.readinessEnabled)
+    }
+
+    @Test
+    fun `setReadinessEnabled should fail for an unknown chat`() = runTest {
+        val result = repository.setReadinessEnabled(999L, false)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `setReadinessEnabled should not touch the announcements flag`() = runTest {
+        repository.save(100L, null, null)
+        repository.setAnnouncementsEnabled(100L, false)
+
+        repository.setReadinessEnabled(100L, false)
+
+        assertEquals(false, repository.findById(100L).getOrThrow()?.announcementsEnabled)
     }
 }

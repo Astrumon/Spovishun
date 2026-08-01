@@ -8,9 +8,10 @@ Packages: `config/` (`AppConfig` — env bindings via dotenv), `di/` (Koin modul
 Top level: `Main.kt` (entry point), `Application.kt` (`initializeKoin()`, reusable in tests).
 
 ## Koin modules (all live here)
-- `ConfigModule` — `AppConfig` + the scheduler coroutine infrastructure: `CoroutineDispatcher`,
-  `CoroutineExceptionHandler`, the two qualified `CoroutineScope`s and their `internal object`
-  qualifier markers (`BirthdaySchedulerScope`, `ReleaseAnnouncerScope`)
+- `ConfigModule` — `AppConfig` + the background-coroutine infrastructure: the default
+  `CoroutineDispatcher`, the `BlockingTelegramDispatcher`-qualified one for blocking Telegram calls,
+  `CoroutineExceptionHandler`, and the three qualified `CoroutineScope`s with their `internal object`
+  qualifier markers (`BirthdaySchedulerScope`, `ReleaseAnnouncerScope`, `ReadinessScope`)
 - `RepositoryModule` — binds each `*Repository` interface to its `:data` `*RepositoryImpl`
 - `ServiceModule` — domain services
 - `PresentationModule` — controllers, commands (`bind BotCommand::class`), bot, schedulers

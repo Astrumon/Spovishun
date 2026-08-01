@@ -2,6 +2,7 @@ package handler
 
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.bot.handler.AddToGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.CallbackRouter
@@ -9,7 +10,11 @@ import com.ua.astrumon.presentation.bot.handler.DeleteGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.RandomCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessSession
+import com.ua.astrumon.presentation.bot.handler.ReadinessVote
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.SessionKey
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -40,14 +45,47 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
     fun setUpRouter() {
         router = CallbackRouter(
             listOf(
-                PingCallbackHandler(pingController, botAdminUtils),
+                PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner),
                 DeleteGroupCallbackHandler(groupController),
                 AddToGroupCallbackHandler(groupController),
                 RemoveFromGroupCallbackHandler(groupController),
                 GrantRoleCallbackHandler(groupController),
                 RandomCallbackHandler(randomController, botAdminUtils),
+                ReadinessCallbackHandler(readinessSessionRunner),
             ),
         )
+    }
+
+    @Test
+    fun `a readiness vote routes to the poll and updates the roster`() = runTest {
+        val caller = registerMember()
+        readinessSessionStore.open(
+            SessionKey(testChatId, POLL_MESSAGE_ID),
+            ReadinessSession("header", listOf(Member(caller.id, caller.userId, caller.username, caller.firstName))),
+        )
+
+        router.route(bot, buildCallbackUpdate("ready:a", messageId = POLL_MESSAGE_ID))
+
+        assertEquals(
+            ReadinessVote.ACCEPTED,
+            readinessSessionStore.get(SessionKey(testChatId, POLL_MESSAGE_ID))?.votes?.get(caller.userId),
+        )
+    }
+
+    @Test
+    fun `a readiness vote from someone outside the poll is refused with a toast`() = runTest {
+        registerMember()
+        readinessSessionStore.open(SessionKey(testChatId, POLL_MESSAGE_ID), ReadinessSession("header", emptyList()))
+
+        router.route(bot, buildCallbackUpdate("ready:a", messageId = POLL_MESSAGE_ID))
+
+        assertTrue(
+            readinessSessionStore
+                .get(SessionKey(testChatId, POLL_MESSAGE_ID))
+                ?.votes
+                ?.isEmpty() == true,
+        )
+        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = match { it.contains("не кликали") }) }
     }
 
     @Test
@@ -156,5 +194,8 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
 
     private companion object {
         const val UNKNOWN_PAYLOAD = "1"
+
+        /** Message the readiness poll is keyed on — any id works, it just has to match the callback. */
+        const val POLL_MESSAGE_ID = 77L
     }
 }

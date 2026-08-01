@@ -9,6 +9,7 @@ object Chats : Table("chats") {
     val type = varchar("type", 32).nullable()
     val registeredAt = timestamp("registered_at")
     val announcementsEnabled = bool("announcements_enabled").default(true)
+    val readinessEnabled = bool("readiness_enabled").default(true)
 
     override val primaryKey = PrimaryKey(chatId)
 }

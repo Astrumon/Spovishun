@@ -155,4 +155,45 @@ class GroupRepositoryImplTest {
         val findResult = repository.findGroupByKey(100L, "devs")
         assertTrue(findResult.isSuccess)
     }
+
+    @Test
+    fun `a new group should have readiness enabled`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+
+        assertTrue(repository.findGroupByKey(100L, "devs").getOrThrow().readinessEnabled)
+    }
+
+    @Test
+    fun `setReadinessEnabled should persist the flag`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+
+        val update = repository.setReadinessEnabled(100L, "devs", false)
+
+        assertTrue(update.isSuccess)
+        assertEquals(false, repository.findGroupByKey(100L, "devs").getOrThrow().readinessEnabled)
+    }
+
+    @Test
+    fun `setReadinessEnabled should fail for an unknown group`() = runTest {
+        ensureChat(100L)
+
+        val result = repository.setReadinessEnabled(100L, "nonexistent", false)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `setReadinessEnabled should not touch a same-named group in another chat`() = runTest {
+        ensureChat(100L)
+        ensureChat(200L)
+        repository.createGroup(100L, "devs")
+        repository.createGroup(200L, "devs")
+
+        repository.setReadinessEnabled(100L, "devs", false)
+
+        assertTrue(repository.findGroupByKey(200L, "devs").getOrThrow().readinessEnabled)
+    }
 }

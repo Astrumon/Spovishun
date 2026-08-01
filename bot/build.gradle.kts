@@ -17,9 +17,16 @@ dependencies {
     // expose `Bot`), so it is exposed transitively to the app module via `api`.
     api(libs.telegram.bot)
 
+    // Bot.editMessageText returns Pair<retrofit2.Response<...>, Exception?>, so the type has to be
+    // resolvable to call it at all — but retrofit is only a runtime dependency of telegram-bot.
+    // compileOnly makes the signature visible without adding anything new to the runtime classpath.
+    compileOnly(libs.retrofit)
+
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.slf4j.api)
 
+    // Same reason as the compileOnly above — tests verify the editMessageText calls.
+    testCompileOnly(libs.retrofit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)

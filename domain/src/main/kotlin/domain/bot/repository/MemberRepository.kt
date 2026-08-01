@@ -12,6 +12,9 @@ interface MemberRepository {
 
     suspend fun findByUsername(username: String): ResultContainer<Member?>
 
+    /** Case-insensitive batch lookup. Unknown usernames are simply absent from the result. */
+    suspend fun findAllByUsernames(usernames: Collection<String>): ResultContainer<List<Member>>
+
     suspend fun saveOrUpdate(
         userId: Long,
         username: String,

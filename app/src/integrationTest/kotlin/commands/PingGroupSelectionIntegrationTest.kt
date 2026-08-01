@@ -4,6 +4,7 @@ import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PingController
+import com.ua.astrumon.presentation.controller.PingOutcome
 import infrastructure.BaseIntegrationTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -41,20 +42,28 @@ class PingGroupSelectionIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `pingGroupById puts the group name and member mention in the header`() = runTest {
+    fun `pingGroupById opens a readiness poll naming the group and its members`() = runTest {
         registerMember()
         groupService.createGroup(testChatId, "backend").getOrThrow()
         groupService.addMemberToGroup(testChatId, "backend", testUsername).getOrThrow()
         val group = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().first { it.name == "backend" }
 
-        val result = pingController.pingGroupById(
-            testChatId,
-            testUserId,
-            testUsername,
-            testFirstName,
-            MemberRole.MEMBER,
-            group.id,
-        )
+        val outcome = pingGroupById(group.id)
+
+        assertTrue(outcome is PingOutcome.Readiness)
+        assertTrue(outcome.header.contains("backend"), "Group name should appear in the ping header")
+        assertEquals(listOf(testUsername), outcome.members.map { it.username })
+    }
+
+    @Test
+    fun `pingGroupById puts the group name and member mention in a plain message when readiness is off`() = runTest {
+        registerMember()
+        groupService.createGroup(testChatId, "backend").getOrThrow()
+        groupService.addMemberToGroup(testChatId, "backend", testUsername).getOrThrow()
+        disableGroupReadiness("backend")
+        val group = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().first { it.name == "backend" }
+
+        val result = pingGroupById(group.id).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("backend"), "Group name should appear in the ping header")
@@ -63,14 +72,7 @@ class PingGroupSelectionIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `pingGroupById returns NotFound for non-existent group id`() = runTest {
-        val result = pingController.pingGroupById(
-            testChatId,
-            testUserId,
-            testUsername,
-            testFirstName,
-            MemberRole.MEMBER,
-            Long.MAX_VALUE,
-        )
+        val result = pingGroupById(Long.MAX_VALUE).plainResponse()
 
         assertTrue(result is CommandResponse.NotFound)
     }
@@ -81,17 +83,24 @@ class PingGroupSelectionIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "empty_squad").getOrThrow()
         val group = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().first { it.name == "empty_squad" }
 
-        val result = pingController.pingGroupById(
-            testChatId,
-            testUserId,
-            testUsername,
-            testFirstName,
-            MemberRole.MEMBER,
-            group.id,
-        )
+        val result = pingGroupById(group.id).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає кого пінгувати"))
+    }
+
+    private suspend fun pingGroupById(groupId: Long): PingOutcome = pingController.pingGroupById(
+        testChatId,
+        testUserId,
+        testUsername,
+        testFirstName,
+        MemberRole.MEMBER,
+        groupId,
+    )
+
+    private fun PingOutcome.plainResponse(): CommandResponse {
+        assertTrue(this is PingOutcome.Plain, "expected a plain ping, got $this")
+        return response
     }
 
     private suspend fun assertPickerOffersAllOptionFirst() {

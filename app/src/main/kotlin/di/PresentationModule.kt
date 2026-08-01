@@ -25,6 +25,9 @@ import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.RandomCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
+import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
@@ -45,7 +48,7 @@ internal val presentationModule = module {
     single { GroupController(get(), get(), get()) }
     single { MembersController(get(), get()) }
     single { RegistrationController(get(), get()) }
-    single { PingController(get(), get(), get()) }
+    single { PingController(get(), get(), get(), get()) }
     single { BirthdayController(get(), get()) }
     single { WhatsNewController(get(), get(), get()) }
     single { RandomController(get(), get(), get()) }
@@ -55,8 +58,8 @@ internal val presentationModule = module {
     single { RegisterCommand(get(), get()) } bind BotCommand::class
     single { MembersCommand(get(), get()) } bind BotCommand::class
     single { GrantRoleCommand(get()) } bind BotCommand::class
-    single { PingAllCommand(get(), get()) } bind BotCommand::class
-    single { PingGroupCommand(get(), get()) } bind BotCommand::class
+    single { PingAllCommand(get(), get(), get()) } bind BotCommand::class
+    single { PingGroupCommand(get(), get(), get()) } bind BotCommand::class
     single { ShowGroupsCommand(get(), get()) } bind BotCommand::class
     single { NewGroupCommand(get()) } bind BotCommand::class
     single { DeleteGroupCommand(get()) } bind BotCommand::class
@@ -72,7 +75,13 @@ internal val presentationModule = module {
 
     // Bot components
     single { CommandRegistry(getAll()) }
-    single { PingCallbackHandler(get(), get()) } bind CallbackHandler::class
+
+    // Readiness polls — the scope they re-render and expire on is declared in ConfigModule.
+    single { ReadinessSessionStore() }
+    single { ReadinessSessionRunner(get(), get(named<ReadinessScope>()), get()) }
+    single { ReadinessCallbackHandler(get()) } bind CallbackHandler::class
+
+    single { PingCallbackHandler(get(), get(), get()) } bind CallbackHandler::class
     single { DeleteGroupCallbackHandler(get()) } bind CallbackHandler::class
     single { AddToGroupCallbackHandler(get()) } bind CallbackHandler::class
     single { RemoveFromGroupCallbackHandler(get()) } bind CallbackHandler::class

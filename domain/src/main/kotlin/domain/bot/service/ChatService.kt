@@ -27,4 +27,13 @@ class ChatService(
     ): ResultContainer<Unit> = chatRepository.setAnnouncementsEnabled(chatId, enabled)
 
     suspend fun getAnnouncementChatIds(): ResultContainer<List<Long>> = chatRepository.findAnnouncementChatIds()
+
+    suspend fun setReadinessEnabled(
+        chatId: Long,
+        enabled: Boolean,
+    ): ResultContainer<Unit> = chatRepository.setReadinessEnabled(chatId, enabled)
+
+    /** Readiness is the default for a chat the bot has never persisted a row for yet. */
+    suspend fun isReadinessEnabled(chatId: Long): ResultContainer<Boolean> =
+        chatRepository.findById(chatId).map { it?.readinessEnabled ?: true }
 }
