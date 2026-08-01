@@ -212,6 +212,12 @@ object BotMessages {
         fun success(firstName: String): String = format("registration.success", firstName)
 
         fun successAdmin(firstName: String): String = format("registration.success_admin", firstName)
+
+        val usage: String get() = get("registration.usage")
+
+        fun birthdaySaved(dateEscaped: String): String = format("registration.birthday_saved", dateEscaped)
+
+        val birthdayFailed: String get() = get("registration.birthday_failed")
     }
 
     object Welcome {

@@ -44,7 +44,7 @@ internal val presentationModule = module {
     // Controllers
     single { GroupController(get(), get(), get()) }
     single { MembersController(get(), get()) }
-    single { RegistrationController(get()) }
+    single { RegistrationController(get(), get()) }
     single { PingController(get(), get(), get()) }
     single { BirthdayController(get(), get()) }
     single { WhatsNewController(get(), get(), get()) }

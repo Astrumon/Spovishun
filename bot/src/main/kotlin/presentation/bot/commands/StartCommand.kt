@@ -7,6 +7,7 @@ import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.RegistrationController
+import com.ua.astrumon.presentation.controller.RegistrationRequest
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import org.slf4j.LoggerFactory
@@ -36,11 +37,13 @@ class StartCommand(
                         if (adminsResponse.isSuccess && adminsResponse.getOrNull() != null) {
                             adminsResponse.get().forEach { admin ->
                                 registrationController.ensureUserRegistered(
-                                    chatId = chatId,
-                                    userId = admin.user.id,
-                                    username = sanitizeUsername(admin.user.username, admin.user.id),
-                                    firstName = admin.user.firstName,
-                                    userRole = MemberRole.ADMIN,
+                                    RegistrationRequest(
+                                        chatId = chatId,
+                                        userId = admin.user.id,
+                                        username = sanitizeUsername(admin.user.username, admin.user.id),
+                                        firstName = admin.user.firstName,
+                                        userRole = MemberRole.ADMIN,
+                                    ),
                                 )
                             }
                         } else {
@@ -56,9 +59,14 @@ class StartCommand(
             logger.error("Error processing chat info: ${e::class.simpleName}")
         }
 
-        val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
-        val username = sanitizeUsername(user.username, user.id)
-        val response = registrationController.start(chatId, user.id, username, user.firstName, userRole)
+        val request = RegistrationRequest(
+            chatId = chatId,
+            userId = user.id,
+            username = sanitizeUsername(user.username, user.id),
+            firstName = user.firstName,
+            userRole = botAdminUtils.getMemberRole(bot, chatId, user.id),
+        )
+        val response = registrationController.start(request)
 
         val text = response.toText()
 
