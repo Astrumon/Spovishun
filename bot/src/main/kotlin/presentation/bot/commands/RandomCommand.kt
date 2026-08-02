@@ -6,7 +6,7 @@ import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.RandomCallback
 import com.ua.astrumon.presentation.bot.handler.sendPicker
@@ -18,6 +18,7 @@ import com.ua.astrumon.presentation.util.BotAdminUtils
 class RandomCommand(
     private val randomController: RandomController,
     private val botAdminUtils: BotAdminUtils,
+    private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "random"
 
@@ -26,6 +27,7 @@ class RandomCommand(
         update: Update,
     ) {
         val chatId = update.message?.chat?.id ?: return
+        val messages = messagesProvider.forChat(chatId)
         val user = update.message?.from ?: return
         val args = update.message
             ?.text
@@ -41,9 +43,10 @@ class RandomCommand(
         }
 
         val text = randomController.pickRandomFromGroup(chatId, user.id, username, user.firstName, userRole, args[0].lowercase()).toText(
+            messages,
             onNotFound = {
                 val available = it.available.joinToString(", ") { k -> k.escapeHtml() }.ifEmpty { "—" }
-                BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), available)
+                messages.error.groupNotFoundHtml(it.identifier.escapeHtml(), available)
             },
         )
 
@@ -58,15 +61,16 @@ class RandomCommand(
         username: String,
         userRole: MemberRole,
     ) {
+        val messages = messagesProvider.forChat(chatId)
         val listing = randomController.groupsForPicker(chatId, user.id, username, user.firstName, userRole)
         if (listing is PickerListing.Show && listing.options.isEmpty()) {
-            bot.reply(chatId, randomController.pickRandomAll(chatId, user.id, username, user.firstName, userRole).toText())
+            bot.reply(chatId, randomController.pickRandomAll(chatId, user.id, username, user.firstName, userRole).toText(messages))
             return
         }
         bot.sendPicker(
             chatId,
             listing,
-            PickerCopy(BotMessages.Random.menuPrompt, BotMessages.Random.noGroups),
+            PickerCopy(messages, messages.random.menuPrompt, messages.random.noGroups),
         ) { "${RandomCallback.PREFIX}${it.id}" }
     }
 }

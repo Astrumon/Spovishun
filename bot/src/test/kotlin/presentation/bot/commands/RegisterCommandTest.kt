@@ -20,6 +20,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -36,7 +37,7 @@ class RegisterCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        registerCommand = RegisterCommand(registrationController, botAdminUtils)
+        registerCommand = RegisterCommand(registrationController, botAdminUtils, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }

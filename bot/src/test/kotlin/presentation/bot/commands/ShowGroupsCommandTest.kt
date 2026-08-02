@@ -19,6 +19,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -35,7 +36,7 @@ class ShowGroupsCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = ShowGroupsCommand(groupController, botAdminUtils)
+        command = ShowGroupsCommand(groupController, botAdminUtils, testMessagesProvider())
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 

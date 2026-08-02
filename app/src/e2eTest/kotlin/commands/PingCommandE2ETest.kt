@@ -1,6 +1,5 @@
 package commands
 
-import com.ua.astrumon.presentation.bot.BotMessages
 import infrastructure.BaseE2ETest
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -20,7 +19,7 @@ class PingCommandE2ETest : BaseE2ETest() {
         val text = sent.text.orEmpty()
 
         assertTrue(text.startsWith("📢"), "The all-members ping keeps its megaphone header")
-        assertTrue(text.contains(BotMessages.Ping.iconAll), "Header must carry one icon per member")
+        assertTrue(text.contains(ukMessages.ping.iconAll), "Header must carry one icon per member")
         assertTrue(text.contains("@testpinguser"), "Registered member must be mentioned")
         assertTrue(sent.entities.orEmpty().isNotEmpty(), "Telegram must recognise the mentions as entities")
     }

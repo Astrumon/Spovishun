@@ -19,19 +19,23 @@ object ReadinessRenderer {
 
     private fun body(session: ReadinessSession): String = session.header + "\n\n" + roster(session)
 
-    private fun summary(session: ReadinessSession): String = BotMessages.Ping.Readiness.summary(
+    private fun summary(session: ReadinessSession): String = session.messages.ping.readiness.summary(
         accepted = session.membersVoting(ReadinessVote.ACCEPTED).size,
         declined = session.membersVoting(ReadinessVote.DECLINED).size,
         pending = session.membersWithoutVote().size,
     )
 
     private fun roster(session: ReadinessSession): String = session.members.joinToString("\n") { member ->
-        BotMessages.Ping.Readiness.rosterItem(statusIcon(session.votes[member.userId]), member.toHtmlMention())
+        session.messages.ping.readiness
+            .rosterItem(statusIcon(session.messages, session.votes[member.userId]), member.toHtmlMention())
     }
 
-    private fun statusIcon(vote: ReadinessVote?): String = when (vote) {
-        ReadinessVote.ACCEPTED -> BotMessages.Ping.Readiness.statusAccepted
-        ReadinessVote.DECLINED -> BotMessages.Ping.Readiness.statusDeclined
-        null -> BotMessages.Ping.Readiness.statusPending
+    private fun statusIcon(
+        messages: BotMessages,
+        vote: ReadinessVote?,
+    ): String = when (vote) {
+        ReadinessVote.ACCEPTED -> messages.ping.readiness.statusAccepted
+        ReadinessVote.DECLINED -> messages.ping.readiness.statusDeclined
+        null -> messages.ping.readiness.statusPending
     }
 }

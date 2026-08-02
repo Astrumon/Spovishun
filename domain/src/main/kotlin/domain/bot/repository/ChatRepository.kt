@@ -1,6 +1,7 @@
 package com.ua.astrumon.domain.bot.repository
 
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.Chat
 
 interface ChatRepository {
@@ -19,10 +20,16 @@ interface ChatRepository {
         enabled: Boolean,
     ): ResultContainer<Unit>
 
-    suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>>
+    /** Full rows, not ids: the broadcaster renders per language and reads it straight off [Chat]. */
+    suspend fun findAnnouncementChats(): ResultContainer<List<Chat>>
 
     suspend fun setReadinessEnabled(
         chatId: Long,
         enabled: Boolean,
+    ): ResultContainer<Unit>
+
+    suspend fun setLanguage(
+        chatId: Long,
+        language: BotLanguage,
     ): ResultContainer<Unit>
 }

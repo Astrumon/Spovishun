@@ -24,6 +24,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,7 +46,7 @@ class GroupControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        groupController = GroupController(groupService, memberService, autoRegisterService)
+        groupController = GroupController(groupService, memberService, autoRegisterService, testMessagesProvider())
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
             ResultContainer.success(adminMemberWithChat)
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true

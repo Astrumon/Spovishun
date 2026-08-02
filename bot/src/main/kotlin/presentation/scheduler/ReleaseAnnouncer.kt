@@ -4,6 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.util.VersionInfo
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.service.BotMetaService
 import com.ua.astrumon.domain.bot.service.ChatService
@@ -39,24 +40,36 @@ class ReleaseAnnouncer(
         bot: Bot,
         version: String,
     ) {
-        // No entry, or an internal-only release with empty changes → mark as notified and skip the
-        // broadcast, so we neither spam chats nor re-evaluate this version on every restart (spovishun-134).
-        val entry = findReleaseNote(version)
-        val text = entry?.let { ReleaseNotesFormatter.formatLatest(listOf(it)) }
-        if (text == null) {
+        // Every language is rendered up front, from one read, so the "is there anything to announce"
+        // gate and the fan-out below can never disagree about what this version says.
+        // A single null is a language deliberately left out — an empty `changes` list suppresses just
+        // that one (spovishun-152). All-null is the missing or internal-only release: mark it as
+        // notified and skip, so we neither spam chats nor re-evaluate it on every restart (spovishun-134).
+        val textByLanguage = BotLanguage.entries.associateWith { renderNotes(version, it) }
+        if (textByLanguage.values.all { it == null }) {
+            logger.warn("Nothing to broadcast for $version — no release_notes entry, or no language renders one")
             botMetaService.setLastNotifiedVersion(version)
             return
         }
-        val chatIds = chatService.getAnnouncementChatIds().getOrNull() ?: return
-        sendToAllChats(bot, chatIds, text)
+        val chats = chatService.getAnnouncementChats().getOrNull() ?: return
+        chats.groupBy { it.language }.forEach { (language, group) ->
+            val text = textByLanguage[language] ?: return@forEach
+            sendToAllChats(bot, group.map { it.chatId }, text)
+        }
         botMetaService.setLastNotifiedVersion(version)
     }
 
-    private suspend fun findReleaseNote(version: String): ReleaseNote? {
-        val notes = releaseNotesService.getAll().getOrNull() ?: return null
-        return notes
-            .firstOrNull { it.version == version }
-            .also { if (it == null) logger.warn("No release_notes entry for $version — skipping broadcast") }
+    private suspend fun renderNotes(
+        version: String,
+        language: BotLanguage,
+    ): String? = findReleaseNote(version, language)?.let { ReleaseNotesFormatter.formatLatest(listOf(it)) }
+
+    private suspend fun findReleaseNote(
+        version: String,
+        language: BotLanguage,
+    ): ReleaseNote? {
+        val notes = releaseNotesService.getAll(language).getOrNull() ?: return null
+        return notes.firstOrNull { it.version == version }
     }
 
     private fun sendToAllChats(

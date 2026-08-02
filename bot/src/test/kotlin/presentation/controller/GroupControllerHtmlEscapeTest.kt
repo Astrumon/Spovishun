@@ -14,6 +14,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -31,7 +32,7 @@ class GroupControllerHtmlEscapeTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        groupController = GroupController(groupService, memberService, autoRegisterService)
+        groupController = GroupController(groupService, memberService, autoRegisterService, testMessagesProvider())
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true
         coEvery { memberService.hasAdminAccess(chatId, userId) } returns true
     }

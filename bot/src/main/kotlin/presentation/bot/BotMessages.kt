@@ -1,23 +1,29 @@
 package com.ua.astrumon.presentation.bot
 
 import com.ua.astrumon.common.util.VersionInfo
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import java.text.MessageFormat
 import java.util.ResourceBundle
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random as KotlinRandom
 
 /**
- * Centralized bot response strings, backed by messages.properties.
+ * Bot response strings for one language, backed by the `messages` bundle family.
+ *
+ * One instance per [BotLanguage]; obtain it from [BotMessagesProvider] rather than constructing it
+ * — the provider is what knows which language a chat picked.
  *
  * Conventions:
- * - Static keys: computed val (e.g. BotMessages.Group.empty)
+ * - Static keys: computed val (e.g. messages.group.empty)
  * - Parameterized: fun (...) using MessageFormat ({0}, {1}, ...).
  * - Caller is responsible for HTML-escaping dynamic values via String.escapeHtml()
  *   before passing them in. BotMessages does NOT escape.
- * - Literal ' in MessageFormat templates must be doubled (''). Currently no apostrophes
- *   in Ukrainian copy; document if added.
+ * - Literal ' in MessageFormat templates must be doubled ('').
  */
-object BotMessages {
-    private val bundle: ResourceBundle = ResourceBundle.getBundle("messages")
+class BotMessages private constructor(
+    val language: BotLanguage,
+) {
+    private val bundle: ResourceBundle = ResourceBundle.getBundle(BASE_NAME, language.locale)
 
     private fun get(key: String): String = bundle.getString(key)
 
@@ -26,7 +32,20 @@ object BotMessages {
         vararg args: Any?,
     ): String = MessageFormat.format(bundle.getString(key), *args)
 
-    object Error {
+    val error = Error()
+    val success = Success()
+    val member = Member()
+    val ping = Ping()
+    val group = Group()
+    val picker = Picker()
+    val birthday = Birthday()
+    val whatsNew = WhatsNew()
+    val random = Random()
+    val registration = Registration()
+    val welcome = Welcome()
+    val languageSetting = LanguageSetting()
+
+    inner class Error {
         fun prefixed(msg: String): String = format("error.prefixed", msg)
 
         fun accessDenied(reason: String): String = format("error.access_denied", reason)
@@ -57,14 +76,14 @@ object BotMessages {
         val loadGroupsInternal: String get() = get("error.load_groups_internal")
     }
 
-    object Success {
+    inner class Success {
         val prefix: String get() = get("success.prefix") + " "
         val deletePrefix: String get() = get("success.delete_prefix") + " "
 
         fun warning(msg: String): String = format("success.warning", msg)
     }
 
-    object Member {
+    inner class Member {
         val listHeader: String get() = get("members.list_header")
         val empty: String get() = get("members.empty")
 
@@ -73,7 +92,9 @@ object BotMessages {
         fun totalSuffix(count: Int): String = format("members.total_suffix", count)
     }
 
-    object Ping {
+    inner class Ping {
+        val readiness = Readiness()
+
         val iconAll: String get() = get("ping.icon.all")
         val iconGroup: String get() = get("ping.icon.group")
         val noRegistered: String get() = get("ping.no_registered")
@@ -103,7 +124,7 @@ object BotMessages {
         val noGroups: String get() = get("ping.noGroups")
         val allMembersOption: String get() = get("ping.all_members_option")
 
-        object Readiness {
+        inner class Readiness {
             val buttonAccept: String get() = get("ping.readiness.button.accept")
             val buttonDecline: String get() = get("ping.readiness.button.decline")
             val statusAccepted: String get() = get("ping.readiness.status.accepted")
@@ -132,7 +153,7 @@ object BotMessages {
         }
     }
 
-    object Group {
+    inner class Group {
         val empty: String get() = get("group.empty")
         val listHeader: String get() = get("group.list_header")
 
@@ -182,7 +203,7 @@ object BotMessages {
         val failureInvalidUsername: String get() = get("group.failure.invalid_username")
     }
 
-    object Picker {
+    inner class Picker {
         val noMembers: String get() = get("picker.no_members")
         val groupPromptDel: String get() = get("picker.group_prompt.del")
         val groupPromptAddTo: String get() = get("picker.group_prompt.addto")
@@ -197,7 +218,7 @@ object BotMessages {
         val confirmPrompt: String get() = get("picker.delgroup.confirm_prompt")
     }
 
-    object Birthday {
+    inner class Birthday {
         val usage: String get() = get("birthday.usage")
         val invalidDate: String get() = get("birthday.invalid_date")
 
@@ -207,22 +228,20 @@ object BotMessages {
 
         fun userNotRegistered(usernameEscaped: String): String = format("birthday.user_not_registered", usernameEscaped)
 
-        private val greetingKeys = (1..5).map { "birthday.greeting.$it" }
-
         fun randomGreeting(
             mentionHtml: String,
             random: KotlinRandom = KotlinRandom.Default,
-        ): String = format(greetingKeys.random(random), mentionHtml)
+        ): String = format(GREETING_KEYS.random(random), mentionHtml)
     }
 
-    object WhatsNew {
+    inner class WhatsNew {
         val prefix: String get() = get("whatsnew.prefix") + " "
         val historyTitle: String get() = get("whatsnew.history_title")
         val announcementsEnabled: String get() = get("whatsnew.announcements_enabled")
         val announcementsDisabled: String get() = get("whatsnew.announcements_disabled")
     }
 
-    object Random {
+    inner class Random {
         fun result(username: String): String = format("random.result", username)
 
         val noRegistered: String get() = get("random.no_registered")
@@ -232,7 +251,7 @@ object BotMessages {
         val noGroups: String get() = get("random.no_groups")
     }
 
-    object Registration {
+    inner class Registration {
         fun failed(firstName: String): String = format("registration.failed", firstName)
 
         fun alreadyRegistered(firstName: String): String = format("registration.already_registered", firstName)
@@ -248,9 +267,33 @@ object BotMessages {
         val birthdayFailed: String get() = get("registration.birthday_failed")
     }
 
-    object Welcome {
+    inner class Welcome {
         fun message(): String = format("welcome.message", VersionInfo.getFullVersion())
 
         val invitation: String get() = get("welcome.invitation")
+    }
+
+    inner class LanguageSetting {
+        val prompt: String get() = get("language.prompt")
+
+        /** Option labels stay in their own language, so a chat on EN still shows "🇺🇦 Українська". */
+        fun option(language: BotLanguage): String = get("language.option.${language.code}")
+
+        fun changed(language: BotLanguage): String = format("language.changed", option(language))
+    }
+
+    companion object {
+        private const val BASE_NAME = "messages"
+
+        private val GREETING_KEYS = (1..5).map { "birthday.greeting.$it" }
+
+        /**
+         * Exactly one instance — and therefore one parsed bundle — per language. Instances are
+         * interchangeable within a language, so sharing them keeps identity meaningful: two callers
+         * that resolved the same language hold the same object.
+         */
+        private val INSTANCES = ConcurrentHashMap<BotLanguage, BotMessages>()
+
+        fun of(language: BotLanguage): BotMessages = INSTANCES.computeIfAbsent(language) { BotMessages(it) }
     }
 }

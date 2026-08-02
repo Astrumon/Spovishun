@@ -6,6 +6,8 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.common.util.VersionInfo
+import com.ua.astrumon.domain.bot.model.BotLanguage
+import com.ua.astrumon.domain.bot.model.Chat
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.service.BotMetaService
 import com.ua.astrumon.domain.bot.service.ChatService
@@ -20,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -31,7 +34,7 @@ class ReleaseAnnouncerTest {
 
     private val currentVersion = VersionInfo.VERSION
     private val oldVersion = "0.0.1"
-    private val chatIds = listOf(-100L, -200L)
+    private val chats = listOf(chat(-100L), chat(-200L))
 
     private val currentNote = ReleaseNote(currentVersion, "2026-01-01", listOf("Some change"))
 
@@ -77,8 +80,8 @@ class ReleaseAnnouncerTest {
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(listOf(currentNote))
+        coEvery { chatService.getAnnouncementChats() } returns ResultContainer.success(chats)
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
         announcer.notifyIfNewVersion(bot)
@@ -96,7 +99,7 @@ class ReleaseAnnouncerTest {
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(
             listOf(ReleaseNote("9.9.9", "2099-01-01", listOf("future"))),
         )
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
@@ -115,7 +118,7 @@ class ReleaseAnnouncerTest {
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(
             listOf(ReleaseNote(currentVersion, "2026-06-20", emptyList())),
         )
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
@@ -134,8 +137,8 @@ class ReleaseAnnouncerTest {
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(currentNote))
-        coEvery { chatService.getAnnouncementChatIds() } returns ResultContainer.success(chatIds)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(listOf(currentNote))
+        coEvery { chatService.getAnnouncementChats() } returns ResultContainer.success(chats)
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
         every {
             bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML)
@@ -155,7 +158,7 @@ class ReleaseAnnouncerTest {
         val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
 
         coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
-        coEvery { releaseNotesService.getAll() } returns
+        coEvery { releaseNotesService.getAll(any()) } returns
             ResultContainer.failure(DatabaseException("read error"))
         coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
 
@@ -165,5 +168,84 @@ class ReleaseAnnouncerTest {
         coVerify(exactly = 0) { bot.sendMessage(any(), any(), any()) }
         coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
         scope.cancel()
+    }
+
+    @Test
+    fun `should render the notes of each chat in its own language`() = runTest {
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+        coEvery { releaseNotesService.getAll(BotLanguage.UK) } returns
+            ResultContainer.success(listOf(ReleaseNote(currentVersion, "2026-01-01", listOf("Українська зміна"))))
+        coEvery { releaseNotesService.getAll(BotLanguage.EN) } returns
+            ResultContainer.success(listOf(ReleaseNote(currentVersion, "2026-01-01", listOf("English change"))))
+        coEvery { chatService.getAnnouncementChats() } returns ResultContainer.success(
+            listOf(chat(-100L, BotLanguage.UK), chat(-200L, BotLanguage.EN)),
+        )
+        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+
+        announcer.notifyIfNewVersion(bot)
+        testScheduler.runCurrent()
+
+        coVerify {
+            bot.sendMessage(
+                chatId = ChatId.fromId(-100L),
+                text = match { it.contains("Українська зміна") },
+                parseMode = ParseMode.HTML,
+            )
+            bot.sendMessage(
+                chatId = ChatId.fromId(-200L),
+                text = match { it.contains("English change") },
+                parseMode = ParseMode.HTML,
+            )
+        }
+        scope.cancel()
+    }
+
+    @Test
+    fun `should still broadcast when only a non-base language has changes`() = runTest {
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val announcer = ReleaseAnnouncer(releaseNotesService, botMetaService, chatService, scope)
+
+        // "uk": [] suppresses Ukrainian on purpose; the release is announced in English only.
+        coEvery { botMetaService.getLastNotifiedVersion() } returns ResultContainer.success(oldVersion)
+        coEvery { releaseNotesService.getAll(BotLanguage.UK) } returns
+            ResultContainer.success(listOf(ReleaseNote(currentVersion, "2026-01-01", emptyList())))
+        coEvery { releaseNotesService.getAll(BotLanguage.EN) } returns
+            ResultContainer.success(listOf(ReleaseNote(currentVersion, "2026-01-01", listOf("English change"))))
+        coEvery { chatService.getAnnouncementChats() } returns ResultContainer.success(
+            listOf(chat(-100L, BotLanguage.UK), chat(-200L, BotLanguage.EN)),
+        )
+        coEvery { botMetaService.setLastNotifiedVersion(currentVersion) } returns ResultContainer.success(Unit)
+
+        announcer.notifyIfNewVersion(bot)
+        testScheduler.runCurrent()
+
+        coVerify(exactly = 0) {
+            bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML)
+        }
+        coVerify(exactly = 1) {
+            bot.sendMessage(
+                chatId = ChatId.fromId(-200L),
+                text = match { it.contains("English change") },
+                parseMode = ParseMode.HTML,
+            )
+        }
+        coVerify { botMetaService.setLastNotifiedVersion(currentVersion) }
+        scope.cancel()
+    }
+
+    private companion object {
+        fun chat(
+            chatId: Long,
+            language: BotLanguage = BotLanguage.UK,
+        ) = Chat(
+            chatId = chatId,
+            title = null,
+            type = null,
+            registeredAt = Instant.fromEpochMilliseconds(0),
+            language = language,
+        )
     }
 }

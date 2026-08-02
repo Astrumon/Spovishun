@@ -19,6 +19,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -34,7 +35,7 @@ class MembersCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        membersCommand = MembersCommand(membersController, botAdminUtils)
+        membersCommand = MembersCommand(membersController, botAdminUtils, testMessagesProvider())
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 

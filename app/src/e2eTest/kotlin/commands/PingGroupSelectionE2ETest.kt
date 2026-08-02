@@ -5,7 +5,6 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
-import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.handler.PingCallback
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import infrastructure.BaseE2ETest
@@ -33,7 +32,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
 
         val sent = dispatchExpectingReply("/ping")
 
-        assertEquals(BotMessages.Ping.menuPrompt, sent.text, "Menu prompt must survive the round trip")
+        assertEquals(ukMessages.ping.menuPrompt, sent.text, "Menu prompt must survive the round trip")
         val markup = assertNotNull(sent.replyMarkup, "Telegram must echo back the inline keyboard it stored")
         // One button per group plus the unconditional "all members" option.
         assertEquals(allGroups().size + 1, markup.inlineKeyboard.sumOf { it.size }, "Every option must reach Telegram")
@@ -48,7 +47,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
         }
         val group = allGroups().first { it.name == "callback_squad" }
 
-        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner)
+        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
         val sent = expectingReply("the ping callback") {
             runBlocking {
                 handler.handle(mainBot, buildCallbackUpdate(data = "${PingCallback.PREFIX}${group.id}", messageId = 1L))

@@ -21,6 +21,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -38,7 +39,7 @@ class StartCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        startCommand = StartCommand(registrationController, botAdminUtils)
+        startCommand = StartCommand(registrationController, botAdminUtils, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
         every { bot.getChat(any()) } returns TelegramBotResult.Success(Chat(id = chatId, type = "private"))

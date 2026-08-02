@@ -2,8 +2,10 @@ package handler
 
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.handler.AddToGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.DeleteGroupCallbackHandler
@@ -45,13 +47,13 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
     fun setUpRouter() {
         router = CallbackRouter(
             listOf(
-                PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner),
-                DeleteGroupCallbackHandler(groupController),
-                AddToGroupCallbackHandler(groupController),
-                RemoveFromGroupCallbackHandler(groupController),
-                GrantRoleCallbackHandler(groupController),
-                RandomCallbackHandler(randomController, botAdminUtils),
-                ReadinessCallbackHandler(readinessSessionRunner),
+                PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
+                DeleteGroupCallbackHandler(groupController, messagesProvider),
+                AddToGroupCallbackHandler(groupController, messagesProvider),
+                RemoveFromGroupCallbackHandler(groupController, messagesProvider),
+                GrantRoleCallbackHandler(groupController, messagesProvider),
+                RandomCallbackHandler(randomController, botAdminUtils, messagesProvider),
+                ReadinessCallbackHandler(readinessSessionRunner, messagesProvider),
             ),
         )
     }
@@ -61,7 +63,11 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
         val caller = registerMember()
         readinessSessionStore.open(
             SessionKey(testChatId, POLL_MESSAGE_ID),
-            ReadinessSession("header", listOf(Member(caller.id, caller.userId, caller.username, caller.firstName))),
+            ReadinessSession(
+                BotMessages.of(BotLanguage.UK),
+                "header",
+                listOf(Member(caller.id, caller.userId, caller.username, caller.firstName)),
+            ),
         )
 
         router.route(bot, buildCallbackUpdate("ready:a", messageId = POLL_MESSAGE_ID))
@@ -75,7 +81,10 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `a readiness vote from someone outside the poll is refused with a toast`() = runTest {
         registerMember()
-        readinessSessionStore.open(SessionKey(testChatId, POLL_MESSAGE_ID), ReadinessSession("header", emptyList()))
+        readinessSessionStore.open(
+            SessionKey(testChatId, POLL_MESSAGE_ID),
+            ReadinessSession(BotMessages.of(BotLanguage.UK), "header", emptyList()),
+        )
 
         router.route(bot, buildCallbackUpdate("ready:a", messageId = POLL_MESSAGE_ID))
 

@@ -1,6 +1,5 @@
 package commands
 
-import com.ua.astrumon.presentation.bot.BotMessages
 import infrastructure.BaseE2ETest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +20,7 @@ class RegisterCommandE2ETest : BaseE2ETest() {
         val sent = dispatchExpectingReply("/register")
 
         assertEquals(
-            BotMessages.Success.prefix + BotMessages.Registration.alreadyRegistered("HelperBot"),
+            ukMessages.success.prefix + ukMessages.registration.alreadyRegistered("HelperBot"),
             sent.text,
         )
         assertEquals(1, allMembers().count { it.userId == helperBotId }, "The repeat must not duplicate the member")

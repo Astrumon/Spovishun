@@ -5,7 +5,7 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.service.BirthdayService
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.toHtmlMention
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -23,6 +23,7 @@ class BirthdayGreetingScheduler(
     private val birthdayService: BirthdayService,
     private val clock: Clock,
     private val scope: CoroutineScope,
+    private val messagesProvider: BotMessagesProvider,
 ) {
     private val logger = LoggerFactory.getLogger(BirthdayGreetingScheduler::class.java)
     private val zone: ZoneId = ZoneId.of("Europe/Kyiv")
@@ -73,8 +74,9 @@ class BirthdayGreetingScheduler(
                     .fold(onSuccess = { it }, onFailure = { emptyList() })
                 if (chatIds.isEmpty()) continue
 
-                val text = BotMessages.Birthday.randomGreeting(member.toHtmlMention())
+                // Rendered per chat: one member's greeting can land in chats on different languages.
                 chatIds.forEach { chatId ->
+                    val text = messagesProvider.forChat(chatId).birthday.randomGreeting(member.toHtmlMention())
                     bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
                 }
 

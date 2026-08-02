@@ -2,60 +2,97 @@
   {
     "version": "1.7.0",
     "date": "2026-06-20",
-    "changes": []
+    "changes": {}
   },
   {
     "version": "1.6.0",
     "date": "2026-06-20",
-    "changes": []
+    "changes": {}
   },
   {
     "version": "1.5.0",
     "date": "2026-05-12",
-    "changes": [
-      "Додано команду /random [група] — випадковий вибір учасника чату або групи",
-      "Додано /whatsnew $on / $off — увімкнення/вимкнення сповіщень для чату (адмін)",
-      "Додано /whatsnew $h — перегляд повної історії версій"
-    ]
+    "changes": {
+      "uk": [
+        "Додано команду /random [група] — випадковий вибір учасника чату або групи",
+        "Додано /whatsnew $on / $off — увімкнення/вимкнення сповіщень для чату (адмін)",
+        "Додано /whatsnew $h — перегляд повної історії версій"
+      ],
+      "en": [
+        "Added /random [group] — picks a random member of the chat or of a group",
+        "Added /whatsnew $on / $off — turns release announcements for the chat on or off (admin)",
+        "Added /whatsnew $h — shows the full version history"
+      ]
+    }
   },
   {
     "version": "1.4.0",
     "date": "2026-05-11",
-    "changes": [
-      "Додано команду /whatsnew — показує release notes поточної версії",
-      "Автоматична розсилка нотаток оновлення при запуску бота з новою версією"
-    ]
+    "changes": {
+      "uk": [
+        "Додано команду /whatsnew — показує release notes поточної версії",
+        "Автоматична розсилка нотаток оновлення при запуску бота з новою версією"
+      ],
+      "en": [
+        "Added /whatsnew — shows the release notes of the current version",
+        "Release notes are broadcast automatically when the bot starts on a new version"
+      ]
+    }
   },
   {
     "version": "1.3.0",
     "date": "2026-05-08",
-    "changes": [
-      "Додано привітання з днем народження — бот автоматично вітає учасників"
-    ]
+    "changes": {
+      "uk": [
+        "Додано привітання з днем народження — бот автоматично вітає учасників"
+      ],
+      "en": [
+        "Added birthday greetings — the bot congratulates members automatically"
+      ]
+    }
   },
   {
     "version": "1.2.0",
     "date": "2026-05-05",
-    "changes": [
-      "Додано систему груп — /newgroup, /delgroup, /addtogroup, /removefromgroup",
-      "Додано /grantrole для призначення ролей учасникам"
-    ]
+    "changes": {
+      "uk": [
+        "Додано систему груп — /newgroup, /delgroup, /addtogroup, /removefromgroup",
+        "Додано /grantrole для призначення ролей учасникам"
+      ],
+      "en": [
+        "Added groups — /newgroup, /delgroup, /addtogroup, /removefromgroup",
+        "Added /grantrole for assigning roles to members"
+      ]
+    }
   },
   {
     "version": "1.1.0",
     "date": "2026-04-28",
-    "changes": [
-      "Додано команду /ping для сповіщення всіх або конкретної групи",
-      "Автоматична реєстрація учасників при першому повідомленні"
-    ]
+    "changes": {
+      "uk": [
+        "Додано команду /ping для сповіщення всіх або конкретної групи",
+        "Автоматична реєстрація учасників при першому повідомленні"
+      ],
+      "en": [
+        "Added /ping for notifying everyone or a specific group",
+        "Members are registered automatically on their first message"
+      ]
+    }
   },
   {
     "version": "1.0.0",
     "date": "2026-04-12",
-    "changes": [
-      "Початковий реліз бота",
-      "Базова реєстрація учасників (/register)",
-      "Список учасників (/members)"
-    ]
+    "changes": {
+      "uk": [
+        "Початковий реліз бота",
+        "Базова реєстрація учасників (/register)",
+        "Список учасників (/members)"
+      ],
+      "en": [
+        "Initial bot release",
+        "Basic member registration (/register)",
+        "Member list (/members)"
+      ]
+    }
   }
 ]

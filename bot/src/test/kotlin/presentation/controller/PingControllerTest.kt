@@ -12,7 +12,6 @@ import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
-import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.PingController
@@ -22,6 +21,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,7 +44,7 @@ class PingControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService)
+        pingController = PingController(memberService, groupService, chatService, autoRegisterService, testMessagesProvider())
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
             ResultContainer.success(memberWithChat)
         // Default to the plain ping so the pre-readiness assertions stay about ping content.
@@ -441,7 +442,7 @@ class PingControllerTest {
         assertTrue(listing is PickerListing.Show)
         assertEquals(
             listOf(
-                PickerOption(PingController.ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption),
+                PickerOption(PingController.ALL_MEMBERS_ID, ukMessages.ping.allMembersOption),
                 PickerOption(1L, "devs"),
                 PickerOption(2L, "qa"),
             ),
@@ -456,7 +457,7 @@ class PingControllerTest {
         val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
         assertTrue(listing is PickerListing.Show)
-        assertEquals(listOf(PickerOption(PingController.ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption)), listing.options)
+        assertEquals(listOf(PickerOption(PingController.ALL_MEMBERS_ID, ukMessages.ping.allMembersOption)), listing.options)
     }
 
     @Test

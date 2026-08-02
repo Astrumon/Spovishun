@@ -5,7 +5,7 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
 import com.ua.astrumon.presentation.toText
@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 class StartCommand(
     private val registrationController: RegistrationController,
     private val botAdminUtils: BotAdminUtils,
+    private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "start"
 
@@ -25,6 +26,7 @@ class StartCommand(
         update: Update,
     ) {
         val chatId = update.message?.chat?.id ?: return
+        val messages = messagesProvider.forChat(chatId)
         val user = update.message?.from ?: return
 
         try {
@@ -50,7 +52,7 @@ class StartCommand(
                             logger.warn("Failed to get chat administrators")
                         }
                         if (chat.type == "group") {
-                            bot.reply(chatId, BotMessages.Welcome.invitation)
+                            bot.reply(chatId, messages.welcome.invitation)
                         }
                     }
                 }
@@ -68,7 +70,7 @@ class StartCommand(
         )
         val response = registrationController.start(request)
 
-        val text = response.toText()
+        val text = response.toText(messages)
 
         bot.reply(chatId, text)
     }

@@ -37,8 +37,8 @@ class BirthdayCommandIntegrationTest : BaseIntegrationTest() {
     @BeforeTest
     fun setupBirthday() {
         birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
-        birthdayController = BirthdayController(birthdayService, memberService)
-        birthdayCommand = BirthdayCommand(birthdayController)
+        birthdayController = BirthdayController(birthdayService, memberService, messagesProvider)
+        birthdayCommand = BirthdayCommand(birthdayController, messagesProvider)
     }
 
     @Test

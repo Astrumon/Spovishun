@@ -10,6 +10,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,7 +29,7 @@ class ReadinessSessionStoreTest {
     @BeforeTest
     fun setup() {
         store = ReadinessSessionStore()
-        store.open(key, ReadinessSession("header", listOf(alice, bob)))
+        store.open(key, ReadinessSession(ukMessages, "header", listOf(alice, bob)))
     }
 
     @Test
@@ -69,7 +70,7 @@ class ReadinessSessionStoreTest {
     fun `should keep every vote when members tap concurrently`() = runTest {
         val voters = (1..VOTER_COUNT).map { Member(it.toLong(), it.toLong(), "u$it", "U$it") }
         val busyKey = SessionKey(2L, 7L)
-        store.open(busyKey, ReadinessSession("header", voters))
+        store.open(busyKey, ReadinessSession(ukMessages, "header", voters))
 
         withContext(Dispatchers.Default) {
             voters

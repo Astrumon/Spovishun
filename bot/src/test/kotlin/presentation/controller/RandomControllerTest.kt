@@ -10,7 +10,6 @@ import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
-import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.RandomController
@@ -18,6 +17,8 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,7 +47,7 @@ class RandomControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        controller = RandomController(memberService, groupService, autoRegisterService)
+        controller = RandomController(memberService, groupService, autoRegisterService, testMessagesProvider())
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
             ResultContainer.success(memberWithChat)
     }
@@ -170,7 +171,7 @@ class RandomControllerTest {
         assertTrue(result is PickerListing.Show)
         assertEquals(
             listOf(
-                PickerOption(RandomController.ALL_MEMBERS_ID, BotMessages.Random.allMembersOption),
+                PickerOption(RandomController.ALL_MEMBERS_ID, ukMessages.random.allMembersOption),
                 PickerOption(11L, "Devs"),
                 PickerOption(12L, "QA"),
             ),

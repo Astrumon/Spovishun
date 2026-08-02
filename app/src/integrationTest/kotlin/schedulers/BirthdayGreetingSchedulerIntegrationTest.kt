@@ -213,7 +213,7 @@ class BirthdayGreetingSchedulerIntegrationTest : BaseIntegrationTest() {
                 CoroutineExceptionHandler { _, throwable -> gate.completeExceptionally(throwable) } +
                 CoroutineName("birthday-scheduler"),
         )
-        BirthdayGreetingScheduler(service, fixedClock, scope).start(bot)
+        BirthdayGreetingScheduler(service, fixedClock, scope, messagesProvider).start(bot)
         gate.await()
         scope.cancel()
     }

@@ -9,6 +9,7 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.domain.bot.config.ReadinessConfig
 import com.ua.astrumon.domain.bot.model.Member
+import com.ua.astrumon.presentation.bot.handler.ReadinessSession
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.ReadinessVote
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,7 +72,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should publish the poll with a keyboard and register the session`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         assertTrue(runner.isLive(key))
         verify(exactly = 1) {
@@ -89,14 +91,14 @@ class ReadinessSessionRunnerTest {
             bot.sendMessage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         } returns TelegramBotResult.Error.Unknown(IllegalStateException("boom"))
 
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         assertFalse(runner.isLive(key))
     }
 
     @Test
     fun `should coalesce a burst of votes into a single edit`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
         runner.onVote(bot, key, bob.userId, ReadinessVote.DECLINED)
@@ -107,7 +109,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should reject a vote from someone who was not invited`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         val render = runner.onVote(bot, key, OUTSIDER_ID, ReadinessVote.ACCEPTED)
         advanceTimeBy(COALESCE_WINDOW + ONE_TICK)
@@ -118,7 +120,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should freeze the poll without a keyboard once the TTL expires`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
 
         advanceUntilIdle()
@@ -142,7 +144,7 @@ class ReadinessSessionRunnerTest {
      */
     @Test
     fun `should write the summary after any pending re-render`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
 
         advanceUntilIdle()
@@ -155,7 +157,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should ignore a vote arriving after the poll was finalized`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
         advanceUntilIdle()
 
         val render = runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
@@ -165,7 +167,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should keep the last vote of a member who changes their mind`() = runTest(dispatcher) {
-        runner.start(bot, chatId, "header", members)
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
         runner.onVote(bot, key, alice.userId, ReadinessVote.DECLINED)

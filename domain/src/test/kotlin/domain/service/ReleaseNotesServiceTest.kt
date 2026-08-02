@@ -2,6 +2,7 @@ package domain.service
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.repository.ReleaseNotesRepository
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
@@ -32,24 +33,24 @@ class ReleaseNotesServiceTest {
             ReleaseNote("2.0.0", "2026-01-01", listOf("New feature")),
             ReleaseNote("1.0.0", "2025-01-01", listOf("Initial release")),
         )
-        coEvery { releaseNotesRepository.getAll() } returns ResultContainer.success(notes)
+        coEvery { releaseNotesRepository.getAll(BotLanguage.EN) } returns ResultContainer.success(notes)
 
         // When
-        val result = releaseNotesService.getAll()
+        val result = releaseNotesService.getAll(BotLanguage.EN)
 
         // Then
         assertTrue(result.isSuccess)
         assertEquals(notes, result.getOrThrow())
-        coVerify { releaseNotesRepository.getAll() }
+        coVerify { releaseNotesRepository.getAll(BotLanguage.EN) }
     }
 
     @Test
     fun `getAll should propagate failure from repository`() = runTest {
         // Given
-        coEvery { releaseNotesRepository.getAll() } returns ResultContainer.failure(DatabaseException("not found"))
+        coEvery { releaseNotesRepository.getAll(BotLanguage.EN) } returns ResultContainer.failure(DatabaseException("not found"))
 
         // When
-        val result = releaseNotesService.getAll()
+        val result = releaseNotesService.getAll(BotLanguage.EN)
 
         // Then
         assertTrue(result.isFailure)

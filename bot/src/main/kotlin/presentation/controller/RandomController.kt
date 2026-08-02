@@ -5,13 +5,14 @@ import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import org.slf4j.LoggerFactory
 
 class RandomController(
     private val memberService: MemberService,
     private val groupService: GroupService,
     private val autoRegisterService: AutoRegisterService,
+    private val messagesProvider: BotMessagesProvider,
 ) {
     private val logger = LoggerFactory.getLogger(RandomController::class.java)
 
@@ -23,18 +24,19 @@ class RandomController(
         userRole: MemberRole,
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
             logger.error("Failed to get members for pickRandomAll: {}", membersResult.exceptionOrNull()?.let { it::class.simpleName })
-            return CommandResponse.Error(BotMessages.Error.loadMembersInternal)
+            return CommandResponse.Error(messages.error.loadMembersInternal)
         }
 
         val members = membersResult.getOrNull() ?: emptyList()
-        if (members.isEmpty()) return CommandResponse.Success(BotMessages.Random.noRegistered)
+        if (members.isEmpty()) return CommandResponse.Success(messages.random.noRegistered)
 
         val picked = members.random().username
-        return CommandResponse.Success(BotMessages.Random.result(picked))
+        return CommandResponse.Success(messages.random.result(picked))
     }
 
     suspend fun pickRandomFromGroup(
@@ -46,6 +48,7 @@ class RandomController(
         key: String,
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         val groupResult = groupService.getGroupByKey(chatId, key)
         if (groupResult.isFailure) {
@@ -57,10 +60,10 @@ class RandomController(
         }
 
         val members = groupResult.getOrNull()?.members ?: emptyList()
-        if (members.isEmpty()) return CommandResponse.Success(BotMessages.Random.emptyGroup)
+        if (members.isEmpty()) return CommandResponse.Success(messages.random.emptyGroup)
 
         val picked = members.random()
-        return CommandResponse.Success(BotMessages.Random.result(picked))
+        return CommandResponse.Success(messages.random.result(picked))
     }
 
     /**
@@ -75,19 +78,20 @@ class RandomController(
         userRole: MemberRole,
     ): PickerListing {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         return groupService.getAllGroupsWithMembers(chatId).fold(
             onSuccess = { groups ->
                 if (groups.isEmpty()) {
                     PickerListing.Show(emptyList())
                 } else {
-                    val allMembers = PickerOption(ALL_MEMBERS_ID, BotMessages.Random.allMembersOption)
+                    val allMembers = PickerOption(ALL_MEMBERS_ID, messages.random.allMembersOption)
                     PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.name) })
                 }
             },
             onFailure = {
                 logger.error("Failed to get groups for groupsForPicker: {}", it::class.simpleName)
-                PickerListing.Reject(CommandResponse.Error(BotMessages.Error.loadGroupsInternal))
+                PickerListing.Reject(CommandResponse.Error(messages.error.loadGroupsInternal))
             },
         )
     }
@@ -101,6 +105,7 @@ class RandomController(
         groupId: Long,
     ): CommandResponse {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         val groupsResult = groupService.getAllGroupsWithMembers(chatId)
         if (groupsResult.isFailure) {
@@ -108,16 +113,16 @@ class RandomController(
                 "Failed to get groups for pickRandomFromGroupById: {}",
                 groupsResult.exceptionOrNull()?.let { it::class.simpleName },
             )
-            return CommandResponse.Error(BotMessages.Error.loadGroupsInternal)
+            return CommandResponse.Error(messages.error.loadGroupsInternal)
         }
 
         val group = groupsResult.getOrNull()?.firstOrNull { it.id == groupId }
             ?: return CommandResponse.NotFound("Група", groupId.toString())
 
-        if (group.members.isEmpty()) return CommandResponse.Success(BotMessages.Random.emptyGroup)
+        if (group.members.isEmpty()) return CommandResponse.Success(messages.random.emptyGroup)
 
         val picked = group.members.random()
-        return CommandResponse.Success(BotMessages.Random.result(picked))
+        return CommandResponse.Success(messages.random.result(picked))
     }
 
     companion object {

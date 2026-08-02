@@ -1,6 +1,5 @@
 package commands
 
-import com.ua.astrumon.presentation.bot.BotMessages
 import infrastructure.BaseE2ETest
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -21,7 +20,7 @@ class StartCommandE2ETest : BaseE2ETest() {
         val sent = dispatchExpectingReply("/start")
         val text = sent.text.orEmpty()
 
-        assertTrue(BotMessages.Welcome.message().contains("<b>"), "Precondition: the welcome copy is HTML")
+        assertTrue(ukMessages.welcome.message().contains("<b>"), "Precondition: the welcome copy is HTML")
         assertFalse(text.contains("<b>"), "Telegram must consume the bold tags rather than echo them literally")
         assertTrue(text.contains("/ping <група>"), "The &lt;…&gt; escapes must arrive decoded")
         assertTrue(sent.entities.orEmpty().isNotEmpty(), "Parsed HTML must produce message entities")

@@ -13,6 +13,8 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -29,21 +31,21 @@ class BirthdayControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        controller = BirthdayController(birthdayService, memberService)
+        controller = BirthdayController(birthdayService, memberService, testMessagesProvider())
     }
 
     // --- setOwnBirthday ---
 
     @Test
     fun `setOwnBirthday should return Error on invalid date token`() = runTest {
-        val result = controller.setOwnBirthday(userId, "99.99")
+        val result = controller.setOwnBirthday(ukMessages, userId, "99.99")
 
         assertTrue(result is CommandResponse.Error)
     }
 
     @Test
     fun `setOwnBirthday should return Error on wrong format`() = runTest {
-        val result = controller.setOwnBirthday(userId, "25-12")
+        val result = controller.setOwnBirthday(ukMessages, userId, "25-12")
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -52,7 +54,7 @@ class BirthdayControllerTest {
     fun `setOwnBirthday should return Success when service succeeds`() = runTest {
         coEvery { birthdayService.setBirthday(userId, BirthDate(25, 12)) } returns ResultContainer.success(member)
 
-        val result = controller.setOwnBirthday(userId, "25.12")
+        val result = controller.setOwnBirthday(ukMessages, userId, "25.12")
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("25.12"))
@@ -63,7 +65,7 @@ class BirthdayControllerTest {
         coEvery { birthdayService.setBirthday(userId, BirthDate(1, 1)) } returns
             ResultContainer.failure(DatabaseException("DB error"))
 
-        val result = controller.setOwnBirthday(userId, "01.01")
+        val result = controller.setOwnBirthday(ukMessages, userId, "01.01")
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -74,7 +76,7 @@ class BirthdayControllerTest {
     fun `clearOwnBirthday should return Success when service succeeds`() = runTest {
         coEvery { birthdayService.clearBirthday(userId) } returns ResultContainer.success(member.copy(birthday = null))
 
-        val result = controller.clearOwnBirthday(userId)
+        val result = controller.clearOwnBirthday(ukMessages, userId)
 
         assertTrue(result is CommandResponse.Success)
     }
@@ -84,7 +86,7 @@ class BirthdayControllerTest {
         coEvery { birthdayService.clearBirthday(userId) } returns
             ResultContainer.failure(DatabaseException("DB error"))
 
-        val result = controller.clearOwnBirthday(userId)
+        val result = controller.clearOwnBirthday(ukMessages, userId)
 
         assertTrue(result is CommandResponse.Error)
     }
