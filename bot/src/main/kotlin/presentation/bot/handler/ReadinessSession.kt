@@ -1,6 +1,7 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.ua.astrumon.domain.bot.model.Member
+import com.ua.astrumon.presentation.bot.BotMessages
 
 /** Identifies a readiness poll by the Telegram message that carries its keyboard. */
 data class SessionKey(
@@ -19,8 +20,12 @@ enum class ReadinessVote {
  *
  * [members] holds domain [Member]s so the renderer can reuse `Member.toHtmlMention()` instead of
  * re-deriving mention markup from usernames.
+ *
+ * [messages] is pinned at open time rather than resolved per render: a poll re-renders on every vote
+ * and again at expiry, and a roster that switched language mid-vote would read as a different poll.
  */
 data class ReadinessSession(
+    val messages: BotMessages,
     val header: String,
     val members: List<Member>,
     val votes: Map<Long, ReadinessVote> = emptyMap(),

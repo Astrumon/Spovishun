@@ -5,29 +5,33 @@ import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 
 class WhatsNewController(
     private val releaseNotesService: ReleaseNotesService,
     private val chatService: ChatService,
     private val memberService: MemberService,
+    private val messagesProvider: BotMessagesProvider,
 ) {
-    suspend fun showLatest(): CommandResponse = releaseNotesService.getAll().fold(
+    // Release notes are chat-agnostic, so these two take the bundle the caller already resolved
+    // rather than a chat id they would have no other use for.
+    suspend fun showLatest(messages: BotMessages): CommandResponse = releaseNotesService.getAll().fold(
         onSuccess = { notes ->
             val text = ReleaseNotesFormatter.formatLatest(notes)
                 ?: return@fold CommandResponse.Silent
             CommandResponse.Success(text)
         },
-        onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+        onFailure = { ex -> CommandResponse.Error(messages.error.prefixed(ex.userMessage)) },
     )
 
-    suspend fun showHistory(): CommandResponse = releaseNotesService.getAll().fold(
+    suspend fun showHistory(messages: BotMessages): CommandResponse = releaseNotesService.getAll().fold(
         onSuccess = { notes ->
-            val text = ReleaseNotesFormatter.formatHistory(notes)
+            val text = ReleaseNotesFormatter.formatHistory(messages, notes)
                 ?: return@fold CommandResponse.Silent
             CommandResponse.Success(text)
         },
-        onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+        onFailure = { ex -> CommandResponse.Error(messages.error.prefixed(ex.userMessage)) },
     )
 
     suspend fun setAnnouncements(
@@ -35,19 +39,20 @@ class WhatsNewController(
         userId: Long,
         enabled: Boolean,
     ): CommandResponse {
+        val messages = messagesProvider.forChat(chatId)
         if (!memberService.hasAdminAccess(chatId, userId)) {
             return CommandResponse.AccessDenied("admin")
         }
         return chatService.setAnnouncementsEnabled(chatId, enabled).fold(
             onSuccess = {
                 val message = if (enabled) {
-                    BotMessages.WhatsNew.announcementsEnabled
+                    messages.whatsNew.announcementsEnabled
                 } else {
-                    BotMessages.WhatsNew.announcementsDisabled
+                    messages.whatsNew.announcementsDisabled
                 }
                 CommandResponse.Success(message)
             },
-            onFailure = { ex -> CommandResponse.Error(BotMessages.Error.prefixed(ex.userMessage)) },
+            onFailure = { ex -> CommandResponse.Error(messages.error.prefixed(ex.userMessage)) },
         )
     }
 }

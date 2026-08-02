@@ -19,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import presentation.testMessagesProvider
 import java.time.Clock
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -56,7 +57,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should immediately run catch-up for today's date`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(emptyList())
 
@@ -71,7 +72,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should send message to all registered chats for member`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -95,7 +96,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should use tg user link mention for member without real username`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
         val memberNoUsername = Member(3L, 300L, "user_300", "Карл <&>", BirthDate(25, 12))
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
@@ -118,7 +119,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should record greeting after sending messages`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -136,7 +137,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should skip member already greeted this year`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(true)
@@ -153,7 +154,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should skip member with no registered chats`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -170,7 +171,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should continue to next member when one fails`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
             ResultContainer.success(listOf(memberAlice, memberBob))
@@ -196,7 +197,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should also process feb 29 birthdays on feb 28 in non-leap year`() = runTest {
         val clock = clockAt(2025, 2, 28) // 2025 is not a leap year
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(28, 2)) } returns ResultContainer.success(emptyList())
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(29, 2)) } returns ResultContainer.success(emptyList())
@@ -213,7 +214,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should not process feb 29 birthdays on feb 28 in leap year`() = runTest {
         val clock = clockAt(2028, 2, 28) // 2028 is a leap year
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(28, 2)) } returns ResultContainer.success(emptyList())
 

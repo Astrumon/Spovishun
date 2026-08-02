@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -35,7 +36,7 @@ class RegistrationControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        registrationController = RegistrationController(autoRegisterService, birthdayService)
+        registrationController = RegistrationController(autoRegisterService, birthdayService, testMessagesProvider())
         coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
             ResultContainer.success(memberWithChat)
     }

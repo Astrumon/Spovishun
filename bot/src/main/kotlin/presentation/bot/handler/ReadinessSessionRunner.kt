@@ -6,7 +6,6 @@ import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import com.ua.astrumon.domain.bot.config.ReadinessConfig
-import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.util.ReadinessRenderer
 import kotlinx.coroutines.CoroutineScope
@@ -42,16 +41,14 @@ class ReadinessSessionRunner(
     fun start(
         bot: Bot,
         chatId: Long,
-        header: String,
-        members: List<Member>,
+        session: ReadinessSession,
     ) {
-        val session = ReadinessSession(header, members)
         val messageId = bot
             .sendMessage(
                 chatId = ChatId.fromId(chatId),
                 text = ReadinessRenderer.renderActive(session),
                 parseMode = ParseMode.HTML,
-                replyMarkup = voteKeyboard(),
+                replyMarkup = voteKeyboard(session.messages),
             ).getOrNull()
             ?.messageId
 
@@ -89,7 +86,7 @@ class ReadinessSessionRunner(
         val render = scope.launch {
             delay(COALESCE_WINDOW)
             val current = store.get(key) ?: return@launch
-            bot.editInPlace(key.chatId, key.messageId, ReadinessRenderer.renderActive(current), voteKeyboard())
+            bot.editInPlace(key.chatId, key.messageId, ReadinessRenderer.renderActive(current), voteKeyboard(current.messages))
         }
         renderJobs.put(key, render)?.cancel()
         return render
@@ -114,15 +111,15 @@ class ReadinessSessionRunner(
         bot.editInPlace(key.chatId, key.messageId, ReadinessRenderer.renderFinal(session), keyboard = null)
     }
 
-    private fun voteKeyboard(): InlineKeyboardMarkup = InlineKeyboardMarkup.create(
+    private fun voteKeyboard(messages: BotMessages): InlineKeyboardMarkup = InlineKeyboardMarkup.create(
         listOf(
             listOf(
                 InlineKeyboardButton.CallbackData(
-                    text = BotMessages.Ping.Readiness.buttonAccept,
+                    text = messages.ping.readiness.buttonAccept,
                     callbackData = "${ReadinessCallback.PREFIX}${ReadinessCallback.ACCEPT}",
                 ),
                 InlineKeyboardButton.CallbackData(
-                    text = BotMessages.Ping.Readiness.buttonDecline,
+                    text = messages.ping.readiness.buttonDecline,
                     callbackData = "${ReadinessCallback.PREFIX}${ReadinessCallback.DECLINE}",
                 ),
             ),

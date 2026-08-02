@@ -6,8 +6,10 @@ import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.PingCallback
+import com.ua.astrumon.presentation.bot.handler.ReadinessSession
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.sendPicker
 import com.ua.astrumon.presentation.controller.PingController
@@ -19,6 +21,7 @@ class PingGroupCommand(
     private val pingController: PingController,
     private val botAdminUtils: BotAdminUtils,
     private val readinessSessionRunner: ReadinessSessionRunner,
+    private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "ping"
 
@@ -27,6 +30,7 @@ class PingGroupCommand(
         update: Update,
     ) {
         val chatId = update.message?.chat?.id ?: return
+        val messages = messagesProvider.forChat(chatId)
         val user = update.message?.from ?: return
         val args = update.message
             ?.text
@@ -41,7 +45,7 @@ class PingGroupCommand(
             bot.sendPicker(
                 chatId,
                 listing,
-                PickerCopy(BotMessages.Ping.menuPrompt, BotMessages.Ping.noGroups),
+                PickerCopy(messages, messages.ping.menuPrompt, messages.ping.noGroups),
             ) { "${PingCallback.PREFIX}${it.id}" }
             return
         }
@@ -49,23 +53,30 @@ class PingGroupCommand(
         val readinessToggle = ReadinessFlag.parse(args.getOrNull(TOGGLE_FLAG_INDEX))
         if (readinessToggle != null) {
             if (!ReadinessFlag.isWellFormed(args, TOGGLE_FLAG_INDEX)) {
-                bot.reply(chatId, BotMessages.Ping.Readiness.usage)
+                bot.reply(chatId, messages.ping.readiness.usage)
                 return
             }
             val response = pingController.setGroupReadiness(chatId, user.id, args[0], readinessToggle)
-            bot.reply(chatId, response.toText(BotMessages.Success.prefix, onNotFound = ::groupNotFoundText))
+            bot.reply(chatId, response.toText(messages, messages.success.prefix, onNotFound = { groupNotFoundText(messages, it) }))
             return
         }
 
         when (val outcome = pingController.pingGroup(chatId, user.id, username, user.firstName, userRole, args)) {
-            is PingOutcome.Plain -> bot.reply(chatId, outcome.response.toText(onNotFound = ::groupNotFoundText))
-            is PingOutcome.Readiness -> readinessSessionRunner.start(bot, chatId, outcome.header, outcome.members)
+            is PingOutcome.Plain -> bot.reply(chatId, outcome.response.toText(messages, onNotFound = { groupNotFoundText(messages, it) }))
+            is PingOutcome.Readiness -> readinessSessionRunner.start(
+                bot,
+                chatId,
+                ReadinessSession(messages, outcome.header, outcome.members),
+            )
         }
     }
 
-    private fun groupNotFoundText(notFound: CommandResponse.NotFound): String {
+    private fun groupNotFoundText(
+        messages: BotMessages,
+        notFound: CommandResponse.NotFound,
+    ): String {
         val available = notFound.available.joinToString(", ") { it.escapeHtml() }.ifEmpty { "—" }
-        return BotMessages.Error.groupNotFoundHtml(notFound.identifier.escapeHtml(), available)
+        return messages.error.groupNotFoundHtml(notFound.identifier.escapeHtml(), available)
     }
 
     private companion object {

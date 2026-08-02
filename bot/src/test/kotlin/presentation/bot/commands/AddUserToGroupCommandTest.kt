@@ -15,6 +15,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -30,7 +31,7 @@ class AddUserToGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = AddUserToGroupCommand(groupController)
+        command = AddUserToGroupCommand(groupController, testMessagesProvider())
     }
 
     private fun createUpdate(

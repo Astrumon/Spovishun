@@ -12,6 +12,7 @@ import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
+import com.ua.astrumon.presentation.bot.handler.ReadinessSession
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
@@ -25,6 +26,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -42,7 +45,7 @@ class PingGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner)
+        command = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
@@ -143,7 +146,7 @@ class PingGroupCommandTest {
 
         command.execute(bot, update)
 
-        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, "📣 devs 🦞", members) }
+        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📣 devs 🦞", members)) }
         verify(exactly = 0) { bot.sendMessage(ChatId.fromId(chatId), any<String>(), ParseMode.HTML) }
     }
 

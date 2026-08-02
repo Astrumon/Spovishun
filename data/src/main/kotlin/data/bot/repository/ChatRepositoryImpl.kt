@@ -5,6 +5,7 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.bot.mapper.toChat
 import com.ua.astrumon.data.bot.table.Chats
 import com.ua.astrumon.data.db.safeDbQuery
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.Chat
 import com.ua.astrumon.domain.bot.repository.ChatRepository
 import kotlinx.datetime.Clock
@@ -70,6 +71,18 @@ class ChatRepositoryImpl : ChatRepository {
     ): ResultContainer<Unit> = safeDbQuery {
         val updatedCount = Chats.update({ Chats.chatId eq chatId }) {
             it[readinessEnabled] = enabled
+        }
+        if (updatedCount == 0) {
+            throw ResourceNotFoundException("Chat", chatId.toString())
+        }
+    }
+
+    override suspend fun setLanguage(
+        chatId: Long,
+        language: BotLanguage,
+    ): ResultContainer<Unit> = safeDbQuery {
+        val updatedCount = Chats.update({ Chats.chatId eq chatId }) {
+            it[Chats.language] = language.code
         }
         if (updatedCount == 0) {
             throw ResourceNotFoundException("Chat", chatId.toString())

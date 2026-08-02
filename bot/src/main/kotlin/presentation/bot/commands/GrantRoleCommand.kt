@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallback
 import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.sendPicker
@@ -11,6 +11,7 @@ import com.ua.astrumon.presentation.toText
 
 class GrantRoleCommand(
     private val groupController: GroupController,
+    private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "grantrole"
 
@@ -19,20 +20,22 @@ class GrantRoleCommand(
         update: Update,
     ) {
         val (chatId, userId, args) = update.messageContext() ?: return
+        val messages = messagesProvider.forChat(chatId)
 
         if (args.isEmpty()) {
             bot.sendPicker(
                 chatId,
                 groupController.chatMembersForAdminPicker(chatId, userId),
-                PickerCopy(BotMessages.Picker.memberPromptGrant, BotMessages.Picker.noMembers, BotMessages.Error.onlyAdminsRoles),
+                PickerCopy(messages, messages.picker.memberPromptGrant, messages.picker.noMembers, messages.error.onlyAdminsRoles),
             ) { "${GrantRoleCallback.PREFIX}${it.id}" }
             return
         }
 
         val text = groupController.grantRole(chatId = chatId, userId = userId, args = args).toText(
-            successPrefix = BotMessages.Success.prefix,
-            onAccessDenied = { BotMessages.Error.onlyAdminsRoles },
-            onNotFound = { BotMessages.Error.resourceNotFound(it.resource, it.identifier) },
+            messages,
+            successPrefix = messages.success.prefix,
+            onAccessDenied = { messages.error.onlyAdminsRoles },
+            onNotFound = { messages.error.resourceNotFound(it.resource, it.identifier) },
         )
 
         bot.reply(chatId, text)

@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -21,6 +21,7 @@ object ReadinessCallback {
  */
 class ReadinessCallbackHandler(
     private val runner: ReadinessSessionRunner,
+    private val messagesProvider: BotMessagesProvider,
 ) : CallbackHandler {
     override val prefix = ReadinessCallback.PREFIX
 
@@ -30,6 +31,7 @@ class ReadinessCallbackHandler(
     ) {
         val callbackQuery = update.callbackQuery ?: return
         val ctx = update.callbackContext(prefix) ?: return
+        val messages = messagesProvider.forChat(ctx.chatId)
         val vote = when (ctx.payload) {
             ReadinessCallback.ACCEPT -> ReadinessVote.ACCEPTED
             ReadinessCallback.DECLINE -> ReadinessVote.DECLINED
@@ -43,9 +45,9 @@ class ReadinessCallbackHandler(
         val render = runner.onVote(bot, key, ctx.clickerId, vote)
         if (render == null) {
             val toast = if (runner.isLive(key)) {
-                BotMessages.Ping.Readiness.notInvited
+                messages.ping.readiness.notInvited
             } else {
-                BotMessages.Ping.Readiness.sessionClosed
+                messages.ping.readiness.sessionClosed
             }
             bot.answerCallbackQuery(callbackQuery.id, text = toast)
             return

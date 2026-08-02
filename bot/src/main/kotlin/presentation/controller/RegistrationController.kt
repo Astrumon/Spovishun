@@ -6,14 +6,16 @@ import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 
 class RegistrationController(
     private val autoRegisterService: AutoRegisterService,
     private val birthdayService: BirthdayService,
+    private val messagesProvider: BotMessagesProvider,
 ) {
     suspend fun start(request: RegistrationRequest): CommandResponse {
         ensureUserRegistered(request)
-        return CommandResponse.Success(BotMessages.Welcome.message())
+        return CommandResponse.Success(messagesProvider.forChat(request.chatId).welcome.message())
     }
 
     /**
@@ -39,12 +41,13 @@ class RegistrationController(
         request: RegistrationRequest,
         birthDateToken: String? = null,
     ): CommandResponse {
+        val messages = messagesProvider.forChat(request.chatId)
         val birthday = birthDateToken?.let {
-            BirthDate.parse(it) ?: return CommandResponse.Error(BotMessages.Birthday.invalidDate)
+            BirthDate.parse(it) ?: return CommandResponse.Error(messages.birthday.invalidDate)
         }
 
         val alreadyRegistered = autoRegisterService.isUserRegistered(request.chatId, request.username).getOrNull()
-            ?: return CommandResponse.Error(BotMessages.Registration.failed(request.firstName))
+            ?: return CommandResponse.Error(messages.registration.failed(request.firstName))
 
         val result = autoRegisterService.ensureUserRegistered(
             chatId = request.chatId,
@@ -54,22 +57,23 @@ class RegistrationController(
             userRole = request.userRole,
         )
         if (result.isFailure) {
-            return CommandResponse.Error(BotMessages.Registration.failed(request.firstName))
+            return CommandResponse.Error(messages.registration.failed(request.firstName))
         }
 
-        val message = successMessage(alreadyRegistered, request)
+        val message = successMessage(messages, alreadyRegistered, request)
         return CommandResponse.Success(
-            birthday?.let { withBirthday(request.userId, it, message) } ?: message,
+            birthday?.let { withBirthday(messages, request.userId, it, message) } ?: message,
         )
     }
 
     private fun successMessage(
+        messages: BotMessages,
         alreadyRegistered: Boolean,
         request: RegistrationRequest,
     ): String = when {
-        alreadyRegistered -> BotMessages.Registration.alreadyRegistered(request.firstName)
-        request.userRole == MemberRole.ADMIN -> BotMessages.Registration.successAdmin(request.firstName)
-        else -> BotMessages.Registration.success(request.firstName)
+        alreadyRegistered -> messages.registration.alreadyRegistered(request.firstName)
+        request.userRole == MemberRole.ADMIN -> messages.registration.successAdmin(request.firstName)
+        else -> messages.registration.success(request.firstName)
     }
 
     /**
@@ -77,11 +81,12 @@ class RegistrationController(
      * A failed birthday write does not undo the registration, hence a warning suffix, not an error.
      */
     private suspend fun withBirthday(
+        messages: BotMessages,
         userId: Long,
         birthday: BirthDate,
         baseMessage: String,
     ): String = birthdayService.setBirthday(userId, birthday).fold(
-        onSuccess = { "$baseMessage\n${BotMessages.Registration.birthdaySaved(birthday.format())}" },
-        onFailure = { "$baseMessage\n${BotMessages.Registration.birthdayFailed}" },
+        onSuccess = { "$baseMessage\n${messages.registration.birthdaySaved(birthday.format())}" },
+        onFailure = { "$baseMessage\n${messages.registration.birthdayFailed}" },
     )
 }

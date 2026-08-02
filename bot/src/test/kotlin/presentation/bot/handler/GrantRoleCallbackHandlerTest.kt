@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -25,7 +26,7 @@ class GrantRoleCallbackHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        handler = GrantRoleCallbackHandler(groupController)
+        handler = GrantRoleCallbackHandler(groupController, testMessagesProvider())
     }
 
     private fun update(data: String): Update = callbackUpdate(chatId, clickerId, data)

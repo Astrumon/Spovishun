@@ -1,6 +1,5 @@
 package commands
 
-import com.ua.astrumon.presentation.bot.BotMessages
 import infrastructure.BaseE2ETest
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -24,7 +23,7 @@ class WhatsNewCommandE2ETest : BaseE2ETest() {
 
         // Reaching this point already proves the payload fit inside Telegram's 4096-character limit
         // and parsed cleanly — either would have come back as an API error and failed the send.
-        assertTrue(text.startsWith(BotMessages.WhatsNew.prefix.trim()), "History keeps the whatsnew prefix")
+        assertTrue(text.startsWith(messages.whatsNew.prefix.trim()), "History keeps the whatsnew prefix")
         assertFalse(text.contains("<b>"), "Bold tags must be consumed by Telegram, not echoed literally")
         assertTrue(sent.entities.orEmpty().isNotEmpty(), "Parsed HTML must produce message entities")
     }

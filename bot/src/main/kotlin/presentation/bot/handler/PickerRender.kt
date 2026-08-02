@@ -12,8 +12,12 @@ import com.ua.astrumon.presentation.toText
 /**
  * UI copy for a single picker step: the [prompt] plus its empty and access-denied fallbacks.
  * A null [accessDeniedMessage] keeps the generic `toText()` wording — for pickers with no role gate.
+ *
+ * [messages] is the bundle the other three strings were rendered from. Carrying it here is what lets
+ * the generic fallback stay in the chat's language without widening `sendPicker` / `advancePicker`.
  */
 internal data class PickerCopy(
+    val messages: BotMessages,
     val prompt: String,
     val emptyMessage: String,
     val accessDeniedMessage: String? = null,
@@ -60,8 +64,8 @@ private fun PickerListing.toRender(
 ): PickerRender = when (this) {
     is PickerListing.Reject ->
         PickerRender.Text(
-            response.toText(onAccessDenied = { reason ->
-                copy.accessDeniedMessage ?: BotMessages.Error.accessDenied(reason)
+            response.toText(copy.messages, onAccessDenied = { reason ->
+                copy.accessDeniedMessage ?: copy.messages.error.accessDenied(reason)
             }),
         )
     is PickerListing.Show ->

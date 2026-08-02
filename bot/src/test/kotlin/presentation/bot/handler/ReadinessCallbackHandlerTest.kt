@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -29,7 +30,7 @@ class ReadinessCallbackHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        handler = ReadinessCallbackHandler(runner)
+        handler = ReadinessCallbackHandler(runner, testMessagesProvider())
     }
 
     private fun update(data: String) = callbackUpdate(chatId, clickerId, data, messageId)

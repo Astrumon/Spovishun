@@ -1,6 +1,7 @@
 package com.ua.astrumon.domain.bot.repository
 
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.Chat
 
 interface ChatRepository {
@@ -24,5 +25,10 @@ interface ChatRepository {
     suspend fun setReadinessEnabled(
         chatId: Long,
         enabled: Boolean,
+    ): ResultContainer<Unit>
+
+    suspend fun setLanguage(
+        chatId: Long,
+        language: BotLanguage,
     ): ResultContainer<Unit>
 }

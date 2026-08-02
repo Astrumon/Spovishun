@@ -22,6 +22,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -38,7 +39,7 @@ class RandomCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = RandomCommand(randomController, botAdminUtils)
+        command = RandomCommand(randomController, botAdminUtils, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }

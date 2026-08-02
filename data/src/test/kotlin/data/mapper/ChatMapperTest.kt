@@ -2,6 +2,7 @@ package data.mapper
 
 import com.ua.astrumon.data.bot.mapper.toChat
 import com.ua.astrumon.data.bot.table.Chats
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.datetime.Clock
@@ -21,9 +22,11 @@ class ChatMapperTest {
         every { row[Chats.registeredAt] } returns now
         every { row[Chats.announcementsEnabled] } returns true
         every { row[Chats.readinessEnabled] } returns true
+        every { row[Chats.language] } returns "en"
 
         val chat = row.toChat()
 
+        assertEquals(BotLanguage.EN, chat.language)
         assertEquals(-1001234567890L, chat.chatId)
         assertEquals("Test Group", chat.title)
         assertEquals("supergroup", chat.type)
@@ -42,11 +45,14 @@ class ChatMapperTest {
         every { row[Chats.registeredAt] } returns now
         every { row[Chats.announcementsEnabled] } returns false
         every { row[Chats.readinessEnabled] } returns false
+        // A code the enum does not know must not blow up the mapper — it degrades to Ukrainian.
+        every { row[Chats.language] } returns "de"
 
         val chat = row.toChat()
 
         assertNull(chat.title)
         assertNull(chat.type)
         assertEquals(false, chat.readinessEnabled)
+        assertEquals(BotLanguage.UK, chat.language)
     }
 }

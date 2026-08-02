@@ -12,6 +12,7 @@ import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.toHtmlMention
 import org.slf4j.LoggerFactory
 
@@ -20,6 +21,7 @@ class PingController(
     private val groupService: GroupService,
     private val chatService: ChatService,
     private val autoRegisterService: AutoRegisterService,
+    private val messagesProvider: BotMessagesProvider,
 ) : BaseController(memberService) {
     private val logger = LoggerFactory.getLogger(PingController::class.java)
 
@@ -32,20 +34,21 @@ class PingController(
         args: List<String>,
     ): PingOutcome {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         val membersResult = memberService.getAllMembersInChat(chatId)
         if (membersResult.isFailure) {
             logger.error("Failed to get all members for pingAll: {}", membersResult.exceptionOrNull()?.let { it::class.simpleName })
-            return plain(CommandResponse.Error(BotMessages.Error.loadMembersInternal))
+            return plain(CommandResponse.Error(messages.error.loadMembersInternal))
         }
 
         val members = membersResult.getOrNull().orEmpty().map { Member(it.id, it.userId, it.username, it.firstName, it.birthday) }
         if (members.isEmpty()) {
-            return plain(CommandResponse.Success(BotMessages.Ping.noRegistered))
+            return plain(CommandResponse.Success(messages.ping.noRegistered))
         }
 
-        val header = BotMessages.Ping.headerAll(
-            BotMessages.Ping.iconAll.repeat(members.size),
+        val header = messages.ping.headerAll(
+            messages.ping.iconAll.repeat(members.size),
             args.joinToString(" ").escapeHtml(),
         )
         return outcome(header, members, readiness = isChatReadinessEnabled(chatId))
@@ -63,15 +66,16 @@ class PingController(
         userRole: MemberRole,
     ): PickerListing {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         return groupService.getAllGroupsWithMembers(chatId).fold(
             onSuccess = { groups ->
-                val allMembers = PickerOption(ALL_MEMBERS_ID, BotMessages.Ping.allMembersOption)
+                val allMembers = PickerOption(ALL_MEMBERS_ID, messages.ping.allMembersOption)
                 PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.name) })
             },
             onFailure = {
                 logger.error("Failed to get groups for groupsForPicker: {}", it::class.simpleName)
-                PickerListing.Reject(CommandResponse.Error(BotMessages.Error.loadGroupsInternal))
+                PickerListing.Reject(CommandResponse.Error(messages.error.loadGroupsInternal))
             },
         )
     }
@@ -85,17 +89,18 @@ class PingController(
         groupId: Long,
     ): PingOutcome {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         val allGroups = groupService.getAllGroupsWithMembers(chatId)
         if (allGroups.isFailure) {
             logger.error("Failed to get groups for pingGroupById: {}", allGroups.exceptionOrNull()?.let { it::class.simpleName })
-            return plain(CommandResponse.Error(BotMessages.Error.loadGroupsInternal))
+            return plain(CommandResponse.Error(messages.error.loadGroupsInternal))
         }
 
         val group = allGroups.getOrNull()?.firstOrNull { it.id == groupId }
             ?: return plain(CommandResponse.NotFound("Група", groupId.toString()))
 
-        return pingGroupMembers(group, extra = "")
+        return pingGroupMembers(messages, group, extra = "")
     }
 
     suspend fun pingGroup(
@@ -107,16 +112,17 @@ class PingController(
         args: List<String>,
     ): PingOutcome {
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val messages = messagesProvider.forChat(chatId)
 
         if (args.isEmpty()) {
-            return plain(CommandResponse.Error(BotMessages.Ping.usage))
+            return plain(CommandResponse.Error(messages.ping.usage))
         }
 
         val groupKey = args[0].lowercase()
         val group = groupService.getGroupByKey(chatId, groupKey).getOrNull()
             ?: return plain(CommandResponse.NotFound("Група", groupKey, availableGroupKeys(chatId)))
 
-        return pingGroupMembers(group, extra = args.drop(1).joinToString(" "))
+        return pingGroupMembers(messages, group, extra = args.drop(1).joinToString(" "))
     }
 
     /** Turns readiness mode on or off for a single group. Moderator-only, like every group edit. */
@@ -128,22 +134,24 @@ class PingController(
     ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
+        val messages = messagesProvider.forChat(chatId)
         val key = groupKey.lowercase()
         return groupService.setReadinessEnabled(chatId, key, enabled).fold(
-            onSuccess = { CommandResponse.Success(groupToggleMessage(key, enabled)) },
+            onSuccess = { CommandResponse.Success(groupToggleMessage(messages, key, enabled)) },
             onFailure = { exception -> groupToggleFailure(chatId, key, exception) },
         )
     }
 
     private fun groupToggleMessage(
+        messages: BotMessages,
         key: String,
         enabled: Boolean,
     ): String {
         val name = key.escapeHtml()
         return if (enabled) {
-            BotMessages.Ping.Readiness.enabledGroup(name)
+            messages.ping.readiness.enabledGroup(name)
         } else {
-            BotMessages.Ping.Readiness.disabledGroup(name)
+            messages.ping.readiness.disabledGroup(name)
         }
     }
 
@@ -152,11 +160,12 @@ class PingController(
         key: String,
         exception: BaseException,
     ): CommandResponse {
+        val messages = messagesProvider.forChat(chatId)
         if (exception is ResourceNotFoundException) {
             return CommandResponse.NotFound("Група", key, availableGroupKeys(chatId))
         }
         logger.error("Failed to set group readiness: {}", exception::class.simpleName)
-        return CommandResponse.Error(BotMessages.Error.loadGroupsInternal)
+        return CommandResponse.Error(messages.error.loadGroupsInternal)
     }
 
     /** Turns readiness mode on or off for the whole-chat ping (`/all`). Moderator-only. */
@@ -167,32 +176,34 @@ class PingController(
     ): CommandResponse {
         requireModeratorAccess(chatId, userId)?.let { return it }
 
+        val messages = messagesProvider.forChat(chatId)
         return chatService.setReadinessEnabled(chatId, enabled).fold(
             onSuccess = {
-                val message = if (enabled) BotMessages.Ping.Readiness.enabled else BotMessages.Ping.Readiness.disabled
+                val message = if (enabled) messages.ping.readiness.enabled else messages.ping.readiness.disabled
                 CommandResponse.Success(message)
             },
             onFailure = { exception ->
                 logger.error("Failed to set chat readiness: {}", exception::class.simpleName)
-                CommandResponse.Error(BotMessages.Error.loadMembersInternal)
+                CommandResponse.Error(messages.error.loadMembersInternal)
             },
         )
     }
 
     private suspend fun pingGroupMembers(
+        messages: BotMessages,
         group: GroupWithMembers,
         extra: String,
     ): PingOutcome {
         val members = resolveMembers(group)
         if (members.isEmpty()) {
-            return plain(CommandResponse.Success(BotMessages.Ping.noTargets))
+            return plain(CommandResponse.Success(messages.ping.noTargets))
         }
 
-        val icons = BotMessages.Ping.iconGroup.repeat(members.size)
+        val icons = messages.ping.iconGroup.repeat(members.size)
         // The header is rendered with ParseMode.HTML and BotMessages never escapes — both the
         // moderator-chosen group name and the caller's free text have to be neutralised here, or a
         // stray `<` makes Telegram reject the whole send.
-        val header = BotMessages.Ping.headerGroup(group.name.escapeHtml(), icons, extra.escapeHtml())
+        val header = messages.ping.headerGroup(group.name.escapeHtml(), icons, extra.escapeHtml())
         return outcome(header, members, readiness = group.readinessEnabled)
     }
 

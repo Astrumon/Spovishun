@@ -7,6 +7,7 @@ import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.ReadinessSession
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.PingOutcome
@@ -18,6 +19,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -34,7 +37,7 @@ class PingCallbackHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner)
+        handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, testMessagesProvider())
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
@@ -86,6 +89,6 @@ class PingCallbackHandlerTest {
         handler.handle(bot, update("ping:12"))
 
         verify(exactly = 1) { bot.deleteMessage(ChatId.fromId(chatId), 5L) }
-        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, "📣 devs 🦞", members) }
+        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📣 devs 🦞", members)) }
     }
 }

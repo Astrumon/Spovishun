@@ -3,7 +3,7 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.sanitizeUsername
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
 import com.ua.astrumon.presentation.toText
@@ -12,6 +12,7 @@ import com.ua.astrumon.presentation.util.BotAdminUtils
 class RegisterCommand(
     private val registrationController: RegistrationController,
     private val botAdminUtils: BotAdminUtils,
+    private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "register"
 
@@ -21,9 +22,10 @@ class RegisterCommand(
     ) {
         val user = update.message?.from ?: return
         val (chatId, _, args) = update.messageContext() ?: return
+        val messages = messagesProvider.forChat(chatId)
 
         if (hasBirthdayFlag(args) && args.size != FLAG_WITH_VALUE_SIZE) {
-            bot.reply(chatId, BotMessages.Registration.usage)
+            bot.reply(chatId, messages.registration.usage)
             return
         }
 
@@ -36,7 +38,7 @@ class RegisterCommand(
         )
         val response = registrationController.register(request, birthDateToken(args))
 
-        val text = response.toText(BotMessages.Success.prefix)
+        val text = response.toText(messages, messages.success.prefix)
 
         bot.reply(chatId, text)
     }

@@ -4,7 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.common.util.sanitizeUsername
-import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.toText
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -20,6 +20,7 @@ object RandomCallback {
 class RandomCallbackHandler(
     private val randomController: RandomController,
     private val botAdminUtils: BotAdminUtils,
+    private val messagesProvider: BotMessagesProvider,
 ) : CallbackHandler {
     override val prefix = RandomCallback.PREFIX
 
@@ -30,6 +31,7 @@ class RandomCallbackHandler(
         val callbackQuery = update.callbackQuery ?: return
         bot.answerCallbackQuery(callbackQuery.id)
         val ctx = update.callbackContext(prefix) ?: return
+        val messages = messagesProvider.forChat(ctx.chatId)
         val groupId = ctx.payload.toLongOrNull() ?: return
 
         val user = callbackQuery.from
@@ -43,7 +45,8 @@ class RandomCallbackHandler(
         }
 
         val text = response.toText(
-            onNotFound = { BotMessages.Error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") },
+            messages,
+            onNotFound = { messages.error.groupNotFoundHtml(it.identifier.escapeHtml(), "—") },
         )
         bot.replaceWithText(ctx.chatId, ctx.messageId, text)
     }

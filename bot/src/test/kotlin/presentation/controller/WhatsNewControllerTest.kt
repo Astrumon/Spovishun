@@ -12,6 +12,8 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -39,14 +41,14 @@ class WhatsNewControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        controller = WhatsNewController(releaseNotesService, chatService, memberService)
+        controller = WhatsNewController(releaseNotesService, chatService, memberService, testMessagesProvider())
     }
 
     @Test
     fun `showLatest should return Success with first note content`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("2.0.0"))
@@ -56,7 +58,7 @@ class WhatsNewControllerTest {
     fun `showLatest should not include older versions`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(!result.message.contains("1.0.0"))
@@ -66,7 +68,7 @@ class WhatsNewControllerTest {
     fun `showLatest should return Silent when notes are empty`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Silent)
     }
@@ -75,7 +77,7 @@ class WhatsNewControllerTest {
     fun `showLatest should return Silent when latest note has no changes`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Silent)
     }
@@ -85,7 +87,7 @@ class WhatsNewControllerTest {
         coEvery { releaseNotesService.getAll() } returns
             ResultContainer.failure(DatabaseException("classpath read failed"))
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -94,7 +96,7 @@ class WhatsNewControllerTest {
     fun `showHistory should return Success with all versions`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
 
-        val result = controller.showHistory()
+        val result = controller.showHistory(ukMessages)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("2.0.0"))
@@ -105,7 +107,7 @@ class WhatsNewControllerTest {
     fun `showHistory should return Silent when notes are empty`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
 
-        val result = controller.showHistory()
+        val result = controller.showHistory(ukMessages)
 
         assertTrue(result is CommandResponse.Silent)
     }
@@ -114,7 +116,7 @@ class WhatsNewControllerTest {
     fun `showHistory should omit entries with no changes`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
 
-        val result = controller.showHistory()
+        val result = controller.showHistory(ukMessages)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("1.0.0"))
@@ -127,7 +129,7 @@ class WhatsNewControllerTest {
             listOf(ReleaseNote("1.6.0", "2026-06-20", emptyList())),
         )
 
-        val result = controller.showHistory()
+        val result = controller.showHistory(ukMessages)
 
         assertTrue(result is CommandResponse.Silent)
     }
@@ -137,7 +139,7 @@ class WhatsNewControllerTest {
         coEvery { releaseNotesService.getAll() } returns
             ResultContainer.failure(DatabaseException("classpath read failed"))
 
-        val result = controller.showHistory()
+        val result = controller.showHistory(ukMessages)
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -146,7 +148,7 @@ class WhatsNewControllerTest {
     fun `showLatest should return Success for single-entry list`() = runTest {
         coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(notes.first()))
 
-        val result = controller.showLatest()
+        val result = controller.showLatest(ukMessages)
 
         assertTrue(result is CommandResponse.Success)
     }
