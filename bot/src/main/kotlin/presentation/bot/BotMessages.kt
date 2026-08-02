@@ -43,6 +43,7 @@ class BotMessages private constructor(
     val random = Random()
     val registration = Registration()
     val welcome = Welcome()
+    val languageSetting = LanguageSetting()
 
     inner class Error {
         fun prefixed(msg: String): String = format("error.prefixed", msg)
@@ -270,6 +271,15 @@ class BotMessages private constructor(
         fun message(): String = format("welcome.message", VersionInfo.getFullVersion())
 
         val invitation: String get() = get("welcome.invitation")
+    }
+
+    inner class LanguageSetting {
+        val prompt: String get() = get("language.prompt")
+
+        /** Option labels stay in their own language, so a chat on EN still shows "🇺🇦 Українська". */
+        fun option(language: BotLanguage): String = get("language.option.${language.code}")
+
+        fun changed(language: BotLanguage): String = format("language.changed", option(language))
     }
 
     companion object {

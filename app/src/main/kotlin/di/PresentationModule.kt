@@ -8,6 +8,7 @@ import com.ua.astrumon.presentation.bot.commands.BirthdayCommand
 import com.ua.astrumon.presentation.bot.commands.BotCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
+import com.ua.astrumon.presentation.bot.commands.LanguageCommand
 import com.ua.astrumon.presentation.bot.commands.MembersCommand
 import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
 import com.ua.astrumon.presentation.bot.commands.PingAllCommand
@@ -23,6 +24,7 @@ import com.ua.astrumon.presentation.bot.handler.CallbackHandler
 import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.DeleteGroupCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
+import com.ua.astrumon.presentation.bot.handler.LanguageCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.RandomCallbackHandler
@@ -32,6 +34,7 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.LanguageController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
@@ -56,6 +59,7 @@ internal val presentationModule = module {
     single { BirthdayController(get(), get(), get()) }
     single { WhatsNewController(get(), get(), get(), get()) }
     single { RandomController(get(), get(), get(), get()) }
+    single { LanguageController(get(), get(), get()) }
 
     // Commands
     single { StartCommand(get(), get(), get()) } bind BotCommand::class
@@ -72,6 +76,7 @@ internal val presentationModule = module {
     single { BirthdayCommand(get(), get()) } bind BotCommand::class
     single { WhatsNewCommand(get(), get()) } bind BotCommand::class
     single { RandomCommand(get(), get(), get()) } bind BotCommand::class
+    single { LanguageCommand(get(), get()) } bind BotCommand::class
 
     // Schedulers — the qualified scopes they run on are declared in ConfigModule.
     single { BirthdayGreetingScheduler(get(), get(), get(named<BirthdaySchedulerScope>()), get()) }
@@ -91,6 +96,7 @@ internal val presentationModule = module {
     single { RemoveFromGroupCallbackHandler(get(), get()) } bind CallbackHandler::class
     single { GrantRoleCallbackHandler(get(), get()) } bind CallbackHandler::class
     single { RandomCallbackHandler(get(), get(), get()) } bind CallbackHandler::class
+    single { LanguageCallbackHandler(get(), get()) } bind CallbackHandler::class
     single { CallbackRouter(getAll()) }
     single { TelegramBot(get(), get(), get(), get()) }
     single { MessageHandler(get(), get(), get()) }

@@ -5,6 +5,7 @@ import com.ua.astrumon.data.bot.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.bot.table.Chats
 import com.ua.astrumon.data.bot.table.GroupMembers
 import com.ua.astrumon.data.bot.table.Groups
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
@@ -119,5 +120,43 @@ class ChatRepositoryImplTest {
         repository.setReadinessEnabled(100L, false)
 
         assertEquals(false, repository.findById(100L).getOrThrow()?.announcementsEnabled)
+    }
+
+    @Test
+    fun `a new chat should default to Ukrainian`() = runTest {
+        val result = repository.save(100L, null, null)
+
+        assertEquals(BotLanguage.UK, result.getOrThrow().language)
+    }
+
+    @Test
+    fun `setLanguage should persist the choice`() = runTest {
+        repository.save(100L, null, null)
+
+        val update = repository.setLanguage(100L, BotLanguage.EN)
+
+        assertTrue(update.isSuccess)
+        assertEquals(BotLanguage.EN, repository.findById(100L).getOrThrow()?.language)
+    }
+
+    @Test
+    fun `setLanguage should fail for an unknown chat`() = runTest {
+        val result = repository.setLanguage(999L, BotLanguage.EN)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `setLanguage should not touch the readiness and announcement flags`() = runTest {
+        repository.save(100L, null, null)
+        repository.setAnnouncementsEnabled(100L, false)
+        repository.setReadinessEnabled(100L, false)
+
+        repository.setLanguage(100L, BotLanguage.EN)
+
+        val chat = repository.findById(100L).getOrThrow()
+        assertEquals(false, chat?.announcementsEnabled)
+        assertEquals(false, chat?.readinessEnabled)
     }
 }

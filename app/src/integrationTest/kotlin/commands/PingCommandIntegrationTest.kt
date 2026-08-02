@@ -193,5 +193,5 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         }
     }
 
-    private fun pingCallbackHandler() = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner)
+    private fun pingCallbackHandler() = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
 }

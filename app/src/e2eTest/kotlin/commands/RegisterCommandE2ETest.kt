@@ -20,7 +20,7 @@ class RegisterCommandE2ETest : BaseE2ETest() {
         val sent = dispatchExpectingReply("/register")
 
         assertEquals(
-            messages.success.prefix + messages.registration.alreadyRegistered("HelperBot"),
+            ukMessages.success.prefix + ukMessages.registration.alreadyRegistered("HelperBot"),
             sent.text,
         )
         assertEquals(1, allMembers().count { it.userId == helperBotId }, "The repeat must not duplicate the member")

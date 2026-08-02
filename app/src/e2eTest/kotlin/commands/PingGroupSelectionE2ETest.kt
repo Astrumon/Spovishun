@@ -32,7 +32,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
 
         val sent = dispatchExpectingReply("/ping")
 
-        assertEquals(messages.ping.menuPrompt, sent.text, "Menu prompt must survive the round trip")
+        assertEquals(ukMessages.ping.menuPrompt, sent.text, "Menu prompt must survive the round trip")
         val markup = assertNotNull(sent.replyMarkup, "Telegram must echo back the inline keyboard it stored")
         // One button per group plus the unconditional "all members" option.
         assertEquals(allGroups().size + 1, markup.inlineKeyboard.sumOf { it.size }, "Every option must reach Telegram")
@@ -47,7 +47,7 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
         }
         val group = allGroups().first { it.name == "callback_squad" }
 
-        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner)
+        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
         val sent = expectingReply("the ping callback") {
             runBlocking {
                 handler.handle(mainBot, buildCallbackUpdate(data = "${PingCallback.PREFIX}${group.id}", messageId = 1L))

@@ -17,6 +17,7 @@ import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
 import com.ua.astrumon.domain.bot.cache.ChatCache
 import com.ua.astrumon.domain.bot.cache.UserCache
 import com.ua.astrumon.domain.bot.config.ReadinessConfig
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
@@ -25,6 +26,8 @@ import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
+import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
 import com.ua.astrumon.presentation.bot.commands.BirthdayCommand
@@ -130,6 +133,12 @@ abstract class BaseE2ETest {
     /** Exposed for the callback handlers, which tests construct directly. */
     protected lateinit var pingController: PingController
 
+    /** Real provider over the real ChatService — e2e chats resolve their language from the database. */
+    protected lateinit var messagesProvider: BotMessagesProvider
+
+    /** The Ukrainian bundle, for assertions on copy the bot is expected to send. */
+    protected val ukMessages: BotMessages = BotMessages.of(BotLanguage.UK)
+
     /** Same reason as [pingController] — the ping commands and handler both need it. */
     protected lateinit var readinessSessionRunner: ReadinessSessionRunner
 
@@ -234,33 +243,34 @@ abstract class BaseE2ETest {
     }
 
     private fun initCommands() {
-        val groupController = GroupController(groupService, memberService, autoRegisterService)
-        val membersController = MembersController(memberService, autoRegisterService)
+        messagesProvider = BotMessagesProvider(chatService)
+        val groupController = GroupController(groupService, memberService, autoRegisterService, messagesProvider)
+        val membersController = MembersController(memberService, autoRegisterService, messagesProvider)
         val birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
-        val registrationController = RegistrationController(autoRegisterService, birthdayService)
-        val randomController = RandomController(memberService, groupService, autoRegisterService)
-        val birthdayController = BirthdayController(birthdayService, memberService)
-        val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService)
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService)
+        val registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
+        val randomController = RandomController(memberService, groupService, autoRegisterService, messagesProvider)
+        val birthdayController = BirthdayController(birthdayService, memberService, messagesProvider)
+        val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService, messagesProvider)
+        pingController = PingController(memberService, groupService, chatService, autoRegisterService, messagesProvider)
 
         // Kept in lockstep with :app di/PresentationModule — a command missing here would make
         // dispatch() fail loudly rather than silently prove nothing.
         commandRegistry = CommandRegistry(
             listOf(
-                StartCommand(registrationController, botAdminUtils),
-                RegisterCommand(registrationController, botAdminUtils),
-                MembersCommand(membersController, botAdminUtils),
-                GrantRoleCommand(groupController),
-                ShowGroupsCommand(groupController, botAdminUtils),
-                NewGroupCommand(groupController),
-                DeleteGroupCommand(groupController),
-                AddUserToGroupCommand(groupController),
-                RemoveUserFromGroupCommand(groupController),
-                PingAllCommand(pingController, botAdminUtils, readinessSessionRunner),
-                PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner),
-                BirthdayCommand(birthdayController),
-                WhatsNewCommand(whatsNewController),
-                RandomCommand(randomController, botAdminUtils),
+                StartCommand(registrationController, botAdminUtils, messagesProvider),
+                RegisterCommand(registrationController, botAdminUtils, messagesProvider),
+                MembersCommand(membersController, botAdminUtils, messagesProvider),
+                GrantRoleCommand(groupController, messagesProvider),
+                ShowGroupsCommand(groupController, botAdminUtils, messagesProvider),
+                NewGroupCommand(groupController, messagesProvider),
+                DeleteGroupCommand(groupController, messagesProvider),
+                AddUserToGroupCommand(groupController, messagesProvider),
+                RemoveUserFromGroupCommand(groupController, messagesProvider),
+                PingAllCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
+                PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
+                BirthdayCommand(birthdayController, messagesProvider),
+                WhatsNewCommand(whatsNewController, messagesProvider),
+                RandomCommand(randomController, botAdminUtils, messagesProvider),
             ),
         )
     }

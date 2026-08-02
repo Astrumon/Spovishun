@@ -23,6 +23,7 @@ import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
@@ -78,6 +79,9 @@ abstract class BaseIntegrationTest {
     protected lateinit var chatService: ChatService
     protected lateinit var groupService: GroupService
     protected lateinit var autoRegisterService: AutoRegisterService
+
+    // Real provider over the real ChatService, so language resolution hits the database like in production
+    protected lateinit var messagesProvider: BotMessagesProvider
 
     // Caches wired into AutoRegisterService — recreated per test so cases can inspect/evict entries
     protected lateinit var userCache: UserCache
@@ -158,6 +162,7 @@ abstract class BaseIntegrationTest {
         userCache = UserCache()
         chatCache = ChatCache()
         autoRegisterService = AutoRegisterService(memberService, chatService, userCache, chatCache)
+        messagesProvider = BotMessagesProvider(chatService)
     }
 
     private fun initTelegramMocks() {
@@ -182,11 +187,11 @@ abstract class BaseIntegrationTest {
     }
 
     private fun initControllers() {
-        groupController = GroupController(groupService, memberService, autoRegisterService)
-        membersController = MembersController(memberService, autoRegisterService)
-        registrationController = RegistrationController(autoRegisterService, birthdayService)
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService)
-        randomController = RandomController(memberService, groupService, autoRegisterService)
+        groupController = GroupController(groupService, memberService, autoRegisterService, messagesProvider)
+        membersController = MembersController(memberService, autoRegisterService, messagesProvider)
+        registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
+        pingController = PingController(memberService, groupService, chatService, autoRegisterService, messagesProvider)
+        randomController = RandomController(memberService, groupService, autoRegisterService, messagesProvider)
     }
 
     /**
@@ -207,18 +212,18 @@ abstract class BaseIntegrationTest {
     }
 
     private fun initCommands() {
-        startCommand = StartCommand(registrationController, botAdminUtils)
-        registerCommand = RegisterCommand(registrationController, botAdminUtils)
-        membersCommand = MembersCommand(membersController, botAdminUtils)
-        grantRoleCommand = GrantRoleCommand(groupController)
-        showGroupsCommand = ShowGroupsCommand(groupController, botAdminUtils)
-        newGroupCommand = NewGroupCommand(groupController)
-        deleteGroupCommand = DeleteGroupCommand(groupController)
-        addUserToGroupCommand = AddUserToGroupCommand(groupController)
-        removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController)
-        pingAllCommand = PingAllCommand(pingController, botAdminUtils, readinessSessionRunner)
-        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner)
-        randomCommand = RandomCommand(randomController, botAdminUtils)
+        startCommand = StartCommand(registrationController, botAdminUtils, messagesProvider)
+        registerCommand = RegisterCommand(registrationController, botAdminUtils, messagesProvider)
+        membersCommand = MembersCommand(membersController, botAdminUtils, messagesProvider)
+        grantRoleCommand = GrantRoleCommand(groupController, messagesProvider)
+        showGroupsCommand = ShowGroupsCommand(groupController, botAdminUtils, messagesProvider)
+        newGroupCommand = NewGroupCommand(groupController, messagesProvider)
+        deleteGroupCommand = DeleteGroupCommand(groupController, messagesProvider)
+        addUserToGroupCommand = AddUserToGroupCommand(groupController, messagesProvider)
+        removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController, messagesProvider)
+        pingAllCommand = PingAllCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
+        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
+        randomCommand = RandomCommand(randomController, botAdminUtils, messagesProvider)
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
     }
 
