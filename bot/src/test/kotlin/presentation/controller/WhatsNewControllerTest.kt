@@ -2,14 +2,17 @@ package presentation.controller
 
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.CommandResponse
+import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import presentation.testMessagesProvider
@@ -46,7 +49,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should return Success with first note content`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(notes)
 
         val result = controller.showLatest(ukMessages)
 
@@ -56,7 +59,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should not include older versions`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(notes)
 
         val result = controller.showLatest(ukMessages)
 
@@ -66,7 +69,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should return Silent when notes are empty`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(emptyList())
 
         val result = controller.showLatest(ukMessages)
 
@@ -75,7 +78,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should return Silent when latest note has no changes`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(emptyLatestNotes)
 
         val result = controller.showLatest(ukMessages)
 
@@ -84,7 +87,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should return Error when service fails`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns
+        coEvery { releaseNotesService.getAll(any()) } returns
             ResultContainer.failure(DatabaseException("classpath read failed"))
 
         val result = controller.showLatest(ukMessages)
@@ -94,7 +97,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showHistory should return Success with all versions`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(notes)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(notes)
 
         val result = controller.showHistory(ukMessages)
 
@@ -105,7 +108,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showHistory should return Silent when notes are empty`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyList())
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(emptyList())
 
         val result = controller.showHistory(ukMessages)
 
@@ -114,7 +117,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showHistory should omit entries with no changes`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(emptyLatestNotes)
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(emptyLatestNotes)
 
         val result = controller.showHistory(ukMessages)
 
@@ -125,7 +128,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showHistory should return Silent when all entries have no changes`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(
             listOf(ReleaseNote("1.6.0", "2026-06-20", emptyList())),
         )
 
@@ -136,7 +139,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showHistory should return Error when service fails`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns
+        coEvery { releaseNotesService.getAll(any()) } returns
             ResultContainer.failure(DatabaseException("classpath read failed"))
 
         val result = controller.showHistory(ukMessages)
@@ -146,7 +149,7 @@ class WhatsNewControllerTest {
 
     @Test
     fun `showLatest should return Success for single-entry list`() = runTest {
-        coEvery { releaseNotesService.getAll() } returns ResultContainer.success(listOf(notes.first()))
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(listOf(notes.first()))
 
         val result = controller.showLatest(ukMessages)
 
@@ -182,6 +185,24 @@ class WhatsNewControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue((result as CommandResponse.Success).message.contains("вимкнено"))
+    }
+
+    @Test
+    fun `showLatest should read the notes in the language of the bundle`() = runTest {
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(notes)
+
+        controller.showLatest(BotMessages.of(BotLanguage.EN))
+
+        coVerify { releaseNotesService.getAll(BotLanguage.EN) }
+    }
+
+    @Test
+    fun `showHistory should read the notes in the language of the bundle`() = runTest {
+        coEvery { releaseNotesService.getAll(any()) } returns ResultContainer.success(notes)
+
+        controller.showHistory(BotMessages.of(BotLanguage.EN))
+
+        coVerify { releaseNotesService.getAll(BotLanguage.EN) }
     }
 
     @Test

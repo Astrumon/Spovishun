@@ -20,7 +20,8 @@ interface ChatRepository {
         enabled: Boolean,
     ): ResultContainer<Unit>
 
-    suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>>
+    /** Full rows, not ids: the broadcaster renders per language and reads it straight off [Chat]. */
+    suspend fun findAnnouncementChats(): ResultContainer<List<Chat>>
 
     suspend fun setReadinessEnabled(
         chatId: Long,

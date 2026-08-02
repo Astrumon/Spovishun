@@ -89,10 +89,10 @@ class ChatRepositoryImpl : ChatRepository {
         }
     }
 
-    override suspend fun findAnnouncementChatIds(): ResultContainer<List<Long>> = safeDbQuery {
+    override suspend fun findAnnouncementChats(): ResultContainer<List<Chat>> = safeDbQuery {
         Chats
             .selectAll()
             .where { Chats.announcementsEnabled eq true }
-            .map { it[Chats.chatId] }
+            .map { it.toChat() }
     }
 }

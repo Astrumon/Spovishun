@@ -14,9 +14,9 @@ class WhatsNewController(
     private val memberService: MemberService,
     private val messagesProvider: BotMessagesProvider,
 ) {
-    // Release notes are chat-agnostic, so these two take the bundle the caller already resolved
-    // rather than a chat id they would have no other use for.
-    suspend fun showLatest(messages: BotMessages): CommandResponse = releaseNotesService.getAll().fold(
+    // These two take the bundle the caller already resolved rather than a chat id they would have
+    // no other use for; it doubles as the language the notes themselves are read in.
+    suspend fun showLatest(messages: BotMessages): CommandResponse = releaseNotesService.getAll(messages.language).fold(
         onSuccess = { notes ->
             val text = ReleaseNotesFormatter.formatLatest(notes)
                 ?: return@fold CommandResponse.Silent
@@ -25,7 +25,7 @@ class WhatsNewController(
         onFailure = { ex -> CommandResponse.Error(messages.error.prefixed(ex.userMessage)) },
     )
 
-    suspend fun showHistory(messages: BotMessages): CommandResponse = releaseNotesService.getAll().fold(
+    suspend fun showHistory(messages: BotMessages): CommandResponse = releaseNotesService.getAll(messages.language).fold(
         onSuccess = { notes ->
             val text = ReleaseNotesFormatter.formatHistory(messages, notes)
                 ?: return@fold CommandResponse.Silent

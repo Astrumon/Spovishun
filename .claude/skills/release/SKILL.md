@@ -119,14 +119,20 @@ the JSON array (newest first), matching the existing shape exactly:
 {
   "version": "{version}",
   "date": "{today YYYY-MM-DD}",
-  "changes": ["...", "..."]
+  "changes": {
+    "uk": ["...", "..."],
+    "en": ["...", "..."]
+  }
 }
 ```
 
 `changes` is the **user-facing** subset of the CHANGELOG entries (what subscribers should
-read in the `/whatsnew` broadcast). An **empty `changes` list suppresses the broadcast**
-(spovishun-134) — leave it empty only intentionally, e.g. for internal-only releases, and
-say so explicitly when presenting the record.
+read in the `/whatsnew` broadcast), keyed by `BotLanguage.code` (spovishun-152). **Both `uk`
+and `en` are required** and must hold the same entries in the same order — a chat renders
+whichever key matches its language, and a missing one silently falls back to `uk`.
+`ReleaseNotesRepositoryImplTest` fails the build if a record ships `uk` without a distinct `en`.
+An **empty `changes` object (`{}`) suppresses the broadcast** (spovishun-134) — leave it empty
+only intentionally, e.g. for internal-only releases, and say so explicitly when presenting the record.
 
 ### Step 6: Confirmation gate — release notes
 

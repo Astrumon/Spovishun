@@ -148,6 +148,19 @@ class ChatRepositoryImplTest {
     }
 
     @Test
+    fun `findAnnouncementChats should return only opted-in chats with their language`() = runTest {
+        repository.save(100L, null, null)
+        repository.setLanguage(100L, BotLanguage.EN)
+        repository.save(200L, null, null)
+        repository.setAnnouncementsEnabled(200L, false)
+
+        val chats = repository.findAnnouncementChats().getOrThrow()
+
+        assertEquals(listOf(100L), chats.map { it.chatId })
+        assertEquals(BotLanguage.EN, chats.single().language)
+    }
+
+    @Test
     fun `setLanguage should not touch the readiness and announcement flags`() = runTest {
         repository.save(100L, null, null)
         repository.setAnnouncementsEnabled(100L, false)

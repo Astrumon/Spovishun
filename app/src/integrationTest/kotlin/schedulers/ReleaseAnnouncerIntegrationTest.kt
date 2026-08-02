@@ -7,6 +7,7 @@ import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.data.bot.repository.BotMetaRepositoryImpl
 import com.ua.astrumon.data.bot.table.BotMeta
 import com.ua.astrumon.data.db.dbQuery
+import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.repository.ReleaseNotesRepository
 import com.ua.astrumon.domain.bot.service.BotMetaService
@@ -47,9 +48,13 @@ import kotlin.test.assertTrue
 class ReleaseAnnouncerIntegrationTest : BaseIntegrationTest() {
     private class FakeReleaseNotesRepository : ReleaseNotesRepository {
         var result: ResultContainer<List<ReleaseNote>> = ResultContainer.success(emptyList())
+
+        /** Per-language override; any language not listed here gets [result]. */
+        val byLanguage = mutableMapOf<BotLanguage, ResultContainer<List<ReleaseNote>>>()
         var throws: Throwable? = null
 
-        override suspend fun getAll(): ResultContainer<List<ReleaseNote>> = throws?.let { throw it } ?: result
+        override suspend fun getAll(language: BotLanguage): ResultContainer<List<ReleaseNote>> =
+            throws?.let { throw it } ?: byLanguage[language] ?: result
     }
 
     private val currentVersion = VersionInfo.VERSION
@@ -149,6 +154,33 @@ class ReleaseAnnouncerIntegrationTest : BaseIntegrationTest() {
             bot.sendMessage(chatId = ChatId.fromId(secondChatId), text = any(), parseMode = ParseMode.HTML)
         }
         assertEquals(currentVersion, botMetaService.getLastNotifiedVersion().getOrThrow())
+    }
+
+    @Test
+    fun `each chat is announced to in the language stored for it`() = runTest {
+        chatService.ensureChat(secondChatId, "English chat", "supergroup").getOrThrow()
+        chatService.setLanguage(secondChatId, BotLanguage.EN).getOrThrow()
+        releaseNotesRepo.byLanguage[BotLanguage.EN] = ResultContainer.success(
+            listOf(ReleaseNote(currentVersion, "2026-01-01", listOf("New feature"))),
+        )
+        botMetaService.setLastNotifiedVersion(olderVersion).getOrThrow()
+
+        runAnnouncer().cancel()
+
+        verify(exactly = 1) {
+            bot.sendMessage(
+                chatId = ChatId.fromId(testChatId),
+                text = match { it.contains("Нова можливість") },
+                parseMode = ParseMode.HTML,
+            )
+        }
+        verify(exactly = 1) {
+            bot.sendMessage(
+                chatId = ChatId.fromId(secondChatId),
+                text = match { it.contains("New feature") },
+                parseMode = ParseMode.HTML,
+            )
+        }
     }
 
     /**

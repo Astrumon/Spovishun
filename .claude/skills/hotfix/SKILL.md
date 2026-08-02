@@ -61,9 +61,9 @@ Same generation as `release` Step 5 — last tag via
 with the range `{last-tag}..HEAD` on the hotfix branch (typically just the fix commits): group `fix` → Fixed (the dominant case),
 `feat` → Added should not appear (see Hard rules), rest → Changed. Produce the
 `## [{version}] - {date}` CHANGELOG section and the prepended
-`{version, date, changes[]}` record for `data/src/main/resources/release_notes.json`.
-An empty `changes` list suppresses the `/whatsnew` broadcast (spovishun-134) — for a
-user-visible production fix it should normally be non-empty.
+`{version, date, changes{uk[], en[]}}` record for `data/src/main/resources/release_notes.json`.
+Both language keys are required (spovishun-152); an empty `changes` object (`{}`) suppresses the
+`/whatsnew` broadcast (spovishun-134) — for a user-visible production fix it should normally be non-empty.
 
 ### Step 6: Confirm → commit → push
 
