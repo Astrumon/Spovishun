@@ -6,14 +6,17 @@ import com.ua.astrumon.data.bot.repository.ChatRepositoryImpl
 import com.ua.astrumon.data.bot.repository.GroupRepositoryImpl
 import com.ua.astrumon.data.bot.table.Chats
 import com.ua.astrumon.data.bot.table.GroupMembers
+import com.ua.astrumon.data.bot.table.GroupSettings
 import com.ua.astrumon.data.bot.table.Groups
 import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GroupRepositoryImplTest {
@@ -25,6 +28,7 @@ class GroupRepositoryImplTest {
         H2TestDatabaseFactory.initialize()
         transaction {
             GroupMembers.deleteAll()
+            GroupSettings.deleteAll()
             Groups.deleteAll()
             Chats.deleteAll()
         }
@@ -195,5 +199,105 @@ class GroupRepositoryImplTest {
         repository.setReadinessEnabled(100L, "devs", false)
 
         assertTrue(repository.findGroupByKey(200L, "devs").getOrThrow().readinessEnabled)
+    }
+
+    @Test
+    fun `a new group should have no icon`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+
+        assertNull(repository.findGroupByKey(100L, "devs").getOrThrow().icon)
+    }
+
+    @Test
+    fun `setIcon should persist the icon`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+
+        val update = repository.setIcon(100L, "devs", "🔥")
+
+        assertTrue(update.isSuccess)
+        assertEquals("🔥", repository.findGroupByKey(100L, "devs").getOrThrow().icon)
+    }
+
+    @Test
+    fun `setIcon should surface the icon through getAllGroups`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+        repository.setIcon(100L, "devs", "🔥")
+
+        assertEquals(
+            "🔥",
+            repository
+                .getAllGroups(100L)
+                .getOrThrow()
+                .single()
+                .icon,
+        )
+    }
+
+    @Test
+    fun `setIcon with null should clear the icon`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+        repository.setIcon(100L, "devs", "🔥")
+
+        val update = repository.setIcon(100L, "devs", null)
+
+        assertTrue(update.isSuccess)
+        assertNull(repository.findGroupByKey(100L, "devs").getOrThrow().icon)
+    }
+
+    @Test
+    fun `setIcon should fail for an unknown group`() = runTest {
+        ensureChat(100L)
+
+        val result = repository.setIcon(100L, "nonexistent", "🔥")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `setIcon should not touch a same-named group in another chat`() = runTest {
+        ensureChat(100L)
+        ensureChat(200L)
+        repository.createGroup(100L, "devs")
+        repository.createGroup(200L, "devs")
+
+        repository.setIcon(100L, "devs", "🔥")
+
+        assertNull(repository.findGroupByKey(200L, "devs").getOrThrow().icon)
+    }
+
+    /** Both settings share one row, so each write must name only the column it owns. */
+    @Test
+    fun `setIcon and setReadinessEnabled should not clobber each other`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+
+        repository.setReadinessEnabled(100L, "devs", false)
+        repository.setIcon(100L, "devs", "🔥")
+
+        val group = repository.findGroupByKey(100L, "devs").getOrThrow()
+        assertEquals("🔥", group.icon)
+        assertEquals(false, group.readinessEnabled)
+
+        repository.setReadinessEnabled(100L, "devs", true)
+
+        val updated = repository.findGroupByKey(100L, "devs").getOrThrow()
+        assertEquals("🔥", updated.icon)
+        assertTrue(updated.readinessEnabled)
+    }
+
+    @Test
+    fun `deleting a group should remove its settings row`() = runTest {
+        ensureChat(100L)
+        repository.createGroup(100L, "devs")
+        repository.setIcon(100L, "devs", "🔥")
+
+        repository.deleteGroup(100L, "devs")
+
+        assertEquals(0, transaction { GroupSettings.selectAll().count() })
     }
 }

@@ -20,6 +20,7 @@ class GroupService(
                         name = group.name,
                         members = members,
                         readinessEnabled = group.readinessEnabled,
+                        icon = group.icon,
                     )
                 }
             }
@@ -62,6 +63,7 @@ class GroupService(
                 name = group.name,
                 members = members,
                 readinessEnabled = group.readinessEnabled,
+                icon = group.icon,
             )
         }
     }
@@ -71,6 +73,13 @@ class GroupService(
         key: String,
         enabled: Boolean,
     ): ResultContainer<Unit> = groupRepository.setReadinessEnabled(chatId, key, enabled)
+
+    /** A null [icon] clears the group's icon. */
+    suspend fun setIcon(
+        chatId: Long,
+        key: String,
+        icon: String?,
+    ): ResultContainer<Unit> = groupRepository.setIcon(chatId, key, icon)
 }
 
 data class GroupWithMembers(
@@ -80,4 +89,5 @@ data class GroupWithMembers(
     val name: String,
     val members: List<String>,
     val readinessEnabled: Boolean = true,
+    val icon: String? = null,
 )

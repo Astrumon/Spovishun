@@ -6,4 +6,5 @@ data class Group(
     val name: String,
     val memberUsernames: List<String>,
     val readinessEnabled: Boolean = true,
+    val icon: String? = null,
 )

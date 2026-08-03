@@ -16,6 +16,8 @@ import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
+import com.ua.astrumon.presentation.util.displayLabel
+import com.ua.astrumon.presentation.util.displayLabelHtml
 
 class GroupController(
     private val groupService: GroupService,
@@ -54,7 +56,7 @@ class GroupController(
                         } else {
                             listOf("—")
                         }
-                        lines.add(messages.group.listItem(group.name.escapeHtml(), group.key.escapeHtml(), names.joinToString(", ")))
+                        lines.add(messages.group.listItem(group.displayLabelHtml(), group.key.escapeHtml(), names.joinToString(", ")))
                     }
                     CommandResponse.Success(lines.joinToString("\n"))
                 }
@@ -274,7 +276,7 @@ class GroupController(
     ): PickerListing {
         requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
         return groupService.getAllGroupsWithMembers(chatId).fold(
-            onSuccess = { groups -> PickerListing.Show(groups.map { PickerOption(it.id, it.name) }) },
+            onSuccess = { groups -> PickerListing.Show(groups.map { PickerOption(it.id, it.displayLabel()) }) },
             onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
         )
     }

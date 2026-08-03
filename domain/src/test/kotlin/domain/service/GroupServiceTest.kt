@@ -292,4 +292,66 @@ class GroupServiceTest {
         coVerify { groupRepository.findGroupByKey(chatId, groupKey) }
         coVerify { groupMemberRepository.getGroupMembers(chatId, groupKey) }
     }
+
+    @Test
+    fun `setIcon should delegate to the repository`() = runTest {
+        // Given
+        val chatId = 123L
+        val groupKey = "devs"
+        coEvery { groupRepository.setIcon(chatId, groupKey, "🔥") } returns ResultContainer.success(Unit)
+
+        // When
+        val result = groupService.setIcon(chatId, groupKey, "🔥")
+
+        // Then
+        assertTrue(result.isSuccess)
+        coVerify { groupRepository.setIcon(chatId, groupKey, "🔥") }
+    }
+
+    @Test
+    fun `setIcon should pass a null icon through as a reset`() = runTest {
+        // Given
+        val chatId = 123L
+        val groupKey = "devs"
+        coEvery { groupRepository.setIcon(chatId, groupKey, null) } returns ResultContainer.success(Unit)
+
+        // When
+        val result = groupService.setIcon(chatId, groupKey, null)
+
+        // Then
+        assertTrue(result.isSuccess)
+        coVerify { groupRepository.setIcon(chatId, groupKey, null) }
+    }
+
+    @Test
+    fun `setIcon should propagate repository error when group not found`() = runTest {
+        // Given
+        val chatId = 123L
+        val groupKey = "nope"
+        val error = ResourceNotFoundException("Group", groupKey)
+        coEvery { groupRepository.setIcon(chatId, groupKey, "🔥") } returns ResultContainer.failure(error)
+
+        // When
+        val result = groupService.setIcon(chatId, groupKey, "🔥")
+
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals(error, result.exceptionOrNull())
+    }
+
+    @Test
+    fun `getGroupByKey should carry the group icon into GroupWithMembers`() = runTest {
+        // Given
+        val chatId = 123L
+        val groupKey = "devs"
+        val group = Group(1L, chatId, groupKey, emptyList(), icon = "🔥")
+        coEvery { groupRepository.findGroupByKey(chatId, groupKey) } returns ResultContainer.success(group)
+        coEvery { groupMemberRepository.getGroupMembers(chatId, groupKey) } returns ResultContainer.success(listOf("alice"))
+
+        // When
+        val result = groupService.getGroupByKey(chatId, groupKey)
+
+        // Then
+        assertEquals("🔥", result.getOrThrow().icon)
+    }
 }

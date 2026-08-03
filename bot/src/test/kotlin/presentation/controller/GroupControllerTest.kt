@@ -79,6 +79,21 @@ class GroupControllerTest {
     }
 
     @Test
+    fun `getGroups should prefix a group with its icon`() = runTest {
+        val groups = listOf(
+            GroupWithMembers(1L, chatId, "devs", "devs", emptyList(), icon = "🔥"),
+            GroupWithMembers(2L, chatId, "qa", "qa", emptyList()),
+        )
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
+
+        val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("🔥 devs"))
+        assertTrue(result.message.contains("<b>qa</b>"))
+    }
+
+    @Test
     fun `getGroups should handle member lookup failure gracefully`() = runTest {
         val groups = listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("unknown")))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
@@ -484,6 +499,20 @@ class GroupControllerTest {
 
         assertTrue(result is PickerListing.Show)
         assertEquals(listOf(PickerOption(10L, "devs"), PickerOption(20L, "qa")), result.options)
+    }
+
+    @Test
+    fun `groupsForModeratorPicker should label a group button with its icon`() = runTest {
+        val groups = listOf(
+            GroupWithMembers(10L, chatId, "devs", "devs", emptyList(), icon = "🔥"),
+            GroupWithMembers(20L, chatId, "qa", "qa", emptyList()),
+        )
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
+
+        val result = groupController.groupsForModeratorPicker(chatId, userId)
+
+        assertTrue(result is PickerListing.Show)
+        assertEquals(listOf(PickerOption(10L, "🔥 devs"), PickerOption(20L, "qa")), result.options)
     }
 
     @Test
