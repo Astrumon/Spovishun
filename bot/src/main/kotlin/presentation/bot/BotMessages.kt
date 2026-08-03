@@ -188,6 +188,21 @@ class BotMessages private constructor(
         val usageAdd: String get() = get("group.usage_add")
         val usageRemove: String get() = get("group.usage_remove")
         val usageGrant: String get() = get("group.usage_grant")
+        val usageEditg: String get() = get("group.usage_editg")
+
+        fun iconSet(
+            groupNameEscaped: String,
+            icon: String,
+        ): String = format("group.icon_set", groupNameEscaped, icon)
+
+        fun iconCleared(groupNameEscaped: String): String = format("group.icon_cleared", groupNameEscaped)
+
+        val iconInvalid: String get() = get("group.icon_invalid")
+
+        fun unknownParam(
+            paramEscaped: String,
+            supported: String,
+        ): String = format("group.unknown_param", paramEscaped, supported)
 
         fun rolesGranted(
             usersJoined: String,

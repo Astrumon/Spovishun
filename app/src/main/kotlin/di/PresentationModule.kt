@@ -7,6 +7,7 @@ import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
 import com.ua.astrumon.presentation.bot.commands.BirthdayCommand
 import com.ua.astrumon.presentation.bot.commands.BotCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
+import com.ua.astrumon.presentation.bot.commands.EditGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
 import com.ua.astrumon.presentation.bot.commands.LanguageCommand
 import com.ua.astrumon.presentation.bot.commands.MembersCommand
@@ -34,6 +35,7 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupSettingsController
 import com.ua.astrumon.presentation.controller.LanguageController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
@@ -53,6 +55,7 @@ internal val presentationModule = module {
 
     // Controllers
     single { GroupController(get(), get(), get(), get()) }
+    single { GroupSettingsController(get(), get(), get()) }
     single { MembersController(get(), get(), get()) }
     single { RegistrationController(get(), get(), get()) }
     single { PingController(get(), get(), get(), get(), get()) }
@@ -71,6 +74,7 @@ internal val presentationModule = module {
     single { ShowGroupsCommand(get(), get(), get()) } bind BotCommand::class
     single { NewGroupCommand(get(), get()) } bind BotCommand::class
     single { DeleteGroupCommand(get(), get()) } bind BotCommand::class
+    single { EditGroupCommand(get(), get()) } bind BotCommand::class
     single { AddUserToGroupCommand(get(), get()) } bind BotCommand::class
     single { RemoveUserFromGroupCommand(get(), get()) } bind BotCommand::class
     single { BirthdayCommand(get(), get()) } bind BotCommand::class

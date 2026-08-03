@@ -72,7 +72,8 @@ class PingControllerTest {
         name: String,
         members: List<String>,
         readinessEnabled: Boolean = false,
-    ) = GroupWithMembers(id, chatId, name, name, members, readinessEnabled)
+        icon: String? = null,
+    ) = GroupWithMembers(id, chatId, name, name, members, readinessEnabled, icon)
 
     // --- pingAll ---
 
@@ -232,6 +233,31 @@ class PingControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("review please"))
+    }
+
+    @Test
+    fun `pingGroup should prefix the header with the group icon`() = runTest {
+        coEvery { groupService.getGroupByKey(chatId, "devs") } returns
+            ResultContainer.success(group(1L, "devs", listOf("alice"), icon = "🔥"))
+        resolve(member)
+
+        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("🔥 devs"))
+    }
+
+    @Test
+    fun `pingGroup should render the bare name when the group has no icon`() = runTest {
+        coEvery { groupService.getGroupByKey(chatId, "devs") } returns
+            ResultContainer.success(group(1L, "devs", listOf("alice")))
+        resolve(member)
+
+        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("devs"))
+        assertTrue(!result.message.contains("🔥"))
     }
 
     @Test
@@ -448,6 +474,18 @@ class PingControllerTest {
             ),
             listing.options,
         )
+    }
+
+    @Test
+    fun `groupsForPicker should label a group button with its icon`() = runTest {
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(
+            listOf(group(1L, "devs", listOf("alice"), icon = "🔥"), group(2L, "qa", listOf("bob"))),
+        )
+
+        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+
+        assertTrue(listing is PickerListing.Show)
+        assertEquals(listOf(PickerOption(1L, "🔥 devs"), PickerOption(2L, "qa")), listing.options.drop(1))
     }
 
     @Test

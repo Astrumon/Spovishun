@@ -26,6 +26,7 @@ import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
+import com.ua.astrumon.presentation.bot.commands.EditGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
 import com.ua.astrumon.presentation.bot.commands.MembersCommand
 import com.ua.astrumon.presentation.bot.commands.NewGroupCommand
@@ -40,6 +41,7 @@ import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupSettingsController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
@@ -93,6 +95,7 @@ abstract class BaseIntegrationTest {
 
     // Controllers — real
     protected lateinit var groupController: GroupController
+    protected lateinit var groupSettingsController: GroupSettingsController
     protected lateinit var membersController: MembersController
     protected lateinit var registrationController: RegistrationController
     protected lateinit var pingController: PingController
@@ -109,6 +112,7 @@ abstract class BaseIntegrationTest {
     protected lateinit var showGroupsCommand: ShowGroupsCommand
     protected lateinit var newGroupCommand: NewGroupCommand
     protected lateinit var deleteGroupCommand: DeleteGroupCommand
+    protected lateinit var editGroupCommand: EditGroupCommand
     protected lateinit var addUserToGroupCommand: AddUserToGroupCommand
     protected lateinit var removeUserFromGroupCommand: RemoveUserFromGroupCommand
     protected lateinit var pingAllCommand: PingAllCommand
@@ -188,6 +192,7 @@ abstract class BaseIntegrationTest {
 
     private fun initControllers() {
         groupController = GroupController(groupService, memberService, autoRegisterService, messagesProvider)
+        groupSettingsController = GroupSettingsController(groupService, memberService, messagesProvider)
         membersController = MembersController(memberService, autoRegisterService, messagesProvider)
         registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
         pingController = PingController(memberService, groupService, chatService, autoRegisterService, messagesProvider)
@@ -219,6 +224,7 @@ abstract class BaseIntegrationTest {
         showGroupsCommand = ShowGroupsCommand(groupController, botAdminUtils, messagesProvider)
         newGroupCommand = NewGroupCommand(groupController, messagesProvider)
         deleteGroupCommand = DeleteGroupCommand(groupController, messagesProvider)
+        editGroupCommand = EditGroupCommand(groupSettingsController, messagesProvider)
         addUserToGroupCommand = AddUserToGroupCommand(groupController, messagesProvider)
         removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController, messagesProvider)
         pingAllCommand = PingAllCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)

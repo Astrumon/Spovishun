@@ -13,6 +13,8 @@ import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
+import com.ua.astrumon.presentation.util.displayLabel
+import com.ua.astrumon.presentation.util.displayLabelHtml
 import com.ua.astrumon.presentation.util.toHtmlMention
 import org.slf4j.LoggerFactory
 
@@ -71,7 +73,7 @@ class PingController(
         return groupService.getAllGroupsWithMembers(chatId).fold(
             onSuccess = { groups ->
                 val allMembers = PickerOption(ALL_MEMBERS_ID, messages.ping.allMembersOption)
-                PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.name) })
+                PickerListing.Show(listOf(allMembers) + groups.map { PickerOption(it.id, it.displayLabel()) })
             },
             onFailure = {
                 logger.error("Failed to get groups for groupsForPicker: {}", it::class.simpleName)
@@ -200,10 +202,10 @@ class PingController(
         }
 
         val icons = messages.ping.iconGroup.repeat(members.size)
-        // The header is rendered with ParseMode.HTML and BotMessages never escapes — both the
-        // moderator-chosen group name and the caller's free text have to be neutralised here, or a
-        // stray `<` makes Telegram reject the whole send.
-        val header = messages.ping.headerGroup(group.name.escapeHtml(), icons, extra.escapeHtml())
+        // The header is rendered with ParseMode.HTML and BotMessages never escapes — a stray `<`
+        // makes Telegram reject the whole send. The moderator-chosen group name is neutralised by
+        // displayLabelHtml, the caller's free text has to be neutralised here.
+        val header = messages.ping.headerGroup(group.displayLabelHtml(), icons, extra.escapeHtml())
         return outcome(header, members, readiness = group.readinessEnabled)
     }
 

@@ -26,4 +26,11 @@ interface GroupRepository {
         key: String,
         enabled: Boolean,
     ): ResultContainer<Unit>
+
+    /** A null [icon] clears the group's icon. */
+    suspend fun setIcon(
+        chatId: Long,
+        key: String,
+        icon: String?,
+    ): ResultContainer<Unit>
 }
