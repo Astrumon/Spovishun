@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongMethod:TestDatabaseFactory.kt:TestDatabaseFactory$fun initialize</ID>
+    <ID>LongParameterList:TestDatabaseFactory.kt:TestDatabaseFactory$fun initialize</ID>
+  </CurrentIssues>
+</SmellBaseline>

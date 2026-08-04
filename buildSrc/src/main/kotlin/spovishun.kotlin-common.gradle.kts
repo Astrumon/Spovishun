@@ -1,3 +1,5 @@
+import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import org.gradle.accessors.dm.LibrariesForLibs
 
 plugins {
@@ -39,9 +41,44 @@ ktlint {
     }
 }
 
-// detekt owns static analysis; shared config lives at the repo root. Per-module baselines are
-// added per task as each module receives code.
+// detekt owns static analysis; shared config and baseline layout live here for every module.
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+    // ADR-0001: each module carries its own accepted-debt baseline. Since spovishun-169 this path is
+    // a template, not a file — the plugin derives `detekt-baseline-<sourceSet>.xml` from it for every
+    // source set the module owns (see the type-resolution note below). Identical in every module, so
+    // it lives here rather than being repeated six times.
+    baseline = file("detekt-baseline.xml")
+}
+
+// spovishun-169: 93 detekt rules implement `RequiresAnalysisApi` and only run when the analysed
+// sources come with a compile classpath. Among them are exactly the rules that encode this project's
+// own Kotlin rules — LongParameterList (`max 3 parameters`), InjectDispatcher (no hardcoded
+// `Dispatchers.*`), UnsafeCallOnNullableType (no `!!`), SleepInsteadOfDelay (no `Thread.sleep` in
+// tests). The whole-project `detekt` task has no classpath, so it skipped all of them silently.
+//
+// Keep `./gradlew detekt` as the entry point, but turn it into a lifecycle task over the
+// `detekt<SourceSet>` tasks the plugin registers with type resolution. Two consequences follow:
+//   * the `detekt<SourceSet>SourceSet` variants are the classpath-less duplicates — excluded here;
+//   * baselines are now per source set (`detekt-baseline-<sourceSet>.xml`), derived from the
+//     `baseline` path set above, instead of one `detekt-baseline.xml` per module.
+//
+// `detektBaseline` is aggregated the same way, so the documented `:<module>:detektBaseline` keeps
+// regenerating every baseline the module owns rather than a classpath-less subset.
+val typeResolutionDetektTasks =
+    tasks.withType<Detekt>().matching { it.name != "detekt" && !it.name.endsWith("SourceSet") }
+
+val typeResolutionBaselineTasks =
+    tasks.withType<DetektCreateBaselineTask>()
+        .matching { it.name != "detektBaseline" && !it.name.endsWith("SourceSet") }
+
+tasks.named<Detekt>("detekt") {
+    enabled = false
+    dependsOn(typeResolutionDetektTasks)
+}
+
+tasks.named<DetektCreateBaselineTask>("detektBaseline") {
+    enabled = false
+    dependsOn(typeResolutionBaselineTasks)
 }

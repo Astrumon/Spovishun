@@ -26,11 +26,30 @@ Two tools with split responsibility — never overlapping:
 - **detekt** (`dev.detekt`, 2.0 alpha) owns **code structure/smells**: complexity, return count, magic
   numbers, generic catches. Shared config in `config/detekt/detekt.yml` (`buildUponDefaultConfig = true`),
   applied to every module by the `spovishun.kotlin-common` convention plugin. Pre-existing findings are
-  captured **per module** in `<module>/detekt-baseline.xml`; new code is held to the standard.
-  detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha supports Kotlin 2.3 /
-  Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once detekt 2.0 is stable.
+  captured in **per-source-set** baselines (`<module>/detekt-baseline-<sourceSet>.xml`); new code is
+  held to the standard. detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha
+  supports Kotlin 2.3 / Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once
+  detekt 2.0 is stable.
 
-Workflow: run `./gradlew ktlintFormat` before committing; regenerate a module's baseline with
+**Type resolution (spovishun-169) — do not "simplify" the `detekt` task back.** 93 detekt rules
+implement `RequiresAnalysisApi` and run only when the analysed sources carry a compile classpath.
+They include exactly the rules that encode this project's own style rules: `LongParameterList`,
+`InjectDispatcher`, `UnsafeCallOnNullableType` (`!!`), `SleepInsteadOfDelay`, `VarCouldBeVal`. The
+plugin's whole-project `detekt` task has no classpath and skipped all of them **silently**. The
+convention plugin therefore disables that task and makes `detekt` a lifecycle aggregate over the
+per-source-set `detekt<SourceSet>` tasks, which do have one; `detektBaseline` is aggregated the same
+way. Consequences: `./gradlew detekt` now compiles first (slower, and `:app` custom source sets
+`integrationTest`/`e2eTest` are finally analysed — they had been invisible since the module split),
+and each module owns one baseline per source set instead of a single `detekt-baseline.xml`. The
+`detekt<SourceSet>SourceSet` tasks are the classpath-less duplicates — never wire those in.
+
+Thresholds are aligned to the project's style rules rather than to the existing code
+(spovishun-169): `LongMethod` 30, `LongParameterList` 4/4. The enforced numbers and how they relate
+to the softer targets in the generated `kotlin-style.md` live in
+`.claude/rules/kotlin/spovishun-architecture.md` — `kotlin-style.md` itself is plugin-managed and
+must not be hand-edited.
+
+Workflow: run `./gradlew ktlintFormat` before committing; regenerate a module's baselines with
 `./gradlew :<module>:detektBaseline` only when intentionally accepting new debt (review the diff).
 
 ### Pre-commit hook (ktlint)

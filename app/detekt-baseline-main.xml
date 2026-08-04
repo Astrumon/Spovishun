@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>InjectDispatcher:ConfigModule.kt:Default</ID>
+    <ID>InjectDispatcher:ConfigModule.kt:IO</ID>
+    <ID>UseCheckOrError:Application.kt:Application$throw IllegalStateException("Bot identity check failed — refusing to start")</ID>
+  </CurrentIssues>
+</SmellBaseline>

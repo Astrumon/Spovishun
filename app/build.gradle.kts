@@ -63,11 +63,6 @@ application {
     applicationName = "spovishun"
 }
 
-// Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline).
-detekt {
-    baseline = file("detekt-baseline.xml")
-}
-
 registerAppTasks()
 
 tasks.test {

@@ -33,11 +33,6 @@ dependencies {
     testImplementation(libs.h2)
 }
 
-// Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline).
-detekt {
-    baseline = file("detekt-baseline.xml")
-}
-
 tasks.test {
     useJUnitPlatform()
 }

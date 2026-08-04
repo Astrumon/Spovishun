@@ -5,16 +5,38 @@
 
 complexity:
   LongMethod:
-    # The project keeps functions short (Kotlin style rule: ~20 lines); 60 leaves headroom for DSLs.
-    allowedLines: 60
+    # Two-tier by design (spovishun-169): ~20 lines is the review target in
+    # .claude/rules/kotlin/spovishun-architecture.md, 30 is the ceiling CI enforces. The previous
+    # value (60) was detekt's own default, so the rule was written down but never fired.
+    allowedLines: 30
   LongParameterList:
-    allowedFunctionParameters: 7
-    allowedConstructorParameters: 7
-    ignoreDefaultParameters: true
+    # This rule implements RequiresAnalysisApi and therefore only fires under type resolution —
+    # it was dead at any threshold until spovishun-169 rewired `detekt` onto the per-source-set
+    # tasks (see the `spovishun.kotlin-common` convention plugin).
+    # Style rule caps behavioural functions at 3 parameters; 4 is the enforced ceiling.
+    # Constructors are held to the same bar — a class needing 5 collaborators is an SRP signal,
+    # not DI overhead. ignoreDefaultParameters is deliberately left at its default (false):
+    # enabling it hid 7-parameter signatures behind defaulted arguments.
+    allowedFunctionParameters: 4
+    allowedConstructorParameters: 4
+    # Kept at the detekt default, stated explicitly because it carries the rule above: the style
+    # rule's own remedy for a long parameter list is to bundle it into a data class, so models and
+    # DTOs (Member, Chat, AdminApiConfig, ContainerDto…) must stay exempt.
+    ignoreDataClasses: true
   TooManyFunctions:
+    # Measured, not chosen: GroupController has exactly 18 functions, so this threshold is fitted to
+    # the worst case and currently forbids nothing. At detekt's default of 11, nine classes fire —
+    # six of them integrationTest/e2eTest classes that the rule's own `**/test/**` default exclude
+    # does not reach (the same gap MagicNumber has below), and three production ones:
+    # GroupController (18), PingController (14), BotMessages.Group (13). Lowering it belongs with
+    # the GroupController split; spovishun-169 deliberately moved only LongMethod and
+    # LongParameterList, so the number is documented here rather than quietly changed.
     allowedFunctionsPerClass: 18
     allowedFunctionsPerObject: 18
   CyclomaticComplexMethod:
+    # The most complex method in the codebase is GroupController.addUserToGroup at 15; detekt's
+    # default is 14. 18 therefore buys three points of headroom over a single offender and flags
+    # nothing. Kept until that method is split — at which point this drops to the default.
     allowedComplexity: 18
 
 naming:
@@ -32,6 +54,10 @@ naming:
 
 style:
   MagicNumber:
+    # detekt's default excludes cover **/test/** only, so this project's own integrationTest and
+    # e2eTest source sets leaked in (fixture ids, timeouts, retry counts). Overriding `excludes`
+    # replaces the default list rather than extending it, so **/*.kts is carried over by hand.
+    excludes: ['**/test/**', '**/integrationTest/**', '**/e2eTest/**', '**/*.kts']
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
     ignoreNamedArgument: true
@@ -39,6 +65,11 @@ style:
   MaxLineLength:
     maxLineLength: 140
   ReturnCount:
+    # Also fitted to the worst case: several Command/Controller handlers return exactly 4 times.
+    # detekt's default of 2 yields 33 findings, and nearly all are guard clauses — which
+    # kotlin-style.md explicitly asks for ("use guard clauses (`?: return`) to flatten"). The
+    # principled fix is `excludeGuardClauses: true`, not a higher ceiling: it changes which returns
+    # the rule counts rather than how many it tolerates. Out of spovishun-169's agreed scope.
     max: 4
   ForbiddenComment:
     # Allow TODO/FIXME during development; tracked separately on the board.
