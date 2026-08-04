@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ImplicitDefaultLocale:BirthDate.kt:BirthDate$"%02d.%02d".format(day, month)</ID>
+    <ID>LongParameterList:AutoRegisterService.kt:AutoRegisterService$suspend fun ensureUserRegistered: ResultContainer&lt;MemberWithChat&gt;</ID>
+    <ID>LongParameterList:MemberService.kt:MemberService$suspend fun createMember: ResultContainer&lt;MemberWithChat&gt;</ID>
+    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
+    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
+  </CurrentIssues>
+</SmellBaseline>

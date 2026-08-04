@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>InjectDispatcher:ChatContextCommandTest.kt:ChatContextCommandTest$IO</ID>
+    <ID>InjectDispatcher:ChatLogContextTest.kt:ChatLogContextTest$IO</ID>
+    <ID>InjectDispatcher:ReadinessSessionStoreTest.kt:ReadinessSessionStoreTest$Default</ID>
+    <ID>LongParameterList:CallbackUpdateFactory.kt:internal fun callbackUpdate: Update</ID>
+    <ID>LongParameterList:PingControllerTest.kt:PingControllerTest$private fun group</ID>
+    <ID>UseCheckOrError:BirthdayGreetingSchedulerTest.kt:BirthdayGreetingSchedulerTest$throw IllegalStateException("telegram unreachable")</ID>
+  </CurrentIssues>
+</SmellBaseline>

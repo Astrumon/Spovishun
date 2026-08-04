@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
+    <ID>InjectDispatcher:H2TestDatabaseFactory.kt:IO</ID>
   </CurrentIssues>
 </SmellBaseline>
