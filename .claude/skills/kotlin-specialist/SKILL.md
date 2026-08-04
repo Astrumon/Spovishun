@@ -23,11 +23,12 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 | Cold/hot Flow, `StateFlow`, `SharedFlow`, collect and transform | `references/flow.md` |
 | `sealed interface`, exhaustive `when`, state/response modeling | `references/sealed-classes.md` |
 | Null safety, extension functions, `data class`, Kotlin idioms | `references/kotlin-idioms.md` |
-| `libs.versions.toml`, `build.gradle.kts`, version catalog | `references/gradle-dsl.md` |
+| Kotlin compiler options, custom Gradle tasks, extra test source sets | `references/gradle-dsl.md` |
+| Version catalog, repositories, wrapper, cache flags — anything about build *structure* | `.claude/rules/kotlin/gradle-build.md`; for a full audit run `/gradle-build-auditor` |
 
 ## Always-Active Rules
 
-- Only `data/db/DatabaseFactory.kt` may use `Dispatchers.IO` — inject `CoroutineDispatcher` via Koin everywhere else.
+- Inject `CoroutineDispatcher` via DI; never hardcode a dispatcher inside a class. `Dispatchers.IO` does not exist on native/wasm targets, so a hardcoded reference is both untestable and unportable.
 - Never use `runBlocking` in production coroutine context — causes deadlock.
 - Never use `GlobalScope.launch` — breaks structured concurrency and causes memory leaks.
 - Never swallow `CancellationException` — always rethrow or propagate it.
@@ -39,7 +40,7 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 - Do NOT load all references at once — pick exactly one based on the Decision Table.
 - Do NOT use `!!` without a documented invariant that guarantees non-null at that point.
 - Do NOT use `runBlocking`, `GlobalScope`, or undocumented `!!` — hard bans.
-- Do NOT hardcode `Dispatchers.IO` outside `DatabaseFactory.kt`.
+- Do NOT hardcode any dispatcher inside a class — take it as a constructor parameter.
 
 ## Error Handling
 
@@ -52,6 +53,7 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 - `telegram-bot-development` — coroutine scope wiring for bot handlers
 - `postgresql-exposed-orm` — `safeDbQuery` / `safeDbTransaction` patterns built on coroutines
 - `unit-testing-kotlin` — `runTest`, `StandardTestDispatcher`, Turbine for Flow assertions
+- `gradle-build-auditor` — whole-build audit: version catalog, repositories, wrapper, caches, CI
 
 ## Example Invocation
 

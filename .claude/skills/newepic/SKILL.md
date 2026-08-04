@@ -49,7 +49,7 @@ Use MCP so the full markdown body is parsed into native Notion blocks (callouts,
 
 ```
 notion-create-pages(
-  parent: { type: "database_id", database_id: "d0c0020049f74b0589979065d8cfe7d3" },
+  parent: { type: "database_id", database_id: "d0c00200-49f7-4b05-8997-9065d8cfe7d3" },
   pages: [{
     properties: {
       "Name": "<Name>",

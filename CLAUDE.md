@@ -138,10 +138,12 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
   picker filters to the Sprint stage (`notion.picker.stage_filter: "Sprint"`); `create-task.js`
   defaults new tasks to `Stage: Backlog`. The board DB id lives in config (`notion.database_id`);
   `.claude/scripts/notion/lib/constants.js` resolves it at runtime (env var → config, not hard-coded).
-- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.4.0`) then
+- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.21.0`) then
   `npx spovishun-skills install --target=claude` (or `npx spovishun-skills sync` to re-apply with the
   existing config + lockfile). State is tracked in `spovishun-skills.lock.yaml` (committed).
 - **Validate:** export `NOTION_TOKEN` from `.env`, then `npx spovishun-skills doctor` → expect 0 errors.
+  Since plugin 1.17.0 rules are lockfile artifacts too (`kind: rule`), so `doctor` covers
+  `.claude/rules/` — a missing or drifted rule is now reported instead of passing unseen.
 - **Project-owned (NOT plugin-managed), survive re-installs:**
   - `.claude/rules/kotlin/spovishun-architecture.md` — Spovishun concretions (`ResultContainer`,
     `safeDbQuery`/Exposed, Koin) that the generic installed `kotlin-style.md` omits.
@@ -153,6 +155,12 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
     project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
     (a bare directory arg fails on Node ≥ 22, which tries to load the dir as a module). Integration
     tests skip themselves unless `NOTION_TOKEN` is set.
+  - `.claude/rules/common/testing.md` — **unmanaged since the 1.21.0 sync**, not by choice: the
+    plugin's 1.18.0 render added a KMP disclaimer, so the on-disk 1.12.0 body matched neither the
+    locked checksum nor the current render and was classified owner-authored. It has no `kind: rule`
+    lock entry, `doctor` does not see it, and plugin updates to it will not land. Kept deliberately —
+    the newer text points at `kmp/testing.md`, which is gated off for this project. Re-adopt by
+    overwriting it with the plugin render and re-running `sync`.
   - Per-module `common|domain|data|bot|app/CLAUDE.md` (at each module root) and gitignored local state
     (`settings.local.json`, `session-state.json`, learnings queue, `.claude/tmp/`).
 
