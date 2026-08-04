@@ -4,9 +4,11 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.domain.bot.model.BirthDate
+import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.toHtmlMention
+import com.ua.astrumon.presentation.util.withChatLogContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -74,17 +76,46 @@ class BirthdayGreetingScheduler(
                     .fold(onSuccess = { it }, onFailure = { emptyList() })
                 if (chatIds.isEmpty()) continue
 
-                // Rendered per chat: one member's greeting can land in chats on different languages.
-                chatIds.forEach { chatId ->
-                    val text = messagesProvider.forChat(chatId).birthday.randomGreeting(member.toHtmlMention())
-                    bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
-                }
+                // Unchanged semantics: a member is only marked greeted once every chat got the
+                // message, so a partial failure is retried rather than silently swallowed.
+                if (!sendGreetings(bot, member, chatIds)) continue
 
                 val sentAt = Instant.fromEpochMilliseconds(clock.instant().toEpochMilli())
                 birthdayService.recordGreetingSent(member.id, year, sentAt)
             } catch (e: Exception) {
-                logger.error("Failed to send birthday greeting for member id={}", member.id, e)
+                // Reached only by the lookups and the record step, which span every chat the member
+                // is in — this pass-level failure has no one chat to name and logs as `system`.
+                // Sends are attributed in [sendGreeting]. No member id here (security.md).
+                logger.error("Birthday greeting pass failed for one member", e)
             }
+        }
+    }
+
+    /** @return whether every chat got the greeting. */
+    private suspend fun sendGreetings(
+        bot: Bot,
+        member: Member,
+        chatIds: List<Long>,
+    ): Boolean = chatIds
+        .map { chatId -> sendGreeting(bot, member, chatId) }
+        .all { it }
+
+    /**
+     * Rendered and sent per chat: one member's greeting can land in chats on different languages,
+     * and both the send and any failure log against the chat they target (spovishun-168).
+     */
+    private suspend fun sendGreeting(
+        bot: Bot,
+        member: Member,
+        chatId: Long,
+    ): Boolean = withChatLogContext(chatId) {
+        try {
+            val text = messagesProvider.forChat(chatId).birthday.randomGreeting(member.toHtmlMention())
+            bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
+            true
+        } catch (e: Exception) {
+            logger.error("Failed to send birthday greeting", e)
+            false
         }
     }
 

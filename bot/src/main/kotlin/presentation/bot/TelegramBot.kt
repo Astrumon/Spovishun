@@ -28,7 +28,8 @@ class TelegramBot(
                 command(cmd.name) {
                     val chatId = update.message?.chat?.id
                     if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@command
-                    logger.info("Command '{}' invoked", cmd.name)
+                    // The "invoked" line moved into ChatContextCommand, which wraps every registry
+                    // entry — logged there it carries the originating chat (spovishun-168).
                     cmd.execute(bot, update)
                 }
             }
