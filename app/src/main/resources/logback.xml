@@ -1,7 +1,13 @@
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+      <!--
+        The bracketed chat field sits in a fixed position right after the level so the Spovishun
+        Admin live-log view can split it out of the raw Docker line with `\[chatId=(\S+) chatType=(\S+)\]`
+        (spovishun-168). `system` is the default for a line with no originating chat — startup,
+        shutdown, admin API, a scheduler between per-chat passes.
+      -->
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [chatId=%X{chatId:-system} chatType=%X{chatType:-system}] %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
   <root level="INFO">

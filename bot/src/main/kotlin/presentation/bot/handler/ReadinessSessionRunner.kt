@@ -8,6 +8,7 @@ import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import com.ua.astrumon.domain.bot.config.ReadinessConfig
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.util.ReadinessRenderer
+import com.ua.astrumon.presentation.util.chatLogContextSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -59,7 +60,9 @@ class ReadinessSessionRunner(
 
         val key = SessionKey(chatId, messageId)
         store.open(key, session)
-        scope.launch {
+        // The scope carries no chat of its own, so the expiry would log as `system` — hand it the
+        // caller's context, which is the command that opened the poll (spovishun-168).
+        scope.launch(chatLogContextSnapshot()) {
             delay(config.readinessTtl)
             finalize(bot, key)
         }
@@ -83,7 +86,7 @@ class ReadinessSessionRunner(
         vote: ReadinessVote,
     ): Job? {
         store.vote(key, userId, vote) ?: return null
-        val render = scope.launch {
+        val render = scope.launch(chatLogContextSnapshot()) {
             delay(COALESCE_WINDOW)
             val current = store.get(key) ?: return@launch
             bot.editInPlace(key.chatId, key.messageId, ReadinessRenderer.renderActive(current), voteKeyboard(current.messages))

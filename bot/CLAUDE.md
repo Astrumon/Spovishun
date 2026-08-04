@@ -61,6 +61,32 @@ Runs on an injected `CoroutineScope` carrying `SupervisorJob` + a scope-level `C
 Routes updates to commands via `when`. No logic beyond routing.
 Do NOT unit test `MessageHandler` or `TelegramBot`.
 
+## Chat log context (spovishun-168)
+Every log line emitted while handling an update carries the originating chat, so the Spovishun
+Admin live-log view can attribute and filter per chat. `presentation/util/ChatLogContext.kt` owns
+the mechanics: `withChatLogContext(chatId, chatType) { }` puts the two `ChatLogContext` keys into
+the SLF4J MDC **via `MDCContext`**, never via a bare `MDC.put`. That is not a stylistic choice —
+the MDC is a thread-local, so a plain put is lost the moment `safeDbQuery` hops to
+`Dispatchers.IO`, which is where most interesting lines come from. Passing the map explicitly also
+means the coroutines machinery owns cleanup, on completion, cancellation and failure alike.
+
+Three dispatch paths, one wrap each — do not add a fourth without a wrap:
+| Path | Wrapped by |
+|---|---|
+| Commands | `ChatContextCommand`, applied to every entry by `CommandRegistry` — registering a command is enough |
+| Text messages | `MessageHandler.handleIncomingMessage` |
+| Callback queries | `CallbackRouter.route` |
+
+`scope.launch {}` takes its context from the injected scope, **not** from the caller, so deferred
+work would log as `system`. Pass `chatLogContextSnapshot()` to the launch — see
+`ReadinessSessionRunner`. Schedulers have no ambient chat: they wrap each per-chat send
+individually (`BirthdayGreetingScheduler.sendGreetings`, `ReleaseAnnouncer.sendToAllChats`), and
+pass-level lines correctly render as `system`.
+
+An absent key renders as `system` through the encoder default in `app/src/main/resources/logback.xml`
+— there is no "system context" API to call. Per `security.md`, these fields carry the chat id and
+chat type only; never a username, user id, or message body.
+
 ## Adding a new command
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)

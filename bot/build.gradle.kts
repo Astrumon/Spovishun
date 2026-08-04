@@ -25,11 +25,18 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.slf4j.api)
 
+    // MDCContext — the chat log context travels with the coroutine, not the thread (spovishun-168).
+    implementation(libs.kotlinx.coroutines.slf4j)
+
     // Same reason as the compileOnly above — tests verify the editMessageText calls.
     testCompileOnly(libs.retrofit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Test-only backend. SLF4J 2.x binds a no-op MDCAdapter when no provider is on the classpath,
+    // so the chat log context tests could not observe anything without one. Production logging
+    // still ships from :app — this never leaves the test classpath.
+    testRuntimeOnly(libs.logback)
 }
 
 // Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline).

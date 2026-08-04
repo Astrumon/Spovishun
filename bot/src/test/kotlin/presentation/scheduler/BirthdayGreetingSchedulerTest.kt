@@ -8,6 +8,7 @@ import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
+import com.ua.astrumon.presentation.util.ChatLogContext
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -19,6 +20,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import org.slf4j.MDC
 import presentation.testMessagesProvider
 import java.time.Clock
 import java.time.ZoneId
@@ -26,7 +28,9 @@ import java.time.ZonedDateTime
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 class BirthdayGreetingSchedulerTest {
     private val birthdayService: BirthdayService = mockk()
@@ -89,6 +93,38 @@ class BirthdayGreetingSchedulerTest {
             assertContains(text, "@alice")
             assertFalse(text.contains("Alice alice"), "raw username must not leak next to the name")
         }
+        scope.cancel()
+    }
+
+    /**
+     * A send that blows up is logged against the chat it was aimed at, not as `system`
+     * (spovishun-168) — that attribution is the whole point of the live-log view. The remaining
+     * chats still get their greeting, and the member is not recorded as greeted, so the partial
+     * failure is retried rather than swallowed.
+     */
+    @Test
+    fun `greet should attribute a failed send to its chat and skip recording`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
+        var chatIdWhenSendFailed: String? = null
+
+        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
+        coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
+        coEvery { birthdayService.findChatIdsForMember(1L) } returns ResultContainer.success(listOf(-100L, -200L))
+        every { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) } answers {
+            chatIdWhenSendFailed = MDC.get(ChatLogContext.CHAT_ID)
+            throw IllegalStateException("telegram unreachable")
+        }
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        assertEquals("-100", chatIdWhenSendFailed)
+        // The second chat is still served, and the member stays un-recorded for a later retry.
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
+        coVerify(exactly = 0) { birthdayService.recordGreetingSent(any(), any(), any()) }
+        assertNull(MDC.get(ChatLogContext.CHAT_ID))
         scope.cancel()
     }
 

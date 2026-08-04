@@ -1,11 +1,14 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
+import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Update
+import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.bot.config.ChatAccessConfig
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.util.withChatLogContext
 import org.slf4j.LoggerFactory
 
 class MessageHandler(
@@ -21,23 +24,28 @@ class MessageHandler(
     ) {
         val message = update.message ?: return
         val user = message.from ?: return
-        val chatId = message.chat.id
+        val chat = message.chat
 
-        if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return
+        if (config.allowedChatIds.isNotEmpty() && chat.id !in config.allowedChatIds) return
 
-        val username = sanitizeUsername(user.username, user.id)
-        val firstName = user.firstName
+        withChatLogContext(chat.id, chat.type) { autoRegister(bot, chat, user) }
+    }
 
-        val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
+    private suspend fun autoRegister(
+        bot: Bot,
+        chat: Chat,
+        user: User,
+    ) {
+        val userRole = botAdminUtils.getMemberRole(bot, chat.id, user.id)
 
         autoRegisterService
             .ensureUserRegistered(
-                chatId = chatId,
+                chatId = chat.id,
                 userId = user.id,
-                username = username,
-                firstName = firstName,
-                chatTitle = message.chat.title,
-                chatType = message.chat.type,
+                username = sanitizeUsername(user.username, user.id),
+                firstName = user.firstName,
+                chatTitle = chat.title,
+                chatType = chat.type,
                 userRole = userRole,
             ).onSuccess {
                 logger.debug("Member auto-register succeeded")

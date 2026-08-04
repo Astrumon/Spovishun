@@ -143,4 +143,33 @@ class DockerResponseMapperTest {
 
         assertEquals("hello", dto.line)
     }
+
+    /**
+     * The chat context the bot stamps on every line (spovishun-168) must reach the Admin client
+     * untouched. This relay is deliberately format-agnostic — it streams whatever a container
+     * writes — so the guarantee is that the field survives verbatim, not that it is parsed here.
+     */
+    @Test
+    fun should_relayChatContextVerbatim_when_parsingLogLine() {
+        val payload = "2026-06-21T10:00:04Z 2026-06-21 10:00:04 INFO  [chatId=-1001234567890 chatType=supergroup] " +
+            "c.u.a.p.b.c.ChatContextCommand - Command 'ping' invoked"
+
+        val dto = DockerResponseMapper.parseLogLine(1, payload)
+
+        assertTrue(dto.line.contains("[chatId=-1001234567890 chatType=supergroup]"))
+        assertEquals(
+            listOf("-1001234567890", "supergroup"),
+            Regex("""\[chatId=(\S+) chatType=(\S+)]""").find(dto.line)?.destructured?.toList(),
+        )
+    }
+
+    @Test
+    fun should_relaySystemChatContext_when_lineHasNoOriginatingChat() {
+        val payload = "2026-06-21T10:00:05Z 2026-06-21 10:00:05 INFO  [chatId=system chatType=system] " +
+            "c.u.a.data.db.DatabaseFactory - Initializing database"
+
+        val dto = DockerResponseMapper.parseLogLine(1, payload)
+
+        assertTrue(dto.line.contains("[chatId=system chatType=system]"))
+    }
 }

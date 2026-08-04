@@ -10,6 +10,7 @@ import com.ua.astrumon.domain.bot.service.BotMetaService
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
+import com.ua.astrumon.presentation.util.withChatLogContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -72,16 +73,19 @@ class ReleaseAnnouncer(
         return notes.firstOrNull { it.version == version }
     }
 
-    private fun sendToAllChats(
+    /** Each send logs against the chat it targets, so a partial broadcast names its casualties. */
+    private suspend fun sendToAllChats(
         bot: Bot,
         chatIds: List<Long>,
         text: String,
     ) {
         chatIds.forEach { id ->
-            try {
-                bot.sendMessage(ChatId.fromId(id), text, parseMode = ParseMode.HTML)
-            } catch (e: Exception) {
-                logger.warn("Failed to broadcast to chat $id: ${e.message}")
+            withChatLogContext(id) {
+                try {
+                    bot.sendMessage(ChatId.fromId(id), text, parseMode = ParseMode.HTML)
+                } catch (e: Exception) {
+                    logger.warn("Failed to broadcast release notes: ${e.message}")
+                }
             }
         }
     }

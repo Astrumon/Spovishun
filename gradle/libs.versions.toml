@@ -50,6 +50,8 @@ hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
 # Logging
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 logback = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+# MDCContext — carries the SLF4J MDC across coroutine dispatcher hops (spovishun-168).
+kotlinx-coroutines-slf4j = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-slf4j", version.ref = "kotlinx-coroutines" }
 
 # Ktor (client)
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }

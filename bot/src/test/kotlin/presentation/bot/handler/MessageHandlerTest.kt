@@ -12,14 +12,19 @@ import com.ua.astrumon.domain.bot.model.MemberWithChat
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.util.ChatLogContext
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.slf4j.MDC
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class MessageHandlerTest {
     private val autoRegisterService: AutoRegisterService = mockk()
@@ -34,9 +39,13 @@ class MessageHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
+        MDC.clear()
         messageHandler = MessageHandler(autoRegisterService, botAdminUtils, config)
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
+
+    @AfterTest
+    fun tearDown() = MDC.clear()
 
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
@@ -114,6 +123,29 @@ class MessageHandlerTest {
                 "group",
             )
         }
+    }
+
+    @Test
+    fun `handleIncomingMessage should expose the originating chat while registering`() = runTest {
+        // Given
+        val update = createUpdate()
+        val member = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
+        var chatIdDuringDispatch: String? = null
+        var chatTypeDuringDispatch: String? = null
+        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any(), any()) } answers {
+            chatIdDuringDispatch = MDC.get(ChatLogContext.CHAT_ID)
+            chatTypeDuringDispatch = MDC.get(ChatLogContext.CHAT_TYPE)
+            ResultContainer.success(member)
+        }
+
+        // When
+        messageHandler.handleIncomingMessage(bot, update)
+
+        // Then
+        assertEquals(chatId.toString(), chatIdDuringDispatch)
+        assertEquals("group", chatTypeDuringDispatch)
+        assertNull(MDC.get(ChatLogContext.CHAT_ID))
+        assertNull(MDC.get(ChatLogContext.CHAT_TYPE))
     }
 
     @Test

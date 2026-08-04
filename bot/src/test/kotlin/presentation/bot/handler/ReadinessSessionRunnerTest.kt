@@ -14,6 +14,8 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.ReadinessVote
 import com.ua.astrumon.presentation.bot.handler.SessionKey
+import com.ua.astrumon.presentation.util.ChatLogContext
+import com.ua.astrumon.presentation.util.withChatLogContext
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -24,6 +26,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.slf4j.MDC
 import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -94,6 +97,32 @@ class ReadinessSessionRunnerTest {
         runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
 
         assertFalse(runner.isLive(key))
+    }
+
+    /**
+     * The poll's deferred work runs on an injected scope, which carries no chat of its own — so
+     * without the snapshot handed to `launch` it would log as `system` (spovishun-168). Both
+     * coroutines are asserted: the coalesced re-render and the TTL expiry.
+     */
+    @Test
+    fun `should carry the opening chat context into the deferred render and expiry`() = runTest(dispatcher) {
+        var chatIdDuringRender: String? = null
+        var chatIdDuringExpiry: String? = null
+        every { bot.editMessageText(any(), any(), any(), any(), any(), any(), any()) } answers {
+            val seen = MDC.get(ChatLogContext.CHAT_ID)
+            if (chatIdDuringRender == null) chatIdDuringRender = seen else chatIdDuringExpiry = seen
+            Pair(null, null)
+        }
+
+        withChatLogContext(chatId, "supergroup") {
+            runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+            runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
+        }
+        advanceUntilIdle()
+
+        assertEquals(chatId.toString(), chatIdDuringRender)
+        assertEquals(chatId.toString(), chatIdDuringExpiry)
+        assertNull(MDC.get(ChatLogContext.CHAT_ID))
     }
 
     @Test
