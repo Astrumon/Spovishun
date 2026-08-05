@@ -1,5 +1,6 @@
 package com.ua.astrumon.domain.bot.service
 
+import com.ua.astrumon.common.extension.collectAll
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Group
 import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
@@ -11,22 +12,20 @@ class GroupService(
 ) {
     suspend fun getAllGroupsWithMembers(chatId: Long): ResultContainer<List<GroupWithMembers>> =
         groupRepository.getAllGroups(chatId).flatMap { groups ->
-            val groupsWithMembers = groups.map { group ->
-                groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
-                    GroupWithMembers(
-                        id = group.id,
-                        chatId = chatId,
-                        key = group.name,
-                        name = group.name,
-                        members = members,
-                        readinessEnabled = group.readinessEnabled,
-                        icon = group.icon,
-                    )
-                }
-            }
-            ResultContainer.catching {
-                groupsWithMembers.map { it.getOrThrow() }
-            }
+            groups
+                .map { group ->
+                    groupMemberRepository.getGroupMembers(chatId, group.name).map { members ->
+                        GroupWithMembers(
+                            id = group.id,
+                            chatId = chatId,
+                            key = group.name,
+                            name = group.name,
+                            members = members,
+                            readinessEnabled = group.readinessEnabled,
+                            icon = group.icon,
+                        )
+                    }
+                }.collectAll()
         }
 
     suspend fun createGroup(

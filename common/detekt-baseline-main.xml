@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>RedundantSuspendModifier:ResultExtensions.kt:suspend</ID>
     <ID>TooGenericExceptionCaught:ResultContainer.kt:ResultContainer.Companion$e: Exception</ID>
   </CurrentIssues>
 </SmellBaseline>

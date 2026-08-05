@@ -163,4 +163,47 @@ class UsernameInputSanitizerTest {
         assertEquals(listOf("valid"), result.valid)
         assertEquals(listOf("user!bad", "user-bad"), result.invalid)
     }
+
+    // --- sanitizeUsername ---
+
+    @Test
+    fun `should_returnUnchanged_when_alreadyValid`() {
+        assertEquals("alice", UsernameInputSanitizer.sanitizeUsername("alice", 1L))
+    }
+
+    @Test
+    fun `should_replaceAtWithUnderscore_when_atPrefixPresent`() {
+        assertEquals("_alice", UsernameInputSanitizer.sanitizeUsername("@alice", 1L))
+    }
+
+    @Test
+    fun `should_fallBackToUserId_when_usernameIsNull`() {
+        assertEquals("user_42", UsernameInputSanitizer.sanitizeUsername(null, 42L))
+    }
+
+    @Test
+    fun `should_fallBackToUserId_when_usernameIsBlank`() {
+        assertEquals("user_42", UsernameInputSanitizer.sanitizeUsername("   ", 42L))
+    }
+
+    @Test
+    fun `should_replaceSpecialChars_when_usernameHasPunctuation`() {
+        assertEquals("user_name_", UsernameInputSanitizer.sanitizeUsername("user-name!", 1L))
+    }
+
+    @Test
+    fun `should_keepAlphanumericAndUnderscore_when_alreadySafe`() {
+        assertEquals("user_123_ABC", UsernameInputSanitizer.sanitizeUsername("user_123_ABC", 1L))
+    }
+
+    @Test
+    fun `should_truncateToMaxLength_when_usernameTooLong`() {
+        val result = UsernameInputSanitizer.sanitizeUsername("a".repeat(40), 1L)
+        assertEquals("a".repeat(32), result)
+    }
+
+    @Test
+    fun `should_replaceCyrillic_when_nonLatinCharacters`() {
+        assertEquals("____ko", UsernameInputSanitizer.sanitizeUsername("іванko", 1L))
+    }
 }

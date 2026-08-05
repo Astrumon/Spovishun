@@ -3,8 +3,8 @@ package com.ua.astrumon.presentation.bot.commands
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
-import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.handler.PickerCopy
@@ -34,7 +34,7 @@ class RandomCommand(
             ?.split(" ")
             ?.drop(1) ?: emptyList()
 
-        val username = sanitizeUsername(user.username, user.id)
+        val username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 
         if (args.isEmpty()) {

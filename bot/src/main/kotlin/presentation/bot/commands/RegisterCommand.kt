@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.common.util.sanitizeUsername
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
@@ -32,7 +32,7 @@ class RegisterCommand(
         val request = RegistrationRequest(
             chatId = chatId,
             userId = user.id,
-            username = sanitizeUsername(user.username, user.id),
+            username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id),
             firstName = user.firstName,
             userRole = botAdminUtils.getMemberRole(bot, chatId, user.id),
         )
