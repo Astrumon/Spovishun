@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.commands
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.common.util.sanitizeUsername
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.bot.handler.ReadinessSession
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
@@ -38,7 +38,7 @@ class PingAllCommand(
             return
         }
 
-        val username = sanitizeUsername(user.username, user.id)
+        val username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, chatId, user.id)
 
         when (val outcome = pingController.pingAll(chatId, user.id, username, user.firstName, userRole, args)) {

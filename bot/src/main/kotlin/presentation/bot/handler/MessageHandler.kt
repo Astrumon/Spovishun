@@ -4,7 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
-import com.ua.astrumon.common.util.sanitizeUsername
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.domain.bot.config.ChatAccessConfig
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.util.BotAdminUtils
@@ -42,7 +42,7 @@ class MessageHandler(
             .ensureUserRegistered(
                 chatId = chat.id,
                 userId = user.id,
-                username = sanitizeUsername(user.username, user.id),
+                username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id),
                 firstName = user.firstName,
                 chatTitle = chat.title,
                 chatType = chat.type,

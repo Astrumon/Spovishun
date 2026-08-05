@@ -4,8 +4,8 @@ Pure-Kotlin shared kernel. Has no dependency on any other project module and pul
 (no Koin, Exposed, or Telegram SDK). Every other module depends on `:common`.
 
 Packages (under `common/`): `result/` (`ResultContainer`), `exception/` (`BaseException` +
-domain/not-found exceptions), `extension/` (`ResultExtensions` — `flatMap`/`fold`/`catching`),
-`util/` (HTML escaping, username sanitizers, `UserListParser`, `VersionInfo`).
+domain/not-found exceptions), `extension/` (`ResultExtensions` — `orFailure`/`collectAll`),
+`util/` (HTML escaping, `UsernameInputSanitizer`, `VersionInfo`).
 
 ## Rules
 - Keep it framework-free: no `org.koin.*`, `org.jetbrains.exposed.*`, `com.github.kotlintelegrambot.*`,

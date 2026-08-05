@@ -3,8 +3,8 @@ package com.ua.astrumon.presentation.bot.handler
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Update
+import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
-import com.ua.astrumon.common.util.sanitizeUsername
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.PingController
@@ -39,7 +39,7 @@ class PingCallbackHandler(
         val groupId = ctx.payload.toLongOrNull() ?: return
 
         val user = callbackQuery.from
-        val username = sanitizeUsername(user.username, user.id)
+        val username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id)
         val userRole = botAdminUtils.getMemberRole(bot, ctx.chatId, user.id)
 
         val outcome = if (groupId == PingController.ALL_MEMBERS_ID) {
