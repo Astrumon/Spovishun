@@ -105,6 +105,42 @@ class GroupRepositoryImplTest {
     }
 
     @Test
+    fun `findGroupById should return group with its settings when exists`() = runTest {
+        ensureChat(100L)
+        val created = repository.createGroup(100L, "devs").getOrThrow()
+        repository.setIcon(100L, "devs", "🔥")
+        repository.setReadinessEnabled(100L, "devs", false)
+
+        val result = repository.findGroupById(100L, created.id)
+
+        assertTrue(result.isSuccess)
+        val group = result.getOrThrow()
+        assertEquals("devs", group.name)
+        assertEquals(100L, group.chatId)
+        assertEquals("🔥", group.icon)
+        assertEquals(false, group.readinessEnabled)
+    }
+
+    @Test
+    fun `findGroupById should return failure when not exists`() = runTest {
+        val result = repository.findGroupById(100L, 9999L)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
+    fun `findGroupById should not find group from different chat`() = runTest {
+        ensureChat(100L)
+        val created = repository.createGroup(100L, "devs").getOrThrow()
+
+        val result = repository.findGroupById(200L, created.id)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
+    }
+
+    @Test
     fun `getAllGroups should return empty list when no groups`() = runTest {
         val result = repository.getAllGroups(100L)
 

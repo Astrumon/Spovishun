@@ -4,7 +4,7 @@ Pure-Kotlin shared kernel. Has no dependency on any other project module and pul
 (no Koin, Exposed, or Telegram SDK). Every other module depends on `:common`.
 
 Packages (under `common/`): `result/` (`ResultContainer`), `exception/` (`BaseException` +
-domain/not-found exceptions), `extension/` (`ResultExtensions` — `orFailure`/`collectAll`),
+domain/not-found exceptions), `extension/` (`ResultExtensions` — `orFailure`),
 `util/` (HTML escaping, `UsernameInputSanitizer`, `VersionInfo`).
 
 ## Rules

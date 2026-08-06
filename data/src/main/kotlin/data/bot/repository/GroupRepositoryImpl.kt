@@ -41,6 +41,18 @@ class GroupRepositoryImpl : GroupRepository {
             ?: throw ResourceNotFoundException("Group", key)
     }
 
+    override suspend fun findGroupById(
+        chatId: Long,
+        groupId: Long,
+    ): ResultContainer<Group> = safeDbQuery {
+        groupsWithSettings
+            .selectAll()
+            .where { (Groups.chatId eq chatId) and (Groups.id eq groupId) }
+            .singleOrNull()
+            ?.toGroup()
+            ?: throw ResourceNotFoundException("Group", groupId.toString())
+    }
+
     override suspend fun createGroup(
         chatId: Long,
         name: String,

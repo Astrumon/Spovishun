@@ -79,6 +79,45 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         assert(groups.any { it.name == "devs" })
     }
 
+    /**
+     * Guards the batch read introduced in spovishun-171: the members of several groups now come back
+     * from a single query and a group id resolves through one direct query, so every group must still
+     * get exactly its own members — an empty one included.
+     */
+    @Test
+    fun `group reads should stay correct for a chat with several groups`() = runTest {
+        registerMember(role = MemberRole.MODERATOR)
+        registerMember(userId = 2L, username = "alice")
+        registerMember(userId = 3L, username = "bob")
+        groupService.createGroup(testChatId, "devs")
+        groupService.createGroup(testChatId, "ops")
+        groupService.createGroup(testChatId, "empty")
+        groupService.addMemberToGroup(testChatId, "devs", "alice")
+        groupService.addMemberToGroup(testChatId, "devs", "bob")
+        groupService.addMemberToGroup(testChatId, "ops", "alice")
+
+        val groups = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().associateBy { it.key }
+
+        assertEquals(3, groups.size)
+        assertEquals(listOf("alice", "bob"), groups.getValue("devs").members)
+        assertEquals(listOf("alice"), groups.getValue("ops").members)
+        assertEquals(emptyList(), groups.getValue("empty").members)
+
+        val ops = groupService.getGroupById(testChatId, groups.getValue("ops").id).getOrThrow()
+        assertEquals("ops", ops.key)
+        assertEquals(listOf("alice"), ops.members)
+
+        showGroupsCommand.execute(bot, buildUpdate("/groups"))
+
+        verify {
+            bot.sendMessage(
+                ChatId.fromId(testChatId),
+                match { it.contains("devs") && it.contains("ops") && it.contains("empty") },
+                ParseMode.HTML,
+            )
+        }
+    }
+
     @Test
     fun `delgroup as moderator should delete existing group`() = runTest {
         registerMember(role = MemberRole.MODERATOR)

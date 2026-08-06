@@ -1,5 +1,6 @@
 package com.ua.astrumon.presentation.controller
 
+import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
@@ -107,17 +108,14 @@ class RandomController(
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
-        val groupsResult = groupService.getAllGroupsWithMembers(chatId)
-        if (groupsResult.isFailure) {
-            logger.error(
-                "Failed to get groups for pickRandomFromGroupById: {}",
-                groupsResult.exceptionOrNull()?.let { it::class.simpleName },
-            )
-            return CommandResponse.Error(messages.error.loadGroupsInternal)
+        val groupResult = groupService.getGroupById(chatId, groupId)
+        val group = groupResult.getOrNull() ?: return when (val exception = groupResult.exceptionOrNull()) {
+            is ResourceNotFoundException -> CommandResponse.NotFound("Група", groupId.toString())
+            else -> {
+                logger.error("Failed to get group for pickRandomFromGroupById: {}", exception?.let { it::class.simpleName })
+                CommandResponse.Error(messages.error.loadGroupsInternal)
+            }
         }
-
-        val group = groupsResult.getOrNull()?.firstOrNull { it.id == groupId }
-            ?: return CommandResponse.NotFound("Група", groupId.toString())
 
         if (group.members.isEmpty()) return CommandResponse.Success(messages.random.emptyGroup)
 

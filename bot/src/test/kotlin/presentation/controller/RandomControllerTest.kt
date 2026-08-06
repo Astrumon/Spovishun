@@ -204,7 +204,7 @@ class RandomControllerTest {
     @Test
     fun `pickRandomFromGroupById should return Success with one of the group members`() = runTest {
         val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice", "bob"))
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs))
+        coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.success(devs)
 
         val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
 
@@ -215,7 +215,7 @@ class RandomControllerTest {
     @Test
     fun `pickRandomFromGroupById should return Success with empty_group message when group has no members`() = runTest {
         val empty = GroupWithMembers(11L, chatId, "empty", "Empty", emptyList())
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(empty))
+        coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.success(empty)
 
         val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
 
@@ -225,8 +225,7 @@ class RandomControllerTest {
 
     @Test
     fun `pickRandomFromGroupById should return NotFound when no group has the given id`() = runTest {
-        val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice"))
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs))
+        coEvery { groupService.getGroupById(chatId, 99L) } returns ResultContainer.failure(ResourceNotFoundException("Group", "99"))
 
         val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 99L)
 
@@ -236,7 +235,7 @@ class RandomControllerTest {
 
     @Test
     fun `pickRandomFromGroupById should return Error when groupService fails`() = runTest {
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
+        coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.failure(DatabaseException("db error"))
 
         val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
 
