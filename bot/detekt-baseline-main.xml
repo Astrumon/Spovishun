@@ -6,45 +6,24 @@
     <ID>AbstractClassCanBeInterface:CommandResponse.kt:CommandResponse$CommandResponse</ID>
     <ID>HasPlatformType:ChatContextCommand.kt:ChatContextCommand.Companion$val logger = LoggerFactory.getLogger(ChatContextCommand::class.java)</ID>
     <ID>LongMethod:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
-    <ID>LongMethod:GroupController.kt:GroupController$suspend fun getGroups: CommandResponse</ID>
     <ID>LongMethod:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
-    <ID>LongMethod:PingGroupCommand.kt:PingGroupCommand$override suspend fun execute</ID>
-    <ID>LongMethod:RemoveFromGroupCallbackHandler.kt:RemoveFromGroupCallbackHandler$override suspend fun handle</ID>
-    <ID>LongMethod:StartCommand.kt:StartCommand$override suspend fun execute</ID>
     <ID>LongParameterList:CommandResponse.kt:fun CommandResponse.toText: String</ID>
     <ID>LongParameterList:PickerRender.kt:internal fun Bot.advancePicker</ID>
-    <ID>LongParameterList:PingController.kt:PingController</ID>
-    <ID>LongParameterList:PingController.kt:PingController$suspend fun groupsForPicker: PickerListing</ID>
-    <ID>LongParameterList:PingController.kt:PingController$suspend fun pingAll: PingOutcome</ID>
-    <ID>LongParameterList:PingController.kt:PingController$suspend fun pingGroup: PingOutcome</ID>
-    <ID>LongParameterList:PingController.kt:PingController$suspend fun pingGroupById: PingOutcome</ID>
-    <ID>LongParameterList:RandomCommand.kt:RandomCommand$private suspend fun showGroupPicker</ID>
-    <ID>LongParameterList:RandomController.kt:RandomController$suspend fun groupsForPicker: PickerListing</ID>
-    <ID>LongParameterList:RandomController.kt:RandomController$suspend fun pickRandomAll: CommandResponse</ID>
-    <ID>LongParameterList:RandomController.kt:RandomController$suspend fun pickRandomFromGroup: CommandResponse</ID>
-    <ID>LongParameterList:RandomController.kt:RandomController$suspend fun pickRandomFromGroupById: CommandResponse</ID>
     <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
     <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>
     <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$29</ID>
-    <ID>NestedBlockDepth:StartCommand.kt:StartCommand$override suspend fun execute</ID>
     <ID>RedundantSuspendModifier:TelegramBot.kt:TelegramBot$suspend</ID>
     <ID>ReturnCount:BirthdayController.kt:BirthdayController$suspend fun setBirthdayForOther: CommandResponse</ID>
     <ID>ReturnCount:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
     <ID>ReturnCount:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
-    <ID>ReturnCount:PingGroupCommand.kt:PingGroupCommand$override suspend fun execute</ID>
     <ID>TooGenericExceptionCaught:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BotAdminUtils.kt:BotAdminUtils$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:StartCommand.kt:StartCommand$e: Exception</ID>
     <ID>TooGenericExceptionCaught:TelegramBot.kt:TelegramBot$e: Exception</ID>
     <ID>UnreachableCode:CallbackContext.kt:callbackQuery.data ?: return null</ID>
     <ID>UnreachableCode:CallbackRouter.kt:CallbackRouter$callbackQuery.data ?: return</ID>
-    <ID>UnreachableCode:MembersCommand.kt:MembersCommand$user.firstName ?: "Unknown"</ID>
-    <ID>UnreachableCode:ShowGroupsCommand.kt:ShowGroupsCommand$user.firstName ?: "Unknown"</ID>
     <ID>UseOrEmpty:BotCommand.kt:message?.text?.split(" ")?.drop(1) ?: emptyList()</ID>
     <ID>UseOrEmpty:PingController.kt:PingController$groupService.getAllGroupsWithMembers(chatId).getOrNull()?.map { it.key } ?: emptyList()</ID>
-    <ID>UseOrEmpty:PingGroupCommand.kt:PingGroupCommand$update.message ?.text ?.split(" ") ?.drop(1) ?: emptyList()</ID>
-    <ID>UseOrEmpty:RandomCommand.kt:RandomCommand$update.message ?.text ?.split(" ") ?.drop(1) ?: emptyList()</ID>
     <ID>UseOrEmpty:RandomController.kt:RandomController$groupResult.getOrNull()?.members ?: emptyList()</ID>
     <ID>UseOrEmpty:RandomController.kt:RandomController$groupService .getAllGroupsWithMembers(chatId) .getOrNull() ?.map { it.key } ?: emptyList()</ID>
     <ID>UseOrEmpty:RandomController.kt:RandomController$membersResult.getOrNull() ?: emptyList()</ID>

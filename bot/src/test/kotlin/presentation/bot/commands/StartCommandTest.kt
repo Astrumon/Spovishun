@@ -154,6 +154,32 @@ class StartCommandTest {
         coVerify(exactly = 0) { bot.sendMessage(any(), match { it.contains("Реєстрація учасників") }, any()) }
     }
 
+    /**
+     * Admin pre-registration is best-effort: the catch around it is narrow precisely so a Telegram
+     * failure there cannot swallow the caller's own registration and welcome (spovishun-172).
+     */
+    @Test
+    fun `invoke should still welcome the caller when reading the admins throws`() = runTest {
+        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
+        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
+
+        startCommand.execute(bot, createUpdate(chatType = "supergroup"))
+
+        coVerify(exactly = 0) { registrationController.ensureUserRegistered(any()) }
+        coVerify { registrationController.start(request) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
+    }
+
+    @Test
+    fun `invoke should still welcome the caller when reading the chat throws`() = runTest {
+        every { bot.getChat(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
+
+        startCommand.execute(bot, createUpdate())
+
+        coVerify { registrationController.start(request) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
+    }
+
     @Test
     fun `invoke should sanitize username with special characters`() = runTest {
         val specialUser = User(id = userId, isBot = false, firstName = "Alice", username = "al!ce@#")
