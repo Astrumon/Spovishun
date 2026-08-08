@@ -6,10 +6,8 @@ import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
-import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.badge
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
@@ -22,22 +20,9 @@ import com.ua.astrumon.presentation.util.displayLabelHtml
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
-    private val autoRegisterService: AutoRegisterService,
     private val messagesProvider: BotMessagesProvider,
 ) : BaseController(memberService) {
-    suspend fun getGroups(
-        chatId: Long,
-        member: Member,
-        userRole: MemberRole,
-    ): CommandResponse {
-        autoRegisterService.ensureUserRegistered(
-            chatId = chatId,
-            userId = member.userId,
-            username = member.username,
-            firstName = member.firstName,
-            userRole = userRole,
-        )
-
+    suspend fun getGroups(chatId: Long): CommandResponse {
         val messages = messagesProvider.forChat(chatId)
         return groupService.getAllGroupsWithMembers(chatId).fold(
             onSuccess = { groups ->

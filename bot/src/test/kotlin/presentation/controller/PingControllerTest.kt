@@ -6,7 +6,6 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
@@ -32,7 +31,6 @@ class PingControllerTest {
     private val memberService: MemberService = mockk()
     private val groupService: GroupService = mockk()
     private val chatService: ChatService = mockk()
-    private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var pingController: PingController
 
     private val chatId = 123L
@@ -44,9 +42,7 @@ class PingControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService, testMessagesProvider())
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
-            ResultContainer.success(memberWithChat)
+        pingController = PingController(memberService, groupService, chatService, testMessagesProvider())
         // Default to the plain ping so the pre-readiness assertions stay about ping content.
         coEvery { chatService.isReadinessEnabled(chatId) } returns ResultContainer.success(false)
         // Default: nobody in a group resolves. Tests that expect targets call resolve() themselves.
@@ -85,7 +81,7 @@ class PingControllerTest {
         )
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(members)
 
-        val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList()).plainResponse()
+        val result = pingController.pingAll(chatId, emptyList()).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("@alice"))
@@ -99,7 +95,7 @@ class PingControllerTest {
         )
 
         val result = pingController
-            .pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("standup", "time"))
+            .pingAll(chatId, listOf("standup", "time"))
             .plainResponse()
 
         assertTrue(result is CommandResponse.Success)
@@ -110,7 +106,7 @@ class PingControllerTest {
     fun `pingAll should return Success with empty message when no members`() = runTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(emptyList())
 
-        val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList()).plainResponse()
+        val result = pingController.pingAll(chatId, emptyList()).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає зареєстрованих учасників"))
@@ -120,7 +116,7 @@ class PingControllerTest {
     fun `pingAll should return Error on service failure`() = runTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.failure(DatabaseException("error"))
 
-        val result = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList()).plainResponse()
+        val result = pingController.pingAll(chatId, emptyList()).plainResponse()
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -130,7 +126,7 @@ class PingControllerTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(memberWithChat))
         coEvery { chatService.isReadinessEnabled(chatId) } returns ResultContainer.success(true)
 
-        val outcome = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList())
+        val outcome = pingController.pingAll(chatId, emptyList())
 
         assertTrue(outcome is PingOutcome.Readiness)
         assertEquals(listOf(member), outcome.members)
@@ -141,7 +137,7 @@ class PingControllerTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(memberWithChat))
         coEvery { chatService.isReadinessEnabled(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
 
-        val outcome = pingController.pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList())
+        val outcome = pingController.pingAll(chatId, emptyList())
 
         assertTrue(outcome is PingOutcome.Readiness)
     }
@@ -153,7 +149,7 @@ class PingControllerTest {
         coEvery { groupService.getGroupById(chatId, 1L) } returns ResultContainer.success(group(1L, "devs", listOf("alice")))
         resolve(member)
 
-        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L).plainResponse()
+        val result = pingController.pingGroupById(chatId, groupId = 1L).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("@alice"))
@@ -166,7 +162,7 @@ class PingControllerTest {
             ResourceNotFoundException("Group", "999"),
         )
 
-        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 999L).plainResponse()
+        val result = pingController.pingGroupById(chatId, groupId = 999L).plainResponse()
 
         assertTrue(result is CommandResponse.NotFound)
     }
@@ -175,7 +171,7 @@ class PingControllerTest {
     fun `pingGroupById should return noTargets when group has no registered members`() = runTest {
         coEvery { groupService.getGroupById(chatId, 1L) } returns ResultContainer.success(group(1L, "devs", listOf("ghost")))
 
-        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L).plainResponse()
+        val result = pingController.pingGroupById(chatId, groupId = 1L).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає кого пінгувати"))
@@ -185,7 +181,7 @@ class PingControllerTest {
     fun `pingGroupById should return Error on service failure`() = runTest {
         coEvery { groupService.getGroupById(chatId, 1L) } returns ResultContainer.failure(DatabaseException("db error"))
 
-        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L).plainResponse()
+        val result = pingController.pingGroupById(chatId, groupId = 1L).plainResponse()
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -195,7 +191,7 @@ class PingControllerTest {
         coEvery { groupService.getGroupById(chatId, 1L) } returns ResultContainer.success(group(1L, "backend", listOf("alice")))
         resolve(member)
 
-        val result = pingController.pingGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, groupId = 1L).plainResponse()
+        val result = pingController.pingGroupById(chatId, groupId = 1L).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("backend"))
@@ -209,7 +205,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice", "bob")))
         resolve(member, bob)
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("@alice"))
@@ -222,7 +218,7 @@ class PingControllerTest {
         resolve(member)
 
         val result = pingController
-            .pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs", "review", "please"))
+            .pingGroup(chatId, listOf("devs", "review", "please"))
             .plainResponse()
 
         assertTrue(result is CommandResponse.Success)
@@ -235,7 +231,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice"), icon = "🔥"))
         resolve(member)
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("🔥 devs"))
@@ -247,7 +243,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice")))
         resolve(member)
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("devs"))
@@ -256,7 +252,7 @@ class PingControllerTest {
 
     @Test
     fun `pingGroup should return Error when no args`() = runTest {
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, emptyList()).plainResponse()
+        val result = pingController.pingGroup(chatId, emptyList()).plainResponse()
 
         assertTrue(result is CommandResponse.Error)
         assertTrue(result.message.contains("/ping"))
@@ -271,7 +267,7 @@ class PingControllerTest {
             listOf(group(1L, "devs", emptyList())),
         )
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("unknown")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("unknown")).plainResponse()
 
         assertTrue(result is CommandResponse.NotFound)
         assertTrue(result.identifier == "unknown")
@@ -284,7 +280,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice", "ghost")))
         resolve(member)
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("@alice"))
@@ -295,7 +291,7 @@ class PingControllerTest {
     fun `pingGroup should return Success with no one to ping when all members invalid`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group(1L, "devs", listOf("ghost")))
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає кого пінгувати"))
@@ -305,7 +301,7 @@ class PingControllerTest {
     fun `pingGroup should return Success with no one to ping when group has no members`() = runTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns ResultContainer.success(group(1L, "devs", emptyList()))
 
-        val result = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")).plainResponse()
+        val result = pingController.pingGroup(chatId, listOf("devs")).plainResponse()
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає кого пінгувати"))
@@ -317,7 +313,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice"), readinessEnabled = true))
         resolve(member)
 
-        val outcome = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))
+        val outcome = pingController.pingGroup(chatId, listOf("devs"))
 
         assertTrue(outcome is PingOutcome.Readiness)
         assertEquals(listOf(member), outcome.members)
@@ -331,7 +327,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice"), readinessEnabled = false))
         resolve(member)
 
-        val outcome = pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))
+        val outcome = pingController.pingGroup(chatId, listOf("devs"))
 
         assertTrue(outcome is PingOutcome.Plain)
         coVerify(exactly = 0) { chatService.isReadinessEnabled(any()) }
@@ -343,7 +339,7 @@ class PingControllerTest {
             ResultContainer.success(group(1L, "devs", listOf("alice", "bob")))
         resolve(member, bob)
 
-        pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs"))
+        pingController.pingGroup(chatId, listOf("devs"))
 
         coVerify(exactly = 1) { memberService.getMembersByUsernames(listOf("alice", "bob")) }
         coVerify(exactly = 0) { memberService.getMemberByUsername(any()) }
@@ -356,7 +352,7 @@ class PingControllerTest {
         resolve(member)
 
         val result = pingController
-            .pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("de<vs", "<b>зараз</b>"))
+            .pingGroup(chatId, listOf("de<vs", "<b>зараз</b>"))
             .plainResponse()
 
         assertTrue(result is CommandResponse.Success)
@@ -370,7 +366,7 @@ class PingControllerTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(memberWithChat))
 
         val result = pingController
-            .pingAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("<i>усі</i>"))
+            .pingAll(chatId, listOf("<i>усі</i>"))
             .plainResponse()
 
         assertTrue(result is CommandResponse.Success)
@@ -457,7 +453,7 @@ class PingControllerTest {
             listOf(group(1L, "devs", listOf("alice")), group(2L, "qa", listOf("bob"))),
         )
 
-        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val listing = pingController.groupsForPicker(chatId)
 
         assertTrue(listing is PickerListing.Show)
         assertEquals(
@@ -476,7 +472,7 @@ class PingControllerTest {
             listOf(group(1L, "devs", listOf("alice"), icon = "🔥"), group(2L, "qa", listOf("bob"))),
         )
 
-        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val listing = pingController.groupsForPicker(chatId)
 
         assertTrue(listing is PickerListing.Show)
         assertEquals(listOf(PickerOption(1L, "🔥 devs"), PickerOption(2L, "qa")), listing.options.drop(1))
@@ -486,7 +482,7 @@ class PingControllerTest {
     fun `groupsForPicker should return the all-members option alone when the chat has no groups`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
 
-        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val listing = pingController.groupsForPicker(chatId)
 
         assertTrue(listing is PickerListing.Show)
         assertEquals(listOf(PickerOption(PingController.ALL_MEMBERS_ID, ukMessages.ping.allMembersOption)), listing.options)
@@ -496,7 +492,7 @@ class PingControllerTest {
     fun `groupsForPicker should return Reject when loading groups fails`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
 
-        val listing = pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val listing = pingController.groupsForPicker(chatId)
 
         assertTrue(listing is PickerListing.Reject)
         assertTrue(listing.response is CommandResponse.Error)

@@ -3,8 +3,6 @@ package presentation.controller
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Group
-import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
@@ -23,7 +21,6 @@ import kotlin.test.assertTrue
 class GroupControllerHtmlEscapeTest {
     private val groupService: GroupService = mockk()
     private val memberService: MemberService = mockk()
-    private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var groupController: GroupController
 
     private val chatId = 123L
@@ -32,7 +29,7 @@ class GroupControllerHtmlEscapeTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        groupController = GroupController(groupService, memberService, autoRegisterService, testMessagesProvider())
+        groupController = GroupController(groupService, memberService, testMessagesProvider())
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true
         coEvery { memberService.hasAdminAccess(chatId, userId) } returns true
     }
@@ -103,14 +100,8 @@ class GroupControllerHtmlEscapeTest {
     fun `getGroups should escape group name and key`() = runTest {
         val groups = listOf(GroupWithMembers(1L, chatId, "<evil>", "<key>", emptyList()))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
-            ResultContainer.success(mockk())
 
-        val result = groupController.getGroups(
-            chatId,
-            mockk(relaxed = true),
-            MemberRole.MEMBER,
-        )
+        val result = groupController.getGroups(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertFalse(result.message.contains("<evil>"))

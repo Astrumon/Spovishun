@@ -1,8 +1,6 @@
 package com.ua.astrumon.presentation.controller
 
 import com.ua.astrumon.common.exception.ResourceNotFoundException
-import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
@@ -12,19 +10,11 @@ import org.slf4j.LoggerFactory
 class RandomController(
     private val memberService: MemberService,
     private val groupService: GroupService,
-    private val autoRegisterService: AutoRegisterService,
     private val messagesProvider: BotMessagesProvider,
 ) {
     private val logger = LoggerFactory.getLogger(RandomController::class.java)
 
-    suspend fun pickRandomAll(
-        chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
-    ): CommandResponse {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+    suspend fun pickRandomAll(chatId: Long): CommandResponse {
         val messages = messagesProvider.forChat(chatId)
 
         val membersResult = memberService.getAllMembersInChat(chatId)
@@ -42,13 +32,8 @@ class RandomController(
 
     suspend fun pickRandomFromGroup(
         chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
         key: String,
     ): CommandResponse {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
         val groupResult = groupService.getGroupByKey(chatId, key)
@@ -71,14 +56,7 @@ class RandomController(
      * Options for the args-less `/random` picker: the whole-chat option first, then one per group.
      * An empty [PickerListing.Show] means the chat has no groups — the caller falls back to [pickRandomAll].
      */
-    suspend fun groupsForPicker(
-        chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
-    ): PickerListing {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+    suspend fun groupsForPicker(chatId: Long): PickerListing {
         val messages = messagesProvider.forChat(chatId)
 
         return groupService.getAllGroupsWithMembers(chatId).fold(
@@ -99,13 +77,8 @@ class RandomController(
 
     suspend fun pickRandomFromGroupById(
         chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
         groupId: Long,
     ): CommandResponse {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
         val groupResult = groupService.getGroupById(chatId, groupId)

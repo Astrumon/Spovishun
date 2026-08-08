@@ -47,14 +47,16 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
     fun setUpRouter() {
         router = CallbackRouter(
             listOf(
-                PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
-                DeleteGroupCallbackHandler(groupController, messagesProvider),
-                AddToGroupCallbackHandler(groupController, messagesProvider),
-                RemoveFromGroupCallbackHandler(groupController, messagesProvider),
-                GrantRoleCallbackHandler(groupController, messagesProvider),
-                RandomCallbackHandler(randomController, botAdminUtils, messagesProvider),
-                ReadinessCallbackHandler(readinessSessionRunner, messagesProvider),
+                PingCallbackHandler(pingController, readinessSessionRunner),
+                DeleteGroupCallbackHandler(groupController),
+                AddToGroupCallbackHandler(groupController),
+                RemoveFromGroupCallbackHandler(groupController),
+                GrantRoleCallbackHandler(groupController),
+                RandomCallbackHandler(randomController),
+                ReadinessCallbackHandler(readinessSessionRunner),
             ),
+            messagesProvider,
+            autoRegistrar,
         )
     }
 

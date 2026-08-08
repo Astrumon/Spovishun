@@ -15,10 +15,12 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RegistrationControllerTest {
@@ -41,6 +43,24 @@ class RegistrationControllerTest {
             ResultContainer.success(memberWithChat)
     }
 
+    /**
+     * The role reaches the service as a supplier now (spovishun-172), so asserting *which* role was
+     * registered means capturing that supplier and invoking it.
+     */
+    private suspend fun assertRegistered(expected: RegistrationRequest) {
+        val resolveRole = slot<suspend () -> MemberRole>()
+        coVerify {
+            autoRegisterService.ensureUserRegistered(
+                expected.chatId,
+                expected.userId,
+                expected.username,
+                expected.firstName,
+                capture(resolveRole),
+            )
+        }
+        assertEquals(expected.userRole, resolveRole.captured.invoke())
+    }
+
     // --- start ---
 
     @Test
@@ -55,25 +75,25 @@ class RegistrationControllerTest {
     fun `start should register trigger user with given role`() = runTest {
         registrationController.start(request)
 
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        assertRegistered(request)
     }
 
     @Test
     fun `start should register trigger user as admin when userRole is ADMIN`() = runTest {
         registrationController.start(adminRequest)
 
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.ADMIN) }
+        assertRegistered(adminRequest)
     }
 
     // --- ensureUserRegistered ---
 
     @Test
     fun `ensureUserRegistered should delegate to autoRegisterService`() = runTest {
-        registrationController.ensureUserRegistered(
-            RegistrationRequest(chatId, 789L, "admin", "Admin", MemberRole.ADMIN),
-        )
+        val adminSync = RegistrationRequest(chatId, 789L, "admin", "Admin", MemberRole.ADMIN)
 
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, 789L, "admin", "Admin", MemberRole.ADMIN) }
+        registrationController.ensureUserRegistered(adminSync)
+
+        assertRegistered(adminSync)
     }
 
     // --- register ---
@@ -86,7 +106,7 @@ class RegistrationControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("зареєстровані"))
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        assertRegistered(request)
     }
 
     @Test
@@ -97,7 +117,7 @@ class RegistrationControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("вже зареєстровані"))
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        assertRegistered(request)
     }
 
     @Test
@@ -108,7 +128,7 @@ class RegistrationControllerTest {
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("адміністратор"))
-        coVerify { autoRegisterService.ensureUserRegistered(chatId, userId, "alice", "Alice", MemberRole.ADMIN) }
+        assertRegistered(adminRequest)
     }
 
     @Test

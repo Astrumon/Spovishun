@@ -9,7 +9,6 @@ import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.domain.bot.model.Member
-import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.PingGroupCommand
 import com.ua.astrumon.presentation.bot.handler.ReadinessSession
@@ -18,7 +17,6 @@ import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PickerOption
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.PingOutcome
-import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,7 +31,6 @@ import kotlin.test.Test
 
 class PingGroupCommandTest {
     private val pingController: PingController = mockk()
-    private val botAdminUtils: BotAdminUtils = mockk()
     private val readinessSessionRunner: ReadinessSessionRunner = mockk(relaxed = true)
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: PingGroupCommand
@@ -45,9 +42,8 @@ class PingGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, testMessagesProvider())
+        command = PingGroupCommand(pingController, readinessSessionRunner, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
-        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
     }
 
     private fun createUpdate(
@@ -62,19 +58,19 @@ class PingGroupCommandTest {
     @Test
     fun `should delegate to controller and send message`() = runTest {
         val update = createUpdate(text = "/ping devs")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) } returns
+        coEvery { pingController.pingGroup(chatId, listOf("devs")) } returns
             PingOutcome.Plain(CommandResponse.Success("📣 🦞\n\n@alice @bob"))
 
         command.execute(bot, update)
 
-        coVerify { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) }
+        coVerify { pingController.pingGroup(chatId, listOf("devs")) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), "📣 🦞\n\n@alice @bob", ParseMode.HTML) }
     }
 
     @Test
     fun `should send not found message with available groups`() = runTest {
         val update = createUpdate(text = "/ping unknown")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("unknown")) } returns
+        coEvery { pingController.pingGroup(chatId, listOf("unknown")) } returns
             PingOutcome.Plain(CommandResponse.NotFound("Група", "unknown", listOf("devs", "qa")))
 
         command.execute(bot, update)
@@ -91,7 +87,7 @@ class PingGroupCommandTest {
     @Test
     fun `should show inline keyboard when no args and groups exist`() = runTest {
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+        coEvery { pingController.groupsForPicker(chatId) } returns
             PickerListing.Show(
                 listOf(
                     PickerOption(PingController.ALL_MEMBERS_ID, "📢 Усі учасники"),
@@ -102,14 +98,14 @@ class PingGroupCommandTest {
 
         command.execute(bot, update)
 
-        coVerify { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) }
+        coVerify { pingController.groupsForPicker(chatId) }
         coVerify { bot.sendMessage(chatId = ChatId.fromId(chatId), text = any(), parseMode = ParseMode.HTML, replyMarkup = any()) }
     }
 
     @Test
     fun `should still show the keyboard when no args and the chat has no groups`() = runTest {
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+        coEvery { pingController.groupsForPicker(chatId) } returns
             PickerListing.Show(listOf(PickerOption(PingController.ALL_MEMBERS_ID, "📢 Усі учасники")))
 
         command.execute(bot, update)
@@ -120,7 +116,7 @@ class PingGroupCommandTest {
     @Test
     fun `should send error message when no args and groupsForPicker rejects`() = runTest {
         val update = createUpdate(text = "/ping")
-        coEvery { pingController.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER) } returns
+        coEvery { pingController.groupsForPicker(chatId) } returns
             PickerListing.Reject(CommandResponse.Error("Failed to load groups"))
 
         command.execute(bot, update)
@@ -134,14 +130,14 @@ class PingGroupCommandTest {
 
         command.execute(bot, update)
 
-        coVerify(exactly = 0) { pingController.pingGroup(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pingController.pingGroup(any(), any()) }
     }
 
     @Test
     fun `should start a readiness poll instead of a plain message when readiness is on`() = runTest {
         val update = createUpdate(text = "/ping devs")
         val members = listOf(Member(1L, userId, "alice", "Alice"))
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs")) } returns
+        coEvery { pingController.pingGroup(chatId, listOf("devs")) } returns
             PingOutcome.Readiness("📣 devs 🦞", members)
 
         command.execute(bot, update)
@@ -158,7 +154,7 @@ class PingGroupCommandTest {
         command.execute(bot, update)
 
         coVerify(exactly = 1) { pingController.setGroupReadiness(chatId, userId, "devs", true) }
-        coVerify(exactly = 0) { pingController.pingGroup(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pingController.pingGroup(any(), any()) }
     }
 
     @Test
@@ -178,19 +174,19 @@ class PingGroupCommandTest {
         command.execute(bot, update)
 
         coVerify(exactly = 0) { pingController.setGroupReadiness(any(), any(), any(), any()) }
-        coVerify(exactly = 0) { pingController.pingGroup(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pingController.pingGroup(any(), any()) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), match { it.contains("Використання") }, ParseMode.HTML) }
     }
 
     @Test
     fun `should treat a non-flag second argument as extra ping text`() = runTest {
         val update = createUpdate(text = "/ping devs ready")
-        coEvery { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs", "ready")) } returns
+        coEvery { pingController.pingGroup(chatId, listOf("devs", "ready")) } returns
             PingOutcome.Plain(CommandResponse.Success("ok"))
 
         command.execute(bot, update)
 
         coVerify(exactly = 0) { pingController.setGroupReadiness(any(), any(), any(), any()) }
-        coVerify(exactly = 1) { pingController.pingGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, listOf("devs", "ready")) }
+        coVerify(exactly = 1) { pingController.pingGroup(chatId, listOf("devs", "ready")) }
     }
 }

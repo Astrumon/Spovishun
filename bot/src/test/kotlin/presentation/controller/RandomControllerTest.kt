@@ -5,7 +5,6 @@ import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
@@ -27,12 +26,9 @@ import kotlin.test.assertTrue
 class RandomControllerTest {
     private val memberService: MemberService = mockk()
     private val groupService: GroupService = mockk()
-    private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var controller: RandomController
 
     private val chatId = 123L
-    private val userId = 456L
-    private val memberWithChat = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
 
     private fun member(
         id: Long,
@@ -47,9 +43,7 @@ class RandomControllerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        controller = RandomController(memberService, groupService, autoRegisterService, testMessagesProvider())
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
-            ResultContainer.success(memberWithChat)
+        controller = RandomController(memberService, groupService, testMessagesProvider())
     }
 
     // --- pickRandomAll ---
@@ -59,7 +53,7 @@ class RandomControllerTest {
         val members = listOf(member(1L, "alice"), member(2L, "bob"))
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(members)
 
-        val result = controller.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.pickRandomAll(chatId)
 
         assertTrue(result is CommandResponse.Success)
         val usernames = members.map { it.username }
@@ -70,7 +64,7 @@ class RandomControllerTest {
     fun `pickRandomAll should return Success with the single member when list has one entry`() = runTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(member(1L, "solo")))
 
-        val result = controller.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.pickRandomAll(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("solo"))
@@ -80,7 +74,7 @@ class RandomControllerTest {
     fun `pickRandomAll should return Success with no_registered message when list is empty`() = runTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(emptyList())
 
-        val result = controller.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.pickRandomAll(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає зареєстрованих учасників"))
@@ -91,7 +85,7 @@ class RandomControllerTest {
         coEvery { memberService.getAllMembersInChat(chatId) } returns
             ResultContainer.failure(DatabaseException("db error"))
 
-        val result = controller.pickRandomAll(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.pickRandomAll(chatId)
 
         assertTrue(result is CommandResponse.Error)
     }
@@ -103,7 +97,7 @@ class RandomControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "devs") } returns
             ResultContainer.success(group("devs", listOf("alice", "bob")))
 
-        val result = controller.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "devs")
+        val result = controller.pickRandomFromGroup(chatId, "devs")
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("alice") || result.message.contains("bob"))
@@ -114,7 +108,7 @@ class RandomControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "solo") } returns
             ResultContainer.success(group("solo", listOf("onlyone")))
 
-        val result = controller.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "solo")
+        val result = controller.pickRandomFromGroup(chatId, "solo")
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("onlyone"))
@@ -125,7 +119,7 @@ class RandomControllerTest {
         coEvery { groupService.getGroupByKey(chatId, "empty") } returns
             ResultContainer.success(group("empty", emptyList()))
 
-        val result = controller.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "empty")
+        val result = controller.pickRandomFromGroup(chatId, "empty")
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("немає учасників"))
@@ -138,7 +132,7 @@ class RandomControllerTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns
             ResultContainer.success(listOf(group("devs", emptyList())))
 
-        val result = controller.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "ghost")
+        val result = controller.pickRandomFromGroup(chatId, "ghost")
 
         assertTrue(result is CommandResponse.NotFound)
         assertTrue((result as CommandResponse.NotFound).identifier == "ghost")
@@ -152,7 +146,7 @@ class RandomControllerTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns
             ResultContainer.failure(DatabaseException("db error"))
 
-        val result = controller.pickRandomFromGroup(chatId, userId, "alice", "Alice", MemberRole.MEMBER, "ghost")
+        val result = controller.pickRandomFromGroup(chatId, "ghost")
 
         assertTrue(result is CommandResponse.NotFound)
         assertTrue((result as CommandResponse.NotFound).available.isEmpty())
@@ -166,7 +160,7 @@ class RandomControllerTest {
         val qa = GroupWithMembers(12L, chatId, "qa", "QA", listOf("bob"))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(devs, qa))
 
-        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.groupsForPicker(chatId)
 
         assertTrue(result is PickerListing.Show)
         assertEquals(
@@ -183,7 +177,7 @@ class RandomControllerTest {
     fun `groupsForPicker should return an empty listing when the chat has no groups`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
 
-        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.groupsForPicker(chatId)
 
         assertTrue(result is PickerListing.Show)
         assertTrue(result.options.isEmpty())
@@ -193,7 +187,7 @@ class RandomControllerTest {
     fun `groupsForPicker should reject when groupService fails`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("db error"))
 
-        val result = controller.groupsForPicker(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
+        val result = controller.groupsForPicker(chatId)
 
         assertTrue(result is PickerListing.Reject)
         assertTrue(result.response is CommandResponse.Error)
@@ -206,7 +200,7 @@ class RandomControllerTest {
         val devs = GroupWithMembers(11L, chatId, "devs", "Devs", listOf("alice", "bob"))
         coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.success(devs)
 
-        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+        val result = controller.pickRandomFromGroupById(chatId, 11L)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("alice") || result.message.contains("bob"))
@@ -217,7 +211,7 @@ class RandomControllerTest {
         val empty = GroupWithMembers(11L, chatId, "empty", "Empty", emptyList())
         coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.success(empty)
 
-        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+        val result = controller.pickRandomFromGroupById(chatId, 11L)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("немає учасників"))
@@ -227,7 +221,7 @@ class RandomControllerTest {
     fun `pickRandomFromGroupById should return NotFound when no group has the given id`() = runTest {
         coEvery { groupService.getGroupById(chatId, 99L) } returns ResultContainer.failure(ResourceNotFoundException("Group", "99"))
 
-        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 99L)
+        val result = controller.pickRandomFromGroupById(chatId, 99L)
 
         assertTrue(result is CommandResponse.NotFound)
         assertEquals("99", result.identifier)
@@ -237,7 +231,7 @@ class RandomControllerTest {
     fun `pickRandomFromGroupById should return Error when groupService fails`() = runTest {
         coEvery { groupService.getGroupById(chatId, 11L) } returns ResultContainer.failure(DatabaseException("db error"))
 
-        val result = controller.pickRandomFromGroupById(chatId, userId, "alice", "Alice", MemberRole.MEMBER, 11L)
+        val result = controller.pickRandomFromGroupById(chatId, 11L)
 
         assertTrue(result is CommandResponse.Error)
     }

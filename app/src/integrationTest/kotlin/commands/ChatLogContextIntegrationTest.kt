@@ -60,7 +60,7 @@ class ChatLogContextIntegrationTest : BaseIntegrationTest() {
     private fun spovishunEvents(): List<ILoggingEvent> = capture.list.filter { it.loggerName.startsWith("com.ua.astrumon") }
 
     private suspend fun dispatchMembersCommand() {
-        val registry = CommandRegistry(listOf(membersCommand))
+        val registry = CommandRegistry(listOf(membersCommand), autoRegistrar)
         capture.list.clear()
         registry.commands.single().execute(bot, buildUpdate("/members"))
     }
@@ -107,7 +107,7 @@ class ChatLogContextIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `a second chat does not inherit the first chat's context`() = runTest {
         val otherChatId = -1009999999999L
-        val registry = CommandRegistry(listOf(membersCommand))
+        val registry = CommandRegistry(listOf(membersCommand), autoRegistrar)
         registry.commands.single().execute(bot, buildUpdate("/members"))
         capture.list.clear()
 

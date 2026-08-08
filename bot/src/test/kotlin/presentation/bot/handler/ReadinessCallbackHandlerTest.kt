@@ -1,6 +1,8 @@
 package presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
+import com.ua.astrumon.presentation.bot.handler.AckPolicy
+import com.ua.astrumon.presentation.bot.handler.CallbackContext
 import com.ua.astrumon.presentation.bot.handler.ReadinessCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessVote
@@ -13,9 +15,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class ReadinessCallbackHandlerTest {
     private val bot: Bot = mockk(relaxed = true)
@@ -30,29 +33,38 @@ class ReadinessCallbackHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        handler = ReadinessCallbackHandler(runner, testMessagesProvider())
+        handler = ReadinessCallbackHandler(runner)
     }
 
-    private fun update(data: String) = callbackUpdate(chatId, clickerId, data, messageId)
+    private fun ctx(payload: String): CallbackContext = callbackContext(chatId, clickerId, payload, messageId)
 
     /** A re-render that has already landed — the handler should answer without waiting. */
     private fun completedRender(): Job = Job().apply { complete() }
+
+    /**
+     * The spinner and the rejection toasts both live in *when* and *how* the query is answered, so
+     * this handler must keep the router's ack away from it.
+     */
+    @Test
+    fun `should own its callback acknowledgement`() {
+        assertEquals(AckPolicy.HANDLER, handler.ackPolicy)
+    }
 
     @Test
     fun `should record an accept vote`() = runTest {
         every { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) } returns completedRender()
 
-        handler.handle(bot, update("ready:a"))
+        handler.handle(bot, ctx("a"), ukMessages)
 
         verify(exactly = 1) { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) }
-        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = null) }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID, text = null) }
     }
 
     @Test
     fun `should record a decline vote`() = runTest {
         every { runner.onVote(bot, key, clickerId, ReadinessVote.DECLINED) } returns completedRender()
 
-        handler.handle(bot, update("ready:d"))
+        handler.handle(bot, ctx("d"), ukMessages)
 
         verify(exactly = 1) { runner.onVote(bot, key, clickerId, ReadinessVote.DECLINED) }
     }
@@ -62,9 +74,9 @@ class ReadinessCallbackHandlerTest {
         every { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) } returns null
         every { runner.isLive(key) } returns true
 
-        handler.handle(bot, update("ready:a"))
+        handler.handle(bot, ctx("a"), ukMessages)
 
-        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = match { it.contains("Тебе не кликали") }) }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID, text = match { it.contains("Тебе не кликали") }) }
     }
 
     @Test
@@ -72,9 +84,9 @@ class ReadinessCallbackHandlerTest {
         every { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) } returns null
         every { runner.isLive(key) } returns false
 
-        handler.handle(bot, update("ready:a"))
+        handler.handle(bot, ctx("a"), ukMessages)
 
-        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = match { it.contains("завершено") }) }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID, text = match { it.contains("завершено") }) }
     }
 
     /**
@@ -86,30 +98,30 @@ class ReadinessCallbackHandlerTest {
         val render = Job()
         every { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) } returns render
 
-        val handling = launch { handler.handle(bot, update("ready:a")) }
+        val handling = launch { handler.handle(bot, ctx("a"), ukMessages) }
         runCurrent()
-        verify(exactly = 0) { bot.answerCallbackQuery("cb", text = null) }
+        verify(exactly = 0) { bot.answerCallbackQuery(TEST_QUERY_ID, text = null) }
 
         render.complete()
         handling.join()
 
-        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = null) }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID, text = null) }
     }
 
     @Test
     fun `should stop spinning once the cap elapses even if the re-render stalls`() = runTest {
         every { runner.onVote(bot, key, clickerId, ReadinessVote.ACCEPTED) } returns Job()
 
-        handler.handle(bot, update("ready:a"))
+        handler.handle(bot, ctx("a"), ukMessages)
 
-        verify(exactly = 1) { bot.answerCallbackQuery("cb", text = null) }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID, text = null) }
     }
 
     @Test
     fun `should ack and ignore an unknown payload`() = runTest {
-        handler.handle(bot, update("ready:x"))
+        handler.handle(bot, ctx("x"), ukMessages)
 
         verify(exactly = 0) { runner.onVote(any(), any(), any(), any()) }
-        verify(exactly = 1) { bot.answerCallbackQuery("cb") }
+        verify(exactly = 1) { bot.answerCallbackQuery(TEST_QUERY_ID) }
     }
 }

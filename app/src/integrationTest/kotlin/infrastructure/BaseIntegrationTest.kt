@@ -24,7 +24,9 @@ import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
+import com.ua.astrumon.presentation.bot.CommandRegistry
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
+import com.ua.astrumon.presentation.bot.commands.BotCommand
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.bot.commands.EditGroupCommand
 import com.ua.astrumon.presentation.bot.commands.GrantRoleCommand
@@ -37,6 +39,8 @@ import com.ua.astrumon.presentation.bot.commands.RegisterCommand
 import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.bot.commands.ShowGroupsCommand
 import com.ua.astrumon.presentation.bot.commands.StartCommand
+import com.ua.astrumon.presentation.bot.handler.CallbackHandler
+import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
@@ -47,6 +51,7 @@ import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.util.MemberAutoRegistrar
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -92,6 +97,7 @@ abstract class BaseIntegrationTest {
     // Telegram API mocks (the only mocked boundary)
     protected lateinit var bot: Bot
     protected lateinit var botAdminUtils: BotAdminUtils
+    protected lateinit var autoRegistrar: MemberAutoRegistrar
 
     // Controllers — real
     protected lateinit var groupController: GroupController
@@ -174,6 +180,7 @@ abstract class BaseIntegrationTest {
         botAdminUtils = mockk()
         every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
         every { botAdminUtils.isUserAdmin(any(), any(), any()) } returns false
+        autoRegistrar = MemberAutoRegistrar(autoRegisterService, botAdminUtils)
         every { bot.getChat(any()) } returns
             TelegramBotResult.Success(
                 Chat(id = testChatId, type = "supergroup"),
@@ -191,12 +198,12 @@ abstract class BaseIntegrationTest {
     }
 
     private fun initControllers() {
-        groupController = GroupController(groupService, memberService, autoRegisterService, messagesProvider)
+        groupController = GroupController(groupService, memberService, messagesProvider)
         groupSettingsController = GroupSettingsController(groupService, memberService, messagesProvider)
-        membersController = MembersController(memberService, autoRegisterService, messagesProvider)
+        membersController = MembersController(memberService, messagesProvider)
         registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService, messagesProvider)
-        randomController = RandomController(memberService, groupService, autoRegisterService, messagesProvider)
+        pingController = PingController(memberService, groupService, chatService, messagesProvider)
+        randomController = RandomController(memberService, groupService, messagesProvider)
     }
 
     /**
@@ -219,19 +226,39 @@ abstract class BaseIntegrationTest {
     private fun initCommands() {
         startCommand = StartCommand(registrationController, botAdminUtils, messagesProvider)
         registerCommand = RegisterCommand(registrationController, botAdminUtils, messagesProvider)
-        membersCommand = MembersCommand(membersController, botAdminUtils, messagesProvider)
+        membersCommand = MembersCommand(membersController, messagesProvider)
         grantRoleCommand = GrantRoleCommand(groupController, messagesProvider)
-        showGroupsCommand = ShowGroupsCommand(groupController, botAdminUtils, messagesProvider)
+        showGroupsCommand = ShowGroupsCommand(groupController, messagesProvider)
         newGroupCommand = NewGroupCommand(groupController, messagesProvider)
         deleteGroupCommand = DeleteGroupCommand(groupController, messagesProvider)
         editGroupCommand = EditGroupCommand(groupSettingsController, messagesProvider)
         addUserToGroupCommand = AddUserToGroupCommand(groupController, messagesProvider)
         removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController, messagesProvider)
-        pingAllCommand = PingAllCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
-        pingGroupCommand = PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
-        randomCommand = RandomCommand(randomController, botAdminUtils, messagesProvider)
-        messageHandler = MessageHandler(autoRegisterService, botAdminUtils, mockk(relaxed = true))
+        pingAllCommand = PingAllCommand(pingController, readinessSessionRunner, messagesProvider)
+        pingGroupCommand = PingGroupCommand(pingController, readinessSessionRunner, messagesProvider)
+        randomCommand = RandomCommand(randomController, messagesProvider)
+        messageHandler = MessageHandler(autoRegistrar, mockk(relaxed = true))
     }
+
+    /**
+     * Runs a command the way production does — through [CommandRegistry], which wraps every entry in
+     * the chat-log and auto-register decorators (spovishun-172). Calling `command.execute` directly
+     * skips both, so any test that depends on the caller being registered must go through here.
+     */
+    protected suspend fun dispatch(
+        command: BotCommand,
+        update: Update,
+    ) = CommandRegistry(listOf(command), autoRegistrar).commands.first().execute(bot, update)
+
+    /**
+     * Routes a callback the way production does. Since spovishun-172 a handler receives a parsed
+     * [com.ua.astrumon.presentation.bot.handler.CallbackContext] rather than an `Update`, and the
+     * acknowledgement is the router's — so driving a handler directly no longer exercises the press.
+     */
+    protected suspend fun dispatchCallback(
+        handler: CallbackHandler,
+        update: Update,
+    ) = CallbackRouter(listOf(handler), messagesProvider, autoRegistrar).route(bot, update)
 
     @AfterTest
     fun tearDown() {
@@ -291,7 +318,7 @@ abstract class BaseIntegrationTest {
         firstName: String = testFirstName,
         chatId: Long = testChatId,
         role: MemberRole = MemberRole.MEMBER,
-    ): MemberWithChat = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, role).getOrThrow()
+    ): MemberWithChat = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { role }).getOrThrow()
 
     /** Readiness is on by default; tests that assert the classic plain ping opt out through these. */
     protected suspend fun disableChatReadiness(chatId: Long = testChatId) {

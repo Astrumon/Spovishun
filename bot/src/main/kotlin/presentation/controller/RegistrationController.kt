@@ -27,7 +27,7 @@ class RegistrationController(
             userId = request.userId,
             username = request.username,
             firstName = request.firstName,
-            userRole = request.userRole,
+            resolveRole = { request.userRole },
         )
     }
 
@@ -54,7 +54,7 @@ class RegistrationController(
             userId = request.userId,
             username = request.username,
             firstName = request.firstName,
-            userRole = request.userRole,
+            resolveRole = { request.userRole },
         )
         if (result.isFailure) {
             return CommandResponse.Error(messages.registration.failed(request.firstName))
