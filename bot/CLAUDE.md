@@ -4,7 +4,7 @@ Presentation module (Telegram). Depends on `:domain` and `:common`. Does NOT dep
 repository wiring happens in `:app`.
 
 Packages (under `presentation/`): `bot/` (TelegramBot, commands/, handler/), `controller/`,
-`scheduler/`, `util/` (BotAdminUtils).
+`scheduler/`, `util/` (BotAdminUtils, MemberAutoRegistrar).
 
 ## Forbidden dependencies
 - Exposed / JDBC (`org.jetbrains.exposed.*`) — no DB access in this layer
@@ -49,6 +49,42 @@ val text = controller.grantRole(chatId, userId, args).toText(
 class BadCommand(private val memberService: MemberService) { ... }
 ```
 
+## Callback flow (spovishun-172)
+```
+CallbackRouter → ack + build CallbackContext + resolve BotMessages → CallbackHandler → Controller
+```
+`CallbackHandler.handle(bot, ctx, messages)` receives everything already parsed: the router picked
+the handler by prefix, so re-parsing the `Update` inside each handler was duplication — and an
+acknowledgement seven handlers could each silently forget.
+
+The router also answers the query, before dispatch. A handler opts out with
+`ackPolicy = AckPolicy.HANDLER`, which exactly one does: `ReadinessCallbackHandler`, where *when*
+the query is answered is the UI (the pending query is the spinner, and a rejection is delivered as
+the answer's toast text). The default is `AckPolicy.ROUTER`, so a new handler is covered without
+opting in.
+
+`TwoStepMemberPicker` owns the `{ownerId}` → member list → `{ownerId}:{memberId}` → act flow. A
+handler on it states only what differs — candidate source, step-2 prompt, action. Use it for a new
+two-step member picker; `GrantRoleCallbackHandler` deliberately is not on it, because its step 2
+selects a role rather than a member.
+
+Group operations split by surface: `GroupController` for typed arguments, `GroupPickerController`
+for picker listings and act-by-id. A command that opens a picker injects both.
+
+## Auto-registration (spovishun-172)
+Nobody calls `AutoRegisterService.ensureUserRegistered` from a controller. `MemberAutoRegistrar` is
+the one implementation, applied at the three dispatch entry points — `MessageHandler`,
+`AutoRegisterCommand` (wrapped onto every entry by `CommandRegistry`) and `CallbackRouter`. Adding a
+command or a callback handler is the whole opt-in.
+
+`ensureUserRegistered` takes the role as a **supplier**, not a value: deriving it costs a blocking
+`getChatMember`, and the service only needs it when it actually creates a member. Passing
+`botAdminUtils.getMemberRole(...)` eagerly would make every already-registered user pay for a
+Telegram round trip on every command and every button tap.
+
+`RegistrationController` is the one legitimate direct caller — `/start` and `/register` are explicit
+registration, not a cross-cutting concern.
+
 ## Role checks in controllers
 Use `MemberService.hasAdminAccess()` / `hasModeratorAccess()` (DB-based) for permission guards.
 Use `BotAdminUtils.getMemberRole()` only when deriving the initial role for a new member.
@@ -73,7 +109,7 @@ means the coroutines machinery owns cleanup, on completion, cancellation and fai
 Three dispatch paths, one wrap each — do not add a fourth without a wrap:
 | Path | Wrapped by |
 |---|---|
-| Commands | `ChatContextCommand`, applied to every entry by `CommandRegistry` — registering a command is enough |
+| Commands | `ChatContextCommand`, applied to every entry by `CommandRegistry` — registering a command is enough. It wraps `AutoRegisterCommand`, so the registration logs carry the chat too |
 | Text messages | `MessageHandler.handleIncomingMessage` |
 | Callback queries | `CallbackRouter.route` |
 
@@ -91,4 +127,5 @@ chat type only; never a username, user id, or message body.
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)
 3. Register in `:app` `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
-4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`
+4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`, which also gives it the chat
+   log context and caller auto-registration. Do not add either by hand.
