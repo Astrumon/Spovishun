@@ -326,6 +326,19 @@ class GroupRepositoryImplTest {
         assertTrue(updated.readinessEnabled)
     }
 
+    /**
+     * The repository derives `onUpdateExclude` from [GroupSettings.columns], so a new column is
+     * protected from sibling writes automatically — but nothing derives its *test*. This one fails
+     * the moment a column is added, as a prompt to give it non-clobber coverage like the test above.
+     */
+    @Test
+    fun `a new GroupSettings column needs its own non-clobber test`() {
+        assertEquals(
+            setOf("group_id", "icon", "readiness_enabled"),
+            GroupSettings.columns.map { it.name }.toSet(),
+        )
+    }
+
     @Test
     fun `deleting a group should remove its settings row`() = runTest {
         ensureChat(100L)

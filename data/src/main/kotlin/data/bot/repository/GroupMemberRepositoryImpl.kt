@@ -7,6 +7,7 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.bot.table.GroupMembers
 import com.ua.astrumon.data.bot.table.Groups
 import com.ua.astrumon.data.bot.table.Members
+import com.ua.astrumon.data.bot.table.rowFor
 import com.ua.astrumon.data.db.eqIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
@@ -25,7 +26,7 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         groupKey: String,
         username: String,
     ): ResultContainer<Unit> = safeDbQuery {
-        val group = getGroupByChat(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
+        val group = Groups.rowFor(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
         val member = getMemberByUsername(username) ?: throw ResourceNotFoundException("Member", username)
 
         val existing = GroupMembers
@@ -50,7 +51,7 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         groupKey: String,
         username: String,
     ): ResultContainer<Unit> = safeDbQuery {
-        val group = getGroupByChat(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
+        val group = Groups.rowFor(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
         val member = getMemberByUsername(username) ?: throw ResourceNotFoundException("Member", username)
 
         val deletedCount = GroupMembers.deleteWhere {
@@ -90,14 +91,6 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
                 .groupBy({ row -> row[GroupMembers.group].value }, { row -> row[Members.username] })
         }
     }
-
-    private fun getGroupByChat(
-        chatId: Long,
-        groupKey: String,
-    ) = Groups
-        .selectAll()
-        .where { (Groups.chatId eq chatId) and (Groups.name eq groupKey) }
-        .singleOrNull()
 
     private fun getMemberByUsername(username: String) = Members.selectAll().where { Members.username eqIgnoreCase username }.singleOrNull()
 }
