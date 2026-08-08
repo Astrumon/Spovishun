@@ -17,7 +17,8 @@ object GrantRoleCallback {
  * `grant:{memberId}:{ROLE}` → assign. The final assignment is admin-guarded in the controller.
  *
  * Shaped like [TwoStepMemberPicker] but not built on it: step 2 selects a role, not a member, so it
- * has neither a [com.ua.astrumon.presentation.controller.PickerListing] source nor a numeric target.
+ * has no [com.ua.astrumon.presentation.controller.PickerListing] source and its selection is a name
+ * rather than an id. The payload shape is still shared — see [stepPayload].
  */
 class GrantRoleCallbackHandler(
     private val groupPickerController: GroupPickerController,
@@ -29,15 +30,15 @@ class GrantRoleCallbackHandler(
         ctx: CallbackContext,
         messages: BotMessages,
     ) {
-        val parts = ctx.payload.split(":")
-        val memberId = parts.getOrNull(0)?.toLongOrNull() ?: return
-        if (parts.size == 1) {
-            showRolePicker(bot, ctx, messages, memberId)
+        val payload = ctx.stepPayload() ?: return
+        val selectedRole = payload.selection
+        if (selectedRole == null) {
+            showRolePicker(bot, ctx, messages, payload.ownerId)
             return
         }
 
-        val role = runCatching { MemberRole.valueOf(parts[1]) }.getOrNull() ?: return
-        val text = groupPickerController.grantRoleById(ctx.chatId, ctx.clicker.id, memberId, role).toText(
+        val role = runCatching { MemberRole.valueOf(selectedRole) }.getOrNull() ?: return
+        val text = groupPickerController.grantRoleById(ctx.chatId, ctx.clicker.id, payload.ownerId, role).toText(
             messages,
             successPrefix = messages.success.prefix,
             onAccessDenied = { messages.error.onlyAdminsRoles },

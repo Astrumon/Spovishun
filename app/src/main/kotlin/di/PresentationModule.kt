@@ -68,7 +68,7 @@ internal val presentationModule = module {
     single { LanguageController(get(), get(), get()) }
 
     // Commands
-    single { StartCommand(get(), get(), get()) } bind BotCommand::class
+    single { StartCommand(get(), get()) } bind BotCommand::class
     single { RegisterCommand(get(), get(), get()) } bind BotCommand::class
     single { MembersCommand(get(), get()) } bind BotCommand::class
     single { GrantRoleCommand(get(), get(), get()) } bind BotCommand::class

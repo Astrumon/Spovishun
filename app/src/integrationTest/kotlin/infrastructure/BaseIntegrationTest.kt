@@ -227,7 +227,7 @@ abstract class BaseIntegrationTest {
     }
 
     private fun initCommands() {
-        startCommand = StartCommand(registrationController, botAdminUtils, messagesProvider)
+        startCommand = StartCommand(registrationController, messagesProvider)
         registerCommand = RegisterCommand(registrationController, botAdminUtils, messagesProvider)
         membersCommand = MembersCommand(membersController, messagesProvider)
         grantRoleCommand = GrantRoleCommand(groupController, groupPickerController, messagesProvider)

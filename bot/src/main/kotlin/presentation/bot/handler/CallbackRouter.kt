@@ -33,13 +33,12 @@ class CallbackRouter(
             }
 
             val ctx = update.callbackContext(handler.prefix) ?: return@withChatLogContext
-            if (handler.ackPolicy == AckPolicy.ROUTER) {
+            if (handler.kind == CallbackKind.ENTRY_POINT) {
                 bot.answerCallbackQuery(ctx.queryId)
+                // Anyone in the chat may tap a button someone else's command put there, so a picker
+                // press is an arrival in its own right — the tapper is registered like any caller.
+                callbackQuery.message?.chat?.let { autoRegistrar.ensure(bot, it, callbackQuery.from) }
             }
-
-            // Anyone in the chat may tap a button someone else's command put there, so the tapper is
-            // registered here rather than assumed to have arrived through a command.
-            callbackQuery.message?.chat?.let { autoRegistrar.ensure(bot, it, callbackQuery.from) }
 
             handler.handle(bot, ctx, messagesProvider.forChat(ctx.chatId))
         }

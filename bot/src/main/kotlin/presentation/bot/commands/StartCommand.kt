@@ -9,12 +9,10 @@ import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
 import com.ua.astrumon.presentation.toText
-import com.ua.astrumon.presentation.util.BotAdminUtils
 import org.slf4j.LoggerFactory
 
 class StartCommand(
     private val registrationController: RegistrationController,
-    private val botAdminUtils: BotAdminUtils,
     private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "start"
@@ -25,8 +23,9 @@ class StartCommand(
         bot: Bot,
         update: Update,
     ) {
-        val chatId = update.message?.chat?.id ?: return
-        val user = update.message?.from ?: return
+        // The caller is not read beyond this guard — registration is the dispatch decorator's job
+        // now — but an update with no sender is still not a `/start` anyone issued.
+        val (chatId, _, _) = update.messageContext() ?: return
         val messages = messagesProvider.forChat(chatId)
 
         // A group start pre-registers the admins so role gates work before anyone has spoken. It is
@@ -42,15 +41,7 @@ class StartCommand(
             }
         }
 
-        val request = RegistrationRequest(
-            chatId = chatId,
-            userId = user.id,
-            username = UsernameInputSanitizer.sanitizeUsername(user.username, user.id),
-            firstName = user.firstName,
-            userRole = botAdminUtils.getMemberRole(bot, chatId, user.id),
-        )
-
-        bot.reply(chatId, registrationController.start(request).toText(messages))
+        bot.reply(chatId, registrationController.start(chatId).toText(messages))
     }
 
     /**

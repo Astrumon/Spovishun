@@ -57,11 +57,18 @@ CallbackRouter → ack + build CallbackContext + resolve BotMessages → Callbac
 the handler by prefix, so re-parsing the `Update` inside each handler was duplication — and an
 acknowledgement seven handlers could each silently forget.
 
-The router also answers the query, before dispatch. A handler opts out with
-`ackPolicy = AckPolicy.HANDLER`, which exactly one does: `ReadinessCallbackHandler`, where *when*
-the query is answered is the UI (the pending query is the spinner, and a rejection is delivered as
-the answer's toast text). The default is `AckPolicy.ROUTER`, so a new handler is covered without
-opting in.
+`CallbackHandler.kind` says whether a tap **starts** an interaction or **continues** one, and that
+single fact drives two behaviours:
+
+| `kind` | Router acks up front | Router registers the tapper |
+|---|---|---|
+| `ENTRY_POINT` (default) | yes | yes — a picker press is an arrival like any command |
+| `IN_PLACE` | no | no |
+
+Exactly one handler is `IN_PLACE`: `ReadinessCallbackHandler`. A vote is a control inside an already
+open poll — *when* the query is answered is the UI there (the pending query is the spinner, a
+rejection is the answer's toast text), and its tapper was invited from the member table already or
+is a bystander being turned away. The default covers every new handler without opting in.
 
 `TwoStepMemberPicker` owns the `{ownerId}` → member list → `{ownerId}:{memberId}` → act flow. A
 handler on it states only what differs — candidate source, step-2 prompt, action. Use it for a new
@@ -82,8 +89,19 @@ command or a callback handler is the whole opt-in.
 `botAdminUtils.getMemberRole(...)` eagerly would make every already-registered user pay for a
 Telegram round trip on every command and every button tap.
 
-`RegistrationController` is the one legitimate direct caller — `/start` and `/register` are explicit
-registration, not a cross-cutting concern.
+`RegistrationController` is the one legitimate direct caller, and only for **other** users:
+`StartCommand` pre-registers the chat's admins. The caller of `/start` is the decorator's job like
+anyone else's.
+
+One command opts out, via `registrationPolicy = RegistrationPolicy.COMMAND`: `/register`, whose
+reply says whether the caller was *new*. Registering it first would make that reply always read
+"already registered" — the distinction only exists before the dispatch decorator runs. Nothing else
+should need this; a command that merely *uses* the member table wants the default.
+
+**Testing consequence:** `command.execute(bot, update)` skips both decorators. Any test that depends
+on the caller being registered — or on them *not* being — must go through `BaseIntegrationTest`'s
+`dispatch(command, update)`, which wraps exactly as `CommandRegistry` does. Same for callbacks and
+`dispatchCallback(handler, update)`.
 
 ## Role checks in controllers
 Use `MemberService.hasAdminAccess()` / `hasModeratorAccess()` (DB-based) for permission guards.

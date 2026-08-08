@@ -48,9 +48,23 @@ internal fun Update.callbackContext(prefix: String): CallbackContext? {
 }
 
 /**
- * A two-step picker payload: `{ownerId}` selects the owning entity, `{ownerId}:{targetId}` acts on a
- * member inside it. Encoding step 1 into step 2's callback data is what keeps the flow stateless.
+ * The shape every two-step picker payload shares: `{ownerId}` picked the owning entity,
+ * `{ownerId}:{selection}` acts on something inside it. Encoding step 1 into step 2's callback data
+ * is what keeps the flow stateless. A null [selection] means the payload is still at step 1.
  */
+internal data class StepPayload(
+    val ownerId: Long,
+    val selection: String?,
+)
+
+/** Parses [CallbackContext.payload] as a [StepPayload]; null when the owner is not a number. */
+internal fun CallbackContext.stepPayload(): StepPayload? {
+    val parts = payload.split(":")
+    val ownerId = parts.getOrNull(0)?.toLongOrNull() ?: return null
+    return StepPayload(ownerId, selection = parts.getOrNull(1))
+}
+
+/** A [StepPayload] whose step-2 selection is a member id. */
 internal data class TwoStepPayload(
     val ownerId: Long,
     val targetId: Long?,
@@ -58,9 +72,8 @@ internal data class TwoStepPayload(
 
 /** Parses [CallbackContext.payload] as a [TwoStepPayload]; null when either id is not a number. */
 internal fun CallbackContext.twoStepPayload(): TwoStepPayload? {
-    val parts = payload.split(":")
-    val ownerId = parts.getOrNull(0)?.toLongOrNull() ?: return null
-    if (parts.size == 1) return TwoStepPayload(ownerId, targetId = null)
-    val targetId = parts[1].toLongOrNull() ?: return null
-    return TwoStepPayload(ownerId, targetId)
+    val step = stepPayload() ?: return null
+    val selection = step.selection ?: return TwoStepPayload(step.ownerId, targetId = null)
+    val targetId = selection.toLongOrNull() ?: return null
+    return TwoStepPayload(step.ownerId, targetId)
 }

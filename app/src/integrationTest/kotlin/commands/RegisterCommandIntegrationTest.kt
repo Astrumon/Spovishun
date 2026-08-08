@@ -19,7 +19,7 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
     fun `register should save new member and send success response`() = runTest {
         val update = buildUpdate("/register")
 
-        registerCommand.execute(bot, update)
+        dispatch(registerCommand, update)
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
@@ -37,7 +37,7 @@ class RegisterCommandIntegrationTest : BaseIntegrationTest() {
         registerMember()
         val update = buildUpdate("/register")
 
-        registerCommand.execute(bot, update)
+        dispatch(registerCommand, update)
 
         verify {
             bot.sendMessage(

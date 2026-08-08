@@ -13,10 +13,11 @@ class RegistrationController(
     private val birthdayService: BirthdayService,
     private val messagesProvider: BotMessagesProvider,
 ) {
-    suspend fun start(request: RegistrationRequest): CommandResponse {
-        ensureUserRegistered(request)
-        return CommandResponse.Success(messagesProvider.forChat(request.chatId).welcome.message())
-    }
+    /**
+     * The caller is already registered by the dispatch decorator (spovishun-172), so `/start` only
+     * has a greeting left to produce — and no reason to derive the caller's role for it.
+     */
+    suspend fun start(chatId: Long): CommandResponse = CommandResponse.Success(messagesProvider.forChat(chatId).welcome.message())
 
     /**
      * Registers a single user (used by StartCommand for admin sync).

@@ -7,6 +7,7 @@ import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
 import com.ua.astrumon.presentation.bot.commands.AutoRegisterCommand
 import com.ua.astrumon.presentation.bot.commands.BotCommand
+import com.ua.astrumon.presentation.bot.commands.RegistrationPolicy
 import com.ua.astrumon.presentation.util.MemberAutoRegistrar
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -28,6 +29,7 @@ class AutoRegisterCommandTest {
     /** Records whether the wrapped command ran, and whether registration had already happened. */
     private class RecordingCommand(
         override val name: String = "ping",
+        override val registrationPolicy: RegistrationPolicy = RegistrationPolicy.DISPATCH,
     ) : BotCommand {
         var executed = false
 
@@ -64,6 +66,27 @@ class AutoRegisterCommandTest {
         coVerify(exactly = 1) { autoRegistrar.ensure(bot, match { it.id == chatId }, match { it.id == userId }) }
         assertTrue(registeredBeforeExecute)
         assertTrue(delegate.executed)
+    }
+
+    /**
+     * `/register` reports whether the caller was new. Registering it first would make that report
+     * always say "already registered" — the regression this policy exists to prevent.
+     */
+    @Test
+    fun `should not register ahead of a command that owns its registration`() = runTest {
+        val delegate = RecordingCommand(registrationPolicy = RegistrationPolicy.COMMAND)
+
+        AutoRegisterCommand(delegate, autoRegistrar).execute(bot, buildUpdate())
+
+        coVerify(exactly = 0) { autoRegistrar.ensure(any(), any(), any()) }
+        assertTrue(delegate.executed)
+    }
+
+    @Test
+    fun `should expose the delegate registration policy`() {
+        val delegate = RecordingCommand(registrationPolicy = RegistrationPolicy.COMMAND)
+
+        assertEquals(RegistrationPolicy.COMMAND, AutoRegisterCommand(delegate, autoRegistrar).registrationPolicy)
     }
 
     @Test

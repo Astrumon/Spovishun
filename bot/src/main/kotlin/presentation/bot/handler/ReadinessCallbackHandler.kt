@@ -24,11 +24,14 @@ class ReadinessCallbackHandler(
     override val prefix = ReadinessCallback.PREFIX
 
     /**
-     * The one handler that answers for itself: *when* the query is answered is the UI here. Leaving
-     * it pending is what keeps the button spinning while the vote is folded in, and a rejection is
-     * delivered as the answer's toast text. A router ack before dispatch would erase both.
+     * A vote is a control inside a poll that is already open, not an arrival.
+     *
+     * Two things follow. *When* the query is answered is the UI: leaving it pending keeps the button
+     * spinning while the vote is folded in, and a rejection is delivered as the answer's toast text
+     * — a router ack before dispatch would erase both. And the tapper is not auto-registered: a
+     * bystander poking at someone else's poll is turned away, not welcomed in.
      */
-    override val ackPolicy = AckPolicy.HANDLER
+    override val kind = CallbackKind.IN_PLACE
 
     override suspend fun handle(
         bot: Bot,

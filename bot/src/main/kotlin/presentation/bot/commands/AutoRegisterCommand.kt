@@ -17,13 +17,17 @@ internal class AutoRegisterCommand(
 ) : BotCommand {
     override val name: String get() = delegate.name
 
+    override val registrationPolicy: RegistrationPolicy get() = delegate.registrationPolicy
+
     override suspend fun execute(
         bot: Bot,
         update: Update,
     ) {
         val message = update.message
         val user = message?.from
-        if (message != null && user != null) {
+        // Registering ahead of a command that reports on registration would make it always answer
+        // "already registered" — the caller would have been created a line earlier.
+        if (message != null && user != null && delegate.registrationPolicy == RegistrationPolicy.DISPATCH) {
             autoRegistrar.ensure(bot, message.chat, user)
         }
         delegate.execute(bot, update)

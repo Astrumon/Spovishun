@@ -65,24 +65,10 @@ class RegistrationControllerTest {
 
     @Test
     fun `start should return Success with welcome message`() = runTest {
-        val result = registrationController.start(request)
+        val result = registrationController.start(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Spovishun на місці"))
-    }
-
-    @Test
-    fun `start should register trigger user with given role`() = runTest {
-        registrationController.start(request)
-
-        assertRegistered(request)
-    }
-
-    @Test
-    fun `start should register trigger user as admin when userRole is ADMIN`() = runTest {
-        registrationController.start(adminRequest)
-
-        assertRegistered(adminRequest)
     }
 
     // --- ensureUserRegistered ---

@@ -3,13 +3,24 @@ package com.ua.astrumon.presentation.bot.handler
 import com.github.kotlintelegrambot.Bot
 import com.ua.astrumon.presentation.bot.BotMessages
 
-/** Who answers Telegram's callback query — see [CallbackHandler.ackPolicy]. */
-enum class AckPolicy {
-    /** [CallbackRouter] answers before dispatch. The default, and what every handler wants. */
-    ROUTER,
+/**
+ * Whether a tap on this handler's buttons *starts* an interaction or *continues* one already open.
+ *
+ * The two differ in more than wording, which is why one property carries both consequences.
+ */
+enum class CallbackKind {
+    /**
+     * A fresh entry point — a picker opened by a command. [CallbackRouter] answers the query up
+     * front and registers the tapper, exactly as it would for a command.
+     */
+    ENTRY_POINT,
 
-    /** The handler answers itself, because *when* it answers is part of the UI. */
-    HANDLER,
+    /**
+     * A tap inside a live interaction, such as a readiness vote. The handler owns the
+     * acknowledgement, because *when* it answers is the UI; and the router does not register the
+     * tapper, because a bystander poking at someone else's open poll is not an arrival.
+     */
+    IN_PLACE,
 }
 
 /**
@@ -23,10 +34,10 @@ interface CallbackHandler {
     val prefix: String
 
     /**
-     * Defaults to [AckPolicy.ROUTER], so a new handler is acked without opting in. Override only
-     * when the pending query is itself the affordance — see [ReadinessCallbackHandler].
+     * Defaults to [CallbackKind.ENTRY_POINT], so a new picker is acked and registers its tapper
+     * without opting in. Override only for a mid-interaction control — see [ReadinessCallbackHandler].
      */
-    val ackPolicy: AckPolicy get() = AckPolicy.ROUTER
+    val kind: CallbackKind get() = CallbackKind.ENTRY_POINT
 
     suspend fun handle(
         bot: Bot,

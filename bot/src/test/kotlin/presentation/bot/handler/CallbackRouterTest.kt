@@ -2,9 +2,9 @@ package presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.presentation.bot.handler.AckPolicy
 import com.ua.astrumon.presentation.bot.handler.CallbackContext
 import com.ua.astrumon.presentation.bot.handler.CallbackHandler
+import com.ua.astrumon.presentation.bot.handler.CallbackKind
 import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.util.ChatLogContext
 import com.ua.astrumon.presentation.util.MemberAutoRegistrar
@@ -38,9 +38,9 @@ class CallbackRouterTest {
         clearAllMocks()
         MDC.clear()
         every { pingHandler.prefix } returns "ping:"
-        every { pingHandler.ackPolicy } returns AckPolicy.ROUTER
+        every { pingHandler.kind } returns CallbackKind.ENTRY_POINT
         every { readinessHandler.prefix } returns "ready:"
-        every { readinessHandler.ackPolicy } returns AckPolicy.HANDLER
+        every { readinessHandler.kind } returns CallbackKind.IN_PLACE
         coEvery { pingHandler.handle(any(), any(), any()) } returns Unit
         coEvery { readinessHandler.handle(any(), any(), any()) } returns Unit
     }
@@ -76,7 +76,7 @@ class CallbackRouterTest {
 
     /** Acking here is what makes it impossible for a new handler to forget. */
     @Test
-    fun `should ack before dispatching to a router-acked handler`() = runTest {
+    fun `should ack before dispatching to an entry-point handler`() = runTest {
         router(pingHandler).route(bot, buildUpdate("ping:42"))
 
         coVerify(exactly = 1) { bot.answerCallbackQuery(callbackId) }
@@ -84,7 +84,7 @@ class CallbackRouterTest {
 
     /** The readiness poll's spinner is the pending query — the router must leave it alone. */
     @Test
-    fun `should leave the query unanswered for a handler-acked handler`() = runTest {
+    fun `should leave the query unanswered for an in-place handler`() = runTest {
         router(readinessHandler).route(bot, buildUpdate("ready:a"))
 
         coVerify(exactly = 0) { bot.answerCallbackQuery(callbackId) }
@@ -106,12 +106,24 @@ class CallbackRouterTest {
         assertEquals("user_2", ctx.clicker.username)
     }
 
-    /** Anyone in the chat may tap a button, so the tapper is registered on this path too. */
+    /** Anyone in the chat may tap a picker button, so that press is an arrival like any command. */
     @Test
-    fun `should register the tapper before dispatch`() = runTest {
+    fun `should register the tapper of an entry-point handler`() = runTest {
         router(pingHandler).route(bot, buildUpdate("ping:42"))
 
         coVerify(exactly = 1) { autoRegistrar.ensure(eq(bot), any(), any()) }
+    }
+
+    /**
+     * A readiness vote is a control inside an open poll — every voter was invited from the member
+     * table already, and a bystander is turned away rather than welcomed in. Registering here would
+     * put a lookup on the hot path of every tap for nothing.
+     */
+    @Test
+    fun `should not register the tapper of an in-place handler`() = runTest {
+        router(readinessHandler).route(bot, buildUpdate("ready:a"))
+
+        coVerify(exactly = 0) { autoRegistrar.ensure(any(), any(), any()) }
     }
 
     @Test

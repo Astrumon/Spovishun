@@ -16,7 +16,9 @@ class MembersCommand(
         bot: Bot,
         update: Update,
     ) {
-        val chatId = update.message?.chat?.id ?: return
+        // Only the chat is needed to list members; the sender guard stays because an update with no
+        // sender is a channel post, not a command anyone issued.
+        val (chatId, _, _) = update.messageContext() ?: return
         val messages = messagesProvider.forChat(chatId)
 
         val text = membersController

@@ -1,8 +1,8 @@
 package presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.ua.astrumon.presentation.bot.handler.AckPolicy
 import com.ua.astrumon.presentation.bot.handler.CallbackContext
+import com.ua.astrumon.presentation.bot.handler.CallbackKind
 import com.ua.astrumon.presentation.bot.handler.ReadinessCallbackHandler
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessVote
@@ -46,8 +46,8 @@ class ReadinessCallbackHandlerTest {
      * this handler must keep the router's ack away from it.
      */
     @Test
-    fun `should own its callback acknowledgement`() {
-        assertEquals(AckPolicy.HANDLER, handler.ackPolicy)
+    fun `should be an in-place control, not an entry point`() {
+        assertEquals(CallbackKind.IN_PLACE, handler.kind)
     }
 
     @Test

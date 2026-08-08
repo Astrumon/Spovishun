@@ -266,7 +266,7 @@ abstract class BaseE2ETest {
         // dispatch() fail loudly rather than silently prove nothing.
         commandRegistry = CommandRegistry(
             listOf(
-                StartCommand(registrationController, botAdminUtils, messagesProvider),
+                StartCommand(registrationController, messagesProvider),
                 RegisterCommand(registrationController, botAdminUtils, messagesProvider),
                 MembersCommand(membersController, messagesProvider),
                 GrantRoleCommand(groupController, groupPickerController, messagesProvider),
