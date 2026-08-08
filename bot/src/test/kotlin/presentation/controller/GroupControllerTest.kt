@@ -559,7 +559,7 @@ class GroupControllerTest {
     @Test
     fun `groupMembersForPicker should return only members of that group`() = runTest {
         val group = GroupWithMembers(10L, chatId, "devs", "devs", listOf("bob"))
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { groupService.getGroupById(chatId, 10L) } returns ResultContainer.success(group)
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(adminMemberWithChat, bob))
 
         val result = groupController.groupMembersForPicker(chatId, userId, 10L)
@@ -570,7 +570,7 @@ class GroupControllerTest {
 
     @Test
     fun `groupMembersForPicker should reject when group id is unknown`() = runTest {
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
+        coEvery { groupService.getGroupById(chatId, 999L) } returns ResultContainer.failure(ResourceNotFoundException("Group", "999"))
 
         val result = groupController.groupMembersForPicker(chatId, userId, 999L)
 
@@ -583,7 +583,7 @@ class GroupControllerTest {
     @Test
     fun `deleteGroupById should delete resolved group`() = runTest {
         val group = GroupWithMembers(10L, chatId, "devs", "devs", emptyList())
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { groupService.getGroupById(chatId, 10L) } returns ResultContainer.success(group)
         coEvery { groupService.deleteGroup(chatId, "devs") } returns ResultContainer.success(Unit)
 
         val result = groupController.deleteGroupById(chatId, userId, 10L)
@@ -595,7 +595,7 @@ class GroupControllerTest {
 
     @Test
     fun `deleteGroupById should return NotFound for unknown id`() = runTest {
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
+        coEvery { groupService.getGroupById(chatId, 999L) } returns ResultContainer.failure(ResourceNotFoundException("Group", "999"))
 
         val result = groupController.deleteGroupById(chatId, userId, 999L)
 
@@ -610,13 +610,13 @@ class GroupControllerTest {
         val result = groupController.deleteGroupById(chatId, userId, 10L)
 
         assertTrue(result is CommandResponse.AccessDenied)
-        coVerify(exactly = 0) { groupService.getAllGroupsWithMembers(any()) }
+        coVerify(exactly = 0) { groupService.getGroupById(any(), any()) }
     }
 
     @Test
     fun `addUserToGroupById should add resolved member to resolved group`() = runTest {
         val group = GroupWithMembers(10L, chatId, "devs", "devs", emptyList())
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { groupService.getGroupById(chatId, 10L) } returns ResultContainer.success(group)
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(bob))
         coEvery { groupService.addMemberToGroup(chatId, "devs", "bob") } returns ResultContainer.success(Unit)
 
@@ -630,7 +630,7 @@ class GroupControllerTest {
     @Test
     fun `addUserToGroupById should return NotFound when member id is unknown`() = runTest {
         val group = GroupWithMembers(10L, chatId, "devs", "devs", emptyList())
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { groupService.getGroupById(chatId, 10L) } returns ResultContainer.success(group)
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(emptyList())
 
         val result = groupController.addUserToGroupById(chatId, userId, 10L, 999L)
@@ -642,7 +642,7 @@ class GroupControllerTest {
     @Test
     fun `removeUserFromGroupById should remove resolved member`() = runTest {
         val group = GroupWithMembers(10L, chatId, "devs", "devs", listOf("bob"))
-        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(listOf(group))
+        coEvery { groupService.getGroupById(chatId, 10L) } returns ResultContainer.success(group)
         coEvery { memberService.getAllMembersInChat(chatId) } returns ResultContainer.success(listOf(bob))
         coEvery { groupService.removeMemberFromGroup(chatId, "devs", "bob") } returns ResultContainer.success(Unit)
 

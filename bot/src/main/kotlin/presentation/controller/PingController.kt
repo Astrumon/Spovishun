@@ -93,14 +93,14 @@ class PingController(
         autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
-        val allGroups = groupService.getAllGroupsWithMembers(chatId)
-        if (allGroups.isFailure) {
-            logger.error("Failed to get groups for pingGroupById: {}", allGroups.exceptionOrNull()?.let { it::class.simpleName })
-            return plain(CommandResponse.Error(messages.error.loadGroupsInternal))
+        val groupResult = groupService.getGroupById(chatId, groupId)
+        val group = groupResult.getOrNull() ?: return when (val exception = groupResult.exceptionOrNull()) {
+            is ResourceNotFoundException -> plain(CommandResponse.NotFound("Група", groupId.toString()))
+            else -> {
+                logger.error("Failed to get group for pingGroupById: {}", exception?.let { it::class.simpleName })
+                plain(CommandResponse.Error(messages.error.loadGroupsInternal))
+            }
         }
-
-        val group = allGroups.getOrNull()?.firstOrNull { it.id == groupId }
-            ?: return plain(CommandResponse.NotFound("Група", groupId.toString()))
 
         return pingGroupMembers(messages, group, extra = "")
     }

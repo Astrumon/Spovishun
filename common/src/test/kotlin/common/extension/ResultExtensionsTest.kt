@@ -6,49 +6,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
-import kotlin.test.assertTrue
 
 class ResultExtensionsTest {
     private val firstError = NotFoundException("first")
     private val secondError = NotFoundException("second")
-
-    // --- collectAll ---
-
-    @Test
-    fun `should_returnListInOrder_when_allResultsSucceed`() {
-        val results = listOf(
-            ResultContainer.success(1),
-            ResultContainer.success(2),
-            ResultContainer.success(3),
-        )
-
-        assertEquals(listOf(1, 2, 3), results.collectAll().getOrNull())
-    }
-
-    @Test
-    fun `should_returnEmptyList_when_listIsEmpty`() {
-        val results = emptyList<ResultContainer<Int>>()
-
-        assertEquals(emptyList(), results.collectAll().getOrNull())
-    }
-
-    @Test
-    fun `should_returnFirstException_when_multipleResultsFail`() {
-        val results = listOf(
-            ResultContainer.success(1),
-            ResultContainer.failure(firstError),
-            ResultContainer.failure(secondError),
-        )
-
-        assertSame(firstError, results.collectAll().exceptionOrNull())
-    }
-
-    @Test
-    fun `should_returnFailure_when_singleResultFails`() {
-        val results = listOf(ResultContainer.success(1), ResultContainer.failure(firstError))
-
-        assertTrue(results.collectAll().isFailure)
-    }
 
     // --- orFailure ---
 

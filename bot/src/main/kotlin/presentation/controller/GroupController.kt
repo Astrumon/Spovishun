@@ -389,7 +389,7 @@ class GroupController(
     private suspend fun resolveGroup(
         chatId: Long,
         groupId: Long,
-    ): GroupWithMembers? = groupService.getAllGroupsWithMembers(chatId).getOrNull()?.firstOrNull { it.id == groupId }
+    ): GroupWithMembers? = groupService.getGroupById(chatId, groupId).getOrNull()
 
     private suspend fun resolveMemberUsername(
         chatId: Long,

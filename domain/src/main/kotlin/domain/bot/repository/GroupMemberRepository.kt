@@ -15,8 +15,12 @@ interface GroupMemberRepository {
         username: String,
     ): ResultContainer<Unit>
 
-    suspend fun getGroupMembers(
+    /**
+     * Usernames of every member of [groupIds], keyed by group id — one round trip for the whole set.
+     * A group with no members is absent from the map, so callers fall back to an empty list.
+     */
+    suspend fun getMembersForGroups(
         chatId: Long,
-        groupKey: String,
-    ): ResultContainer<List<String>>
+        groupIds: Collection<Long>,
+    ): ResultContainer<Map<Long, List<String>>>
 }

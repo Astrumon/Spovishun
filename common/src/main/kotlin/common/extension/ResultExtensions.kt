@@ -21,20 +21,3 @@ inline fun <T> ResultContainer<T?>.orFailure(errorProvider: () -> BaseException)
         ResultContainer.failure(errorProvider())
     }
 }
-
-/**
- * Folds a list of results into a result of list, failing with the first [BaseException] encountered.
- * The alternative — `catching { map { it.getOrThrow() } }` — uses exceptions as control flow.
- */
-fun <T> List<ResultContainer<T>>.collectAll(): ResultContainer<List<T>> {
-    val successes = ArrayList<T>(size)
-
-    for (result in this) {
-        when (result) {
-            is ResultContainer.Success -> successes.add(result.data)
-            is ResultContainer.Failure -> return result
-        }
-    }
-
-    return ResultContainer.success(successes)
-}

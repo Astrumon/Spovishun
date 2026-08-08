@@ -11,6 +11,11 @@ interface GroupRepository {
         key: String,
     ): ResultContainer<Group>
 
+    suspend fun findGroupById(
+        chatId: Long,
+        groupId: Long,
+    ): ResultContainer<Group>
+
     suspend fun createGroup(
         chatId: Long,
         name: String,
