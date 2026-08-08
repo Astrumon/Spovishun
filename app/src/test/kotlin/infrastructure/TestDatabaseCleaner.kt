@@ -5,7 +5,7 @@ import com.ua.astrumon.data.bot.table.GroupMembers
 import com.ua.astrumon.data.bot.table.Groups
 import com.ua.astrumon.data.bot.table.MemberChats
 import com.ua.astrumon.data.bot.table.Members
-import com.ua.astrumon.data.db.dbQuery
+import com.ua.astrumon.data.db.safeDbQuery
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.deleteWhere
@@ -47,7 +47,7 @@ class TestDatabaseCleaner(
     }
 
     suspend fun cleanupByChatId(chatId: Long) {
-        dbQuery {
+        safeDbQuery {
             val groupIds = Groups
                 .selectAll()
                 .where { Groups.chatId eq chatId }
@@ -78,7 +78,7 @@ class TestDatabaseCleaner(
             }
 
             Chats.deleteWhere { Chats.chatId eq chatId }
-        }
+        }.getOrThrow()
     }
 
     private companion object {

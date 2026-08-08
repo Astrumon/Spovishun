@@ -6,7 +6,7 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.data.bot.repository.BotMetaRepositoryImpl
 import com.ua.astrumon.data.bot.table.BotMeta
-import com.ua.astrumon.data.db.dbQuery
+import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.model.BotLanguage
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.domain.bot.repository.ReleaseNotesRepository
@@ -74,14 +74,14 @@ class ReleaseAnnouncerIntegrationTest : BaseIntegrationTest() {
         releaseNotesService = ReleaseNotesService(releaseNotesRepo)
         botMetaService = BotMetaService(BotMetaRepositoryImpl())
         runBlocking {
-            dbQuery { BotMeta.deleteAll() }
+            safeDbQuery { BotMeta.deleteAll() }.getOrThrow()
             chatService.ensureChat(testChatId, "Test chat", "supergroup").getOrThrow()
         }
     }
 
     @AfterEach
     fun cleanUpAnnouncer() = runBlocking {
-        dbQuery { BotMeta.deleteAll() }
+        safeDbQuery { BotMeta.deleteAll() }.getOrThrow()
         cleaner.cleanupByChatId(secondChatId)
     }
 

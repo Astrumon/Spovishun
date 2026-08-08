@@ -1,6 +1,5 @@
 package com.ua.astrumon.data.db
 
-import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.db.DatabaseFactory.logger
@@ -70,24 +69,21 @@ object DatabaseFactory {
     }
 }
 
-suspend fun <T> dbQuery(block: () -> T): T = withContext(Dispatchers.IO) {
-    try {
-        transaction { block() }
-    } catch (e: BaseException) {
-        throw e
-    } catch (e: Exception) {
-        throw DatabaseException("Database query failed", e)
-    }
+/**
+ * The single entry point for every database call: moves the blocking JDBC work onto
+ * [Dispatchers.IO], opens the transaction, and converts a throw into [ResultContainer.Failure].
+ *
+ * There is deliberately no bare `dbQuery` sibling and no `safeDbTransaction` (spovishun-173) — the
+ * latter ran `transaction {}` on the caller's dispatcher, i.e. on the CPU-sized
+ * [kotlinx.coroutines.Dispatchers.Default] pool, where a single query parks a large share of a
+ * 1–2 core production VM.
+ */
+suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> = withContext(Dispatchers.IO) {
+    // Emitted from inside the hop on purpose. It is the only `:data` line a successful query
+    // produces, and `ChatLogContextIntegrationTest` asserts it still carries the chat MDC — which is
+    // what proves `MDCContext` survives the switch to `Dispatchers.IO` (spovishun-168).
+    logger.debug("safeDbQuery: executing on {}", Thread.currentThread().name)
+    ResultContainer
+        .catching { transaction { block() } }
+        .onFailure { exception -> logger.error("safeDbQuery: execution failed", exception) }
 }
-
-suspend fun <T> safeDbQuery(block: () -> T): ResultContainer<T> = ResultContainer
-    .catching {
-        logger.debug("safeDbQuery: starting execution")
-        val result = dbQuery { block() }
-        logger.debug("safeDbQuery: execution completed successfully")
-        result
-    }.onFailure { exception ->
-        logger.error("safeDbQuery: execution failed", exception)
-    }
-
-suspend fun <T> safeDbTransaction(block: () -> T): ResultContainer<T> = ResultContainer.catching { transaction { block() } }
