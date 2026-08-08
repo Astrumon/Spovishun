@@ -116,10 +116,15 @@ See per-module `CLAUDE.md` files (`common/`, `domain/`, `data/`, `bot/`, `app/`)
 **ResultContainer** — own sealed class: `Success<T>(val data: T)` / `Failure(val exception: BaseException)`.
 Not related to Kotlin's `Result`. Services and repository interfaces return it.
 Chain with `.flatMap {}`, resolve with `.fold(onSuccess = {}, onFailure = {})`.
-Wrap DB calls with `ResultContainer.catching { }`.
+Wrap a throwing call with `ResultContainer.catching { }` — but never a DB call, which goes through
+`safeDbQuery { }` (below) and is already wrapped.
 
-**DB access** — always `safeDbQuery { }` (wraps `dbQuery {}` + `ResultContainer.catching`), never bare `transaction {}` or `ResultContainer.catching { dbQuery { } }` manually.
-`safeDbQuery` and `safeDbTransaction` live in `:data` `data/db/DatabaseFactory.kt`.
+**DB access** — always `safeDbQuery { }`, never a bare `transaction {}` or a manual
+`withContext(Dispatchers.IO)` + `ResultContainer.catching` pair. It is the single entry point and
+lives in `:data` `data/db/DatabaseFactory.kt`: one function that does `withContext(Dispatchers.IO)`
++ `transaction {}` + `ResultContainer.catching`. There is deliberately no bare `dbQuery` sibling and
+no `safeDbTransaction` — the latter ran the transaction on the caller's dispatcher, parking the
+CPU-sized `Dispatchers.Default` pool on blocking JDBC (spovishun-173).
 No class may hardcode `Dispatchers.IO` — it appears in exactly two places: `DatabaseFactory.kt`, and the
 `BlockingTelegramDispatcher`-qualified binding in `:app` `di/ConfigModule.kt` that carries blocking
 Telegram API calls off the CPU-sized `Dispatchers.Default` pool (spovishun-119). Everything else injects

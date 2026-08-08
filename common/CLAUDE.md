@@ -13,4 +13,7 @@ domain/not-found exceptions), `extension/` (`ResultExtensions` — `orFailure`),
 - `ResultContainer<T>` is the project's Result type (`Success<T>` / `Failure(BaseException)`) — not
   Kotlin's `Result`. Services and repository interfaces return it; chain with `.flatMap {}`, resolve
   with `.fold(...)`, wrap throwing calls with `ResultContainer.catching { }`.
+- `catching` re-throws `CancellationException` instead of capturing it (spovishun-173). It is an
+  `Exception`, so the generic fallback used to swallow it and hand the caller a fabricated `Failure`
+  while the coroutine was supposed to be unwinding. Every DB call reaches this through `safeDbQuery`.
 - `VersionInfo` is generated from the root `version` via `:common`'s `generateVersionInfo` task.
