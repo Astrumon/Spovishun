@@ -1,8 +1,7 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.presentation.bot.BotMessagesProvider
+import com.ua.astrumon.presentation.bot.BotMessages
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -21,35 +20,42 @@ object ReadinessCallback {
  */
 class ReadinessCallbackHandler(
     private val runner: ReadinessSessionRunner,
-    private val messagesProvider: BotMessagesProvider,
 ) : CallbackHandler {
     override val prefix = ReadinessCallback.PREFIX
 
+    /**
+     * A vote is a control inside a poll that is already open, not an arrival.
+     *
+     * Two things follow. *When* the query is answered is the UI: leaving it pending keeps the button
+     * spinning while the vote is folded in, and a rejection is delivered as the answer's toast text
+     * — a router ack before dispatch would erase both. And the tapper is not auto-registered: a
+     * bystander poking at someone else's poll is turned away, not welcomed in.
+     */
+    override val kind = CallbackKind.IN_PLACE
+
     override suspend fun handle(
         bot: Bot,
-        update: Update,
+        ctx: CallbackContext,
+        messages: BotMessages,
     ) {
-        val callbackQuery = update.callbackQuery ?: return
-        val ctx = update.callbackContext(prefix) ?: return
-        val messages = messagesProvider.forChat(ctx.chatId)
         val vote = when (ctx.payload) {
             ReadinessCallback.ACCEPT -> ReadinessVote.ACCEPTED
             ReadinessCallback.DECLINE -> ReadinessVote.DECLINED
             else -> {
-                bot.answerCallbackQuery(callbackQuery.id)
+                bot.answerCallbackQuery(ctx.queryId)
                 return
             }
         }
 
         val key = SessionKey(ctx.chatId, ctx.messageId)
-        val render = runner.onVote(bot, key, ctx.clickerId, vote)
+        val render = runner.onVote(bot, key, ctx.clicker.id, vote)
         if (render == null) {
             val toast = if (runner.isLive(key)) {
                 messages.ping.readiness.notInvited
             } else {
                 messages.ping.readiness.sessionClosed
             }
-            bot.answerCallbackQuery(callbackQuery.id, text = toast)
+            bot.answerCallbackQuery(ctx.queryId, text = toast)
             return
         }
 
@@ -57,7 +63,7 @@ class ReadinessCallbackHandler(
         // indicator. Capped: a burst of votes keeps pushing the coalesced render back, and a spinner
         // that never stops reads as a broken bot.
         withTimeoutOrNull(SPINNER_CAP) { render.join() }
-        bot.answerCallbackQuery(callbackQuery.id)
+        bot.answerCallbackQuery(ctx.queryId)
     }
 
     private companion object {

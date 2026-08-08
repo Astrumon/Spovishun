@@ -14,9 +14,9 @@ class MembersCommandIntegrationTest : BaseIntegrationTest() {
     fun `members command should auto-register caller and show them in the list`() = runTest {
         val update = buildUpdate("/members")
 
-        membersCommand.execute(bot, update)
+        dispatch(membersCommand, update)
 
-        // Caller is auto-registered by MembersController before listing members
+        // The caller is auto-registered by the command decorator CommandRegistry applies (spovishun-172)
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)
         verify {

@@ -14,7 +14,6 @@ import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.StartCommand
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
-import com.ua.astrumon.presentation.util.BotAdminUtils
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -27,21 +26,18 @@ import kotlin.test.Test
 
 class StartCommandTest {
     private val registrationController: RegistrationController = mockk()
-    private val botAdminUtils: BotAdminUtils = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var startCommand: StartCommand
 
     private val chatId = 123L
     private val userId = 456L
     private val user = User(id = userId, isBot = false, firstName = "Alice", username = "alice")
-    private val request = RegistrationRequest(chatId, userId, "alice", "Alice", MemberRole.MEMBER)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        startCommand = StartCommand(registrationController, botAdminUtils, testMessagesProvider())
+        startCommand = StartCommand(registrationController, testMessagesProvider())
         every { bot.sendMessage(any(), any(), any()) } returns mockk<TelegramBotResult<Message>>()
-        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
         every { bot.getChat(any()) } returns TelegramBotResult.Success(Chat(id = chatId, type = "private"))
         coEvery { registrationController.start(any()) } returns CommandResponse.Success("Spovishun активний!")
         coEvery { registrationController.ensureUserRegistered(any()) } returns Unit
@@ -63,18 +59,8 @@ class StartCommandTest {
 
         startCommand.execute(bot, update)
 
-        coVerify { registrationController.start(request) }
+        coVerify { registrationController.start(chatId) }
         coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
-    }
-
-    @Test
-    fun `invoke should use user_id as username when username is null`() = runTest {
-        val noUsernameUser = User(id = userId, isBot = false, firstName = "Alice", username = null)
-        val update = createUpdate(fromUser = noUsernameUser)
-
-        startCommand.execute(bot, update)
-
-        coVerify { registrationController.start(request.copy(username = "user_$userId")) }
     }
 
     @Test
@@ -154,13 +140,29 @@ class StartCommandTest {
         coVerify(exactly = 0) { bot.sendMessage(any(), match { it.contains("Реєстрація учасників") }, any()) }
     }
 
+    /**
+     * Admin pre-registration is best-effort: the catch around it is narrow precisely so a Telegram
+     * failure there cannot swallow the caller's own registration and welcome (spovishun-172).
+     */
     @Test
-    fun `invoke should sanitize username with special characters`() = runTest {
-        val specialUser = User(id = userId, isBot = false, firstName = "Alice", username = "al!ce@#")
-        val update = createUpdate(fromUser = specialUser)
+    fun `invoke should still welcome the caller when reading the admins throws`() = runTest {
+        every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
+        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
 
-        startCommand.execute(bot, update)
+        startCommand.execute(bot, createUpdate(chatType = "supergroup"))
 
-        coVerify { registrationController.start(request.copy(username = "al_ce__")) }
+        coVerify(exactly = 0) { registrationController.ensureUserRegistered(any()) }
+        coVerify { registrationController.start(chatId) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
+    }
+
+    @Test
+    fun `invoke should still welcome the caller when reading the chat throws`() = runTest {
+        every { bot.getChat(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
+
+        startCommand.execute(bot, createUpdate())
+
+        coVerify { registrationController.start(chatId) }
+        coVerify { bot.sendMessage(ChatId.fromId(chatId), "Spovishun активний!", ParseMode.HTML) }
     }
 }

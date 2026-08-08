@@ -47,12 +47,14 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
 import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.WhatsNewController
 import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.util.MemberAutoRegistrar
 import io.mockk.every
 import io.mockk.spyk
 import kotlinx.coroutines.CoroutineScope
@@ -129,6 +131,7 @@ abstract class BaseE2ETest {
 
     /** Real admin detection through the live Telegram API — never mocked at this layer. */
     protected lateinit var botAdminUtils: BotAdminUtils
+    protected lateinit var autoRegistrar: MemberAutoRegistrar
 
     /** Exposed for the callback handlers, which tests construct directly. */
     protected lateinit var pingController: PingController
@@ -194,6 +197,7 @@ abstract class BaseE2ETest {
         // Caches are recreated per test so nothing carries over between cases.
         autoRegisterService = AutoRegisterService(memberService, chatService, UserCache(), ChatCache())
         botAdminUtils = BotAdminUtils()
+        autoRegistrar = MemberAutoRegistrar(autoRegisterService, botAdminUtils)
         // TTL far beyond any test run, so no poll expires mid-assertion; the scope is cancelled in tearDown.
         readinessScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         readinessSessionRunner = ReadinessSessionRunner(
@@ -244,34 +248,40 @@ abstract class BaseE2ETest {
 
     private fun initCommands() {
         messagesProvider = BotMessagesProvider(chatService)
-        val groupController = GroupController(groupService, memberService, autoRegisterService, messagesProvider)
-        val membersController = MembersController(memberService, autoRegisterService, messagesProvider)
         val birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
+        pingController = PingController(memberService, groupService, chatService, messagesProvider)
+        registerCommands(birthdayService)
+    }
+
+    private fun registerCommands(birthdayService: BirthdayService) {
+        val groupController = GroupController(groupService, memberService, messagesProvider)
+        val groupPickerController = GroupPickerController(groupService, memberService, messagesProvider)
+        val membersController = MembersController(memberService, messagesProvider)
         val registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
-        val randomController = RandomController(memberService, groupService, autoRegisterService, messagesProvider)
+        val randomController = RandomController(memberService, groupService, messagesProvider)
         val birthdayController = BirthdayController(birthdayService, memberService, messagesProvider)
         val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService, messagesProvider)
-        pingController = PingController(memberService, groupService, chatService, autoRegisterService, messagesProvider)
 
         // Kept in lockstep with :app di/PresentationModule — a command missing here would make
         // dispatch() fail loudly rather than silently prove nothing.
         commandRegistry = CommandRegistry(
             listOf(
-                StartCommand(registrationController, botAdminUtils, messagesProvider),
+                StartCommand(registrationController, messagesProvider),
                 RegisterCommand(registrationController, botAdminUtils, messagesProvider),
-                MembersCommand(membersController, botAdminUtils, messagesProvider),
-                GrantRoleCommand(groupController, messagesProvider),
-                ShowGroupsCommand(groupController, botAdminUtils, messagesProvider),
+                MembersCommand(membersController, messagesProvider),
+                GrantRoleCommand(groupController, groupPickerController, messagesProvider),
+                ShowGroupsCommand(groupController, messagesProvider),
                 NewGroupCommand(groupController, messagesProvider),
-                DeleteGroupCommand(groupController, messagesProvider),
-                AddUserToGroupCommand(groupController, messagesProvider),
-                RemoveUserFromGroupCommand(groupController, messagesProvider),
-                PingAllCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
-                PingGroupCommand(pingController, botAdminUtils, readinessSessionRunner, messagesProvider),
+                DeleteGroupCommand(groupController, groupPickerController, messagesProvider),
+                AddUserToGroupCommand(groupController, groupPickerController, messagesProvider),
+                RemoveUserFromGroupCommand(groupController, groupPickerController, messagesProvider),
+                PingAllCommand(pingController, readinessSessionRunner, messagesProvider),
+                PingGroupCommand(pingController, readinessSessionRunner, messagesProvider),
                 BirthdayCommand(birthdayController, messagesProvider),
                 WhatsNewCommand(whatsNewController, messagesProvider),
-                RandomCommand(randomController, botAdminUtils, messagesProvider),
+                RandomCommand(randomController, messagesProvider),
             ),
+            autoRegistrar,
         )
     }
 
@@ -369,7 +379,7 @@ abstract class BaseE2ETest {
         firstName: String,
         role: MemberRole = MemberRole.MEMBER,
     ): MemberWithChat = runBlocking {
-        autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, role).getOrThrow()
+        autoRegisterService.ensureUserRegistered(testChatId, userId, username, firstName, { role }).getOrThrow()
     }
 
     protected fun allMembers() = runBlocking { memberService.getAllMembersInChat(testChatId).getOrThrow() }

@@ -4,8 +4,6 @@ import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.domain.bot.model.Member
-import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
@@ -22,20 +20,14 @@ class PingController(
     memberService: MemberService,
     private val groupService: GroupService,
     private val chatService: ChatService,
-    private val autoRegisterService: AutoRegisterService,
     private val messagesProvider: BotMessagesProvider,
 ) : BaseController(memberService) {
     private val logger = LoggerFactory.getLogger(PingController::class.java)
 
     suspend fun pingAll(
         chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
         args: List<String>,
     ): PingOutcome {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
         val membersResult = memberService.getAllMembersInChat(chatId)
@@ -60,14 +52,7 @@ class PingController(
      * Options for the args-less `/ping` picker: the whole-chat option first, then one per group.
      * The whole-chat option is always present, so the menu still renders in a chat with no groups.
      */
-    suspend fun groupsForPicker(
-        chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
-    ): PickerListing {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+    suspend fun groupsForPicker(chatId: Long): PickerListing {
         val messages = messagesProvider.forChat(chatId)
 
         return groupService.getAllGroupsWithMembers(chatId).fold(
@@ -84,13 +69,8 @@ class PingController(
 
     suspend fun pingGroupById(
         chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
         groupId: Long,
     ): PingOutcome {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
         val groupResult = groupService.getGroupById(chatId, groupId)
@@ -107,13 +87,8 @@ class PingController(
 
     suspend fun pingGroup(
         chatId: Long,
-        userId: Long,
-        username: String,
-        firstName: String,
-        userRole: MemberRole,
         args: List<String>,
     ): PingOutcome {
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
         val messages = messagesProvider.forChat(chatId)
 
         if (args.isEmpty()) {

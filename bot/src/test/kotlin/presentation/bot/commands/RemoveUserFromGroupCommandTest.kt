@@ -9,6 +9,7 @@ import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.RemoveUserFromGroupCommand
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -21,6 +22,7 @@ import kotlin.test.Test
 
 class RemoveUserFromGroupCommandTest {
     private val groupController: GroupController = mockk()
+    private val groupPickerController: GroupPickerController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: RemoveUserFromGroupCommand
 
@@ -31,7 +33,7 @@ class RemoveUserFromGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = RemoveUserFromGroupCommand(groupController, testMessagesProvider())
+        command = RemoveUserFromGroupCommand(groupController, groupPickerController, testMessagesProvider())
     }
 
     private fun createUpdate(

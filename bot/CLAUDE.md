@@ -4,7 +4,7 @@ Presentation module (Telegram). Depends on `:domain` and `:common`. Does NOT dep
 repository wiring happens in `:app`.
 
 Packages (under `presentation/`): `bot/` (TelegramBot, commands/, handler/), `controller/`,
-`scheduler/`, `util/` (BotAdminUtils).
+`scheduler/`, `util/` (BotAdminUtils, MemberAutoRegistrar).
 
 ## Forbidden dependencies
 - Exposed / JDBC (`org.jetbrains.exposed.*`) — no DB access in this layer
@@ -49,6 +49,60 @@ val text = controller.grantRole(chatId, userId, args).toText(
 class BadCommand(private val memberService: MemberService) { ... }
 ```
 
+## Callback flow (spovishun-172)
+```
+CallbackRouter → ack + build CallbackContext + resolve BotMessages → CallbackHandler → Controller
+```
+`CallbackHandler.handle(bot, ctx, messages)` receives everything already parsed: the router picked
+the handler by prefix, so re-parsing the `Update` inside each handler was duplication — and an
+acknowledgement seven handlers could each silently forget.
+
+`CallbackHandler.kind` says whether a tap **starts** an interaction or **continues** one, and that
+single fact drives two behaviours:
+
+| `kind` | Router acks up front | Router registers the tapper |
+|---|---|---|
+| `ENTRY_POINT` (default) | yes | yes — a picker press is an arrival like any command |
+| `IN_PLACE` | no | no |
+
+Exactly one handler is `IN_PLACE`: `ReadinessCallbackHandler`. A vote is a control inside an already
+open poll — *when* the query is answered is the UI there (the pending query is the spinner, a
+rejection is the answer's toast text), and its tapper was invited from the member table already or
+is a bystander being turned away. The default covers every new handler without opting in.
+
+`TwoStepMemberPicker` owns the `{ownerId}` → member list → `{ownerId}:{memberId}` → act flow. A
+handler on it states only what differs — candidate source, step-2 prompt, action. Use it for a new
+two-step member picker; `GrantRoleCallbackHandler` deliberately is not on it, because its step 2
+selects a role rather than a member.
+
+Group operations split by surface: `GroupController` for typed arguments, `GroupPickerController`
+for picker listings and act-by-id. A command that opens a picker injects both.
+
+## Auto-registration (spovishun-172)
+Nobody calls `AutoRegisterService.ensureUserRegistered` from a controller. `MemberAutoRegistrar` is
+the one implementation, applied at the three dispatch entry points — `MessageHandler`,
+`AutoRegisterCommand` (wrapped onto every entry by `CommandRegistry`) and `CallbackRouter`. Adding a
+command or a callback handler is the whole opt-in.
+
+`ensureUserRegistered` takes the role as a **supplier**, not a value: deriving it costs a blocking
+`getChatMember`, and the service only needs it when it actually creates a member. Passing
+`botAdminUtils.getMemberRole(...)` eagerly would make every already-registered user pay for a
+Telegram round trip on every command and every button tap.
+
+`RegistrationController` is the one legitimate direct caller, and only for **other** users:
+`StartCommand` pre-registers the chat's admins. The caller of `/start` is the decorator's job like
+anyone else's.
+
+One command opts out, via `registrationPolicy = RegistrationPolicy.COMMAND`: `/register`, whose
+reply says whether the caller was *new*. Registering it first would make that reply always read
+"already registered" — the distinction only exists before the dispatch decorator runs. Nothing else
+should need this; a command that merely *uses* the member table wants the default.
+
+**Testing consequence:** `command.execute(bot, update)` skips both decorators. Any test that depends
+on the caller being registered — or on them *not* being — must go through `BaseIntegrationTest`'s
+`dispatch(command, update)`, which wraps exactly as `CommandRegistry` does. Same for callbacks and
+`dispatchCallback(handler, update)`.
+
 ## Role checks in controllers
 Use `MemberService.hasAdminAccess()` / `hasModeratorAccess()` (DB-based) for permission guards.
 Use `BotAdminUtils.getMemberRole()` only when deriving the initial role for a new member.
@@ -73,7 +127,7 @@ means the coroutines machinery owns cleanup, on completion, cancellation and fai
 Three dispatch paths, one wrap each — do not add a fourth without a wrap:
 | Path | Wrapped by |
 |---|---|
-| Commands | `ChatContextCommand`, applied to every entry by `CommandRegistry` — registering a command is enough |
+| Commands | `ChatContextCommand`, applied to every entry by `CommandRegistry` — registering a command is enough. It wraps `AutoRegisterCommand`, so the registration logs carry the chat too |
 | Text messages | `MessageHandler.handleIncomingMessage` |
 | Callback queries | `CallbackRouter.route` |
 
@@ -91,4 +145,5 @@ chat type only; never a username, user id, or message body.
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)
 3. Register in `:app` `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
-4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`
+4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`, which also gives it the chat
+   log context and caller auto-registration. Do not add either by hand.

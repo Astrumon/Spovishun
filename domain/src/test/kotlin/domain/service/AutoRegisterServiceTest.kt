@@ -57,11 +57,44 @@ class AutoRegisterServiceTest {
         )
     }
 
+    /**
+     * The supplier exists so an already-known member never pays for the caller's role lookup, which
+     * on the bot side is a blocking Telegram round trip (spovishun-172).
+     */
+    @Test
+    fun `ensureUserRegistered should not ask for the role when the member already exists`() = runTest {
+        coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
+        var roleAsked = false
+
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, {
+            roleAsked = true
+            userRole
+        })
+
+        assertFalse(roleAsked)
+    }
+
+    @Test
+    fun `ensureUserRegistered should ask for the role when it has to create the member`() = runTest {
+        coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns
+            ResultContainer.failure(ResourceNotFoundException("Member", username))
+        coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
+            ResultContainer.success(memberWithChat)
+        var roleAsked = false
+
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, {
+            roleAsked = true
+            userRole
+        })
+
+        assertTrue(roleAsked)
+    }
+
     @Test
     fun `ensureUserRegistered should return existing member when already registered in chat`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
 
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         assertTrue(result.isSuccess)
         assertEquals(memberWithChat, result.getOrThrow())
@@ -75,7 +108,7 @@ class AutoRegisterServiceTest {
         coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
             ResultContainer.success(memberWithChat)
 
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         assertTrue(result.isSuccess)
         assertEquals(memberWithChat, result.getOrThrow())
@@ -84,7 +117,7 @@ class AutoRegisterServiceTest {
 
     @Test
     fun `ensureUserRegistered should return validation error when userId is invalid`() = runTest {
-        val result = autoRegisterService.ensureUserRegistered(chatId, -1L, username, firstName, userRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, -1L, username, firstName, { userRole })
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is ValidationException)
@@ -100,7 +133,7 @@ class AutoRegisterServiceTest {
         coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
             ResultContainer.failure(dbError)
 
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is DatabaseException)
@@ -111,7 +144,7 @@ class AutoRegisterServiceTest {
         val error = DatabaseException("Database error")
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.failure(error)
 
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is DatabaseException)
@@ -127,7 +160,7 @@ class AutoRegisterServiceTest {
         coEvery { memberService.createMember(chatId, userId, username, firstName, role = adminRole) } returns
             ResultContainer.success(adminMemberWithChat)
 
-        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, adminRole)
+        val result = autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { adminRole })
 
         assertTrue(result.isSuccess)
         assertEquals(MemberRole.ADMIN, result.getOrThrow().role)
@@ -168,8 +201,8 @@ class AutoRegisterServiceTest {
     fun `ensureUserRegistered should return cached member without DB call on second invocation`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
 
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         // DB should be queried only once; second call is a cache hit
         coVerify(exactly = 1) { memberService.getMemberWithChatByUsername(chatId, username) }
@@ -182,8 +215,8 @@ class AutoRegisterServiceTest {
         coEvery { memberService.createMember(chatId, userId, username, firstName, role = userRole) } returns
             ResultContainer.success(memberWithChat)
 
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         // getMemberWithChatByUsername called once; second call served from cache
         coVerify(exactly = 1) { memberService.getMemberWithChatByUsername(chatId, username) }
@@ -194,8 +227,8 @@ class AutoRegisterServiceTest {
     fun `ensureUserRegistered should skip ensureChat when chat is already cached`() = runTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, username) } returns ResultContainer.success(memberWithChat)
 
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
-        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, userRole)
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
+        autoRegisterService.ensureUserRegistered(chatId, userId, username, firstName, { userRole })
 
         // ensureChat called only on first invocation
         coVerify(exactly = 1) { chatService.ensureChat(chatId, any(), any()) }

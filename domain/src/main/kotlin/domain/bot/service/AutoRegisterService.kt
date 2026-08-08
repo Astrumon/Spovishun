@@ -23,15 +23,21 @@ class AutoRegisterService(
         val userId: Long,
         val username: String,
         val firstName: String,
-        val userRole: MemberRole,
+        val resolveRole: suspend () -> MemberRole,
     )
 
+    /**
+     * [resolveRole] is a supplier rather than a value because the role is only needed to *create* a
+     * member, and the common case returns from the cache well before that. Callers derive the role
+     * from a blocking Telegram round trip; passing it eagerly made every already-known user pay for
+     * one (spovishun-172).
+     */
     suspend fun ensureUserRegistered(
         chatId: Long,
         userId: Long,
         username: String,
         firstName: String,
-        userRole: MemberRole,
+        resolveRole: suspend () -> MemberRole,
         chatTitle: String? = null,
         chatType: String? = null,
     ): ResultContainer<MemberWithChat> {
@@ -49,7 +55,7 @@ class AutoRegisterService(
             return ResultContainer.success(cached)
         }
 
-        return resolveMember(RegistrationRequest(chatId, userId, username, firstName, userRole))
+        return resolveMember(RegistrationRequest(chatId, userId, username, firstName, resolveRole))
     }
 
     /**
@@ -117,7 +123,7 @@ class AutoRegisterService(
                 request.userId,
                 request.username,
                 request.firstName,
-                role = request.userRole,
+                role = request.resolveRole(),
             ).onSuccess { created ->
                 logger.info("Auto-registered user successfully")
                 userCache.put(request.chatId, request.username, created)

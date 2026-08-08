@@ -16,6 +16,13 @@ class RegisterCommand(
 ) : BotCommand {
     override val name = "register"
 
+    /**
+     * `/register` answers "welcome" or "you already were" — a distinction that only exists before
+     * the caller is registered. Letting the dispatch decorator run first would erase it, so this
+     * command owns its registration (spovishun-172).
+     */
+    override val registrationPolicy = RegistrationPolicy.COMMAND
+
     override suspend fun execute(
         bot: Bot,
         update: Update,

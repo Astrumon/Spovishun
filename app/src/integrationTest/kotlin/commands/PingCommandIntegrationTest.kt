@@ -19,7 +19,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
     fun `pingAll from an unregistered caller should poll that caller alone`() = runTest {
         val update = buildUpdate("/all")
 
-        pingAllCommand.execute(bot, update)
+        dispatch(pingAllCommand, update)
 
         verifyReadinessPoll { it.contains("@$testUsername") }
     }
@@ -153,7 +153,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         groupService.createGroup(testChatId, "devs")
         groupService.addMemberToGroup(testChatId, "devs", "alice")
 
-        pingCallbackHandler().handle(bot, buildCallbackUpdate("${PingCallback.PREFIX}${PingController.ALL_MEMBERS_ID}"))
+        dispatchCallback(pingCallbackHandler(), buildCallbackUpdate("${PingCallback.PREFIX}${PingController.ALL_MEMBERS_ID}"))
 
         verifyReadinessPoll { it.contains("@alice") && it.contains("@bob") }
     }
@@ -166,7 +166,7 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         groupService.addMemberToGroup(testChatId, "devs", "alice")
         val devs = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().first { it.key == "devs" }
 
-        pingCallbackHandler().handle(bot, buildCallbackUpdate("${PingCallback.PREFIX}${devs.id}"))
+        dispatchCallback(pingCallbackHandler(), buildCallbackUpdate("${PingCallback.PREFIX}${devs.id}"))
 
         verifyReadinessPoll { it.contains("@alice") && !it.contains("@bob") }
     }
@@ -193,5 +193,5 @@ class PingCommandIntegrationTest : BaseIntegrationTest() {
         }
     }
 
-    private fun pingCallbackHandler() = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
+    private fun pingCallbackHandler() = PingCallbackHandler(pingController, readinessSessionRunner)
 }

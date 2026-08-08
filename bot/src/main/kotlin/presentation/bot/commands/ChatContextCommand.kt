@@ -19,6 +19,8 @@ internal class ChatContextCommand(
 ) : BotCommand {
     override val name: String get() = delegate.name
 
+    override val registrationPolicy: RegistrationPolicy get() = delegate.registrationPolicy
+
     override suspend fun execute(
         bot: Bot,
         update: Update,

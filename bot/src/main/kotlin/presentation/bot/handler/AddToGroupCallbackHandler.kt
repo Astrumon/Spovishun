@@ -1,9 +1,8 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.Update
-import com.ua.astrumon.presentation.bot.BotMessagesProvider
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.bot.BotMessages
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 object AddToGroupCallback {
@@ -15,39 +14,35 @@ object AddToGroupCallback {
  * Step-1 selection lives in the callback data of step-2 buttons — no server-side state.
  */
 class AddToGroupCallbackHandler(
-    private val groupController: GroupController,
-    private val messagesProvider: BotMessagesProvider,
+    private val groupPickerController: GroupPickerController,
 ) : CallbackHandler {
     override val prefix = AddToGroupCallback.PREFIX
 
-    override suspend fun handle(
-        bot: Bot,
-        update: Update,
-    ) {
-        val callbackQuery = update.callbackQuery ?: return
-        bot.answerCallbackQuery(callbackQuery.id)
-        val ctx = update.callbackContext(prefix) ?: return
-        val messages = messagesProvider.forChat(ctx.chatId)
-
-        val parts = ctx.payload.split(":")
-        val groupId = parts.getOrNull(0)?.toLongOrNull() ?: return
-        if (parts.size == 1) {
-            bot.advancePicker(
-                ctx.chatId,
-                ctx.messageId,
-                groupController.chatMembersForModeratorPicker(ctx.chatId, ctx.clickerId),
-                PickerCopy(messages, messages.picker.memberPromptAddTo, messages.picker.noMembers, messages.error.onlyAdminsModerators),
-            ) { "${AddToGroupCallback.PREFIX}$groupId:${it.id}" }
-        } else {
-            val memberId = parts[1].toLongOrNull() ?: return
-            val text = groupController.addUserToGroupById(ctx.chatId, ctx.clickerId, groupId, memberId).toText(
+    private val picker = TwoStepMemberPicker(
+        prefix = AddToGroupCallback.PREFIX,
+        candidates = { ctx, _ -> groupPickerController.chatMembersForModeratorPicker(ctx.chatId, ctx.clicker.id) },
+        copy = { messages ->
+            PickerCopy(
+                messages,
+                messages.picker.memberPromptAddTo,
+                messages.picker.noMembers,
+                messages.error.onlyAdminsModerators,
+            )
+        },
+        act = { ctx, messages, groupId, memberId ->
+            groupPickerController.addUserToGroupById(ctx.chatId, ctx.clicker.id, groupId, memberId).toText(
                 messages,
                 successPrefix = messages.success.prefix,
                 onError = { messages.success.warning(it) },
                 onAccessDenied = { messages.error.onlyAdminsModerators },
                 onNotFound = { messages.error.resourceNotFound(it.resource, it.identifier) },
             )
-            bot.replaceWithText(ctx.chatId, ctx.messageId, text)
-        }
-    }
+        },
+    )
+
+    override suspend fun handle(
+        bot: Bot,
+        ctx: CallbackContext,
+        messages: BotMessages,
+    ) = picker.run(bot, ctx, messages)
 }

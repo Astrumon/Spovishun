@@ -7,10 +7,12 @@ import com.ua.astrumon.presentation.bot.handler.AddToGroupCallback
 import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.sendPicker
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 class AddUserToGroupCommand(
     private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
     private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "addtogroup"
@@ -25,7 +27,7 @@ class AddUserToGroupCommand(
         if (args.isEmpty()) {
             bot.sendPicker(
                 chatId,
-                groupController.groupsForModeratorPicker(chatId, userId),
+                groupPickerController.groupsForModeratorPicker(chatId, userId),
                 PickerCopy(messages, messages.picker.groupPromptAddTo, messages.group.empty, messages.error.onlyAdminsModerators),
             ) { "${AddToGroupCallback.PREFIX}${it.id}" }
             return

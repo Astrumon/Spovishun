@@ -9,6 +9,7 @@ import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.AddUserToGroupCommand
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -21,6 +22,7 @@ import kotlin.test.Test
 
 class AddUserToGroupCommandTest {
     private val groupController: GroupController = mockk()
+    private val groupPickerController: GroupPickerController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: AddUserToGroupCommand
 
@@ -31,7 +33,7 @@ class AddUserToGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = AddUserToGroupCommand(groupController, testMessagesProvider())
+        command = AddUserToGroupCommand(groupController, groupPickerController, testMessagesProvider())
     }
 
     private fun createUpdate(

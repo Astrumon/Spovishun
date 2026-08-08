@@ -5,6 +5,7 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
+import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.PingCallback
 import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import infrastructure.BaseE2ETest
@@ -47,10 +48,10 @@ class PingGroupSelectionE2ETest : BaseE2ETest() {
         }
         val group = allGroups().first { it.name == "callback_squad" }
 
-        val handler = PingCallbackHandler(pingController, botAdminUtils, readinessSessionRunner, messagesProvider)
+        val router = CallbackRouter(listOf(PingCallbackHandler(pingController, readinessSessionRunner)), messagesProvider, autoRegistrar)
         val sent = expectingReply("the ping callback") {
             runBlocking {
-                handler.handle(mainBot, buildCallbackUpdate(data = "${PingCallback.PREFIX}${group.id}", messageId = 1L))
+                router.route(mainBot, buildCallbackUpdate(data = "${PingCallback.PREFIX}${group.id}", messageId = 1L))
             }
         }
 

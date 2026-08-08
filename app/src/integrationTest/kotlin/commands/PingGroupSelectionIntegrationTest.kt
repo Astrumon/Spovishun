@@ -1,6 +1,5 @@
 package commands
 
-import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.PickerListing
 import com.ua.astrumon.presentation.controller.PingController
@@ -89,14 +88,7 @@ class PingGroupSelectionIntegrationTest : BaseIntegrationTest() {
         assertTrue(result.message.contains("Немає кого пінгувати"))
     }
 
-    private suspend fun pingGroupById(groupId: Long): PingOutcome = pingController.pingGroupById(
-        testChatId,
-        testUserId,
-        testUsername,
-        testFirstName,
-        MemberRole.MEMBER,
-        groupId,
-    )
+    private suspend fun pingGroupById(groupId: Long): PingOutcome = pingController.pingGroupById(testChatId, groupId)
 
     private fun PingOutcome.plainResponse(): CommandResponse {
         assertTrue(this is PingOutcome.Plain, "expected a plain ping, got $this")
@@ -104,7 +96,7 @@ class PingGroupSelectionIntegrationTest : BaseIntegrationTest() {
     }
 
     private suspend fun assertPickerOffersAllOptionFirst() {
-        val listing = pingController.groupsForPicker(testChatId, testUserId, testUsername, testFirstName, MemberRole.MEMBER)
+        val listing = pingController.groupsForPicker(testChatId)
         val groupCount = groupService.getAllGroupsWithMembers(testChatId).getOrThrow().size
 
         assertTrue(listing is PickerListing.Show, "Menu must render, not fall back to text")
