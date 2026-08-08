@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
 import com.ua.astrumon.presentation.bot.BotMessages
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 object AddToGroupCallback {
@@ -14,13 +14,13 @@ object AddToGroupCallback {
  * Step-1 selection lives in the callback data of step-2 buttons — no server-side state.
  */
 class AddToGroupCallbackHandler(
-    private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
 ) : CallbackHandler {
     override val prefix = AddToGroupCallback.PREFIX
 
     private val picker = TwoStepMemberPicker(
         prefix = AddToGroupCallback.PREFIX,
-        candidates = { ctx, _ -> groupController.chatMembersForModeratorPicker(ctx.chatId, ctx.clicker.id) },
+        candidates = { ctx, _ -> groupPickerController.chatMembersForModeratorPicker(ctx.chatId, ctx.clicker.id) },
         copy = { messages ->
             PickerCopy(
                 messages,
@@ -30,7 +30,7 @@ class AddToGroupCallbackHandler(
             )
         },
         act = { ctx, messages, groupId, memberId ->
-            groupController.addUserToGroupById(ctx.chatId, ctx.clicker.id, groupId, memberId).toText(
+            groupPickerController.addUserToGroupById(ctx.chatId, ctx.clicker.id, groupId, memberId).toText(
                 messages,
                 successPrefix = messages.success.prefix,
                 onError = { messages.success.warning(it) },

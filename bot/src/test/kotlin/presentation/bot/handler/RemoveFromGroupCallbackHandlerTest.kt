@@ -4,7 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.handler.CallbackContext
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.controller.PickerListing
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -17,7 +17,7 @@ import kotlin.test.Test
 
 class RemoveFromGroupCallbackHandlerTest {
     private val bot: Bot = mockk(relaxed = true)
-    private val groupController: GroupController = mockk()
+    private val groupController: GroupPickerController = mockk()
     private lateinit var handler: RemoveFromGroupCallbackHandler
 
     private val chatId = 1L

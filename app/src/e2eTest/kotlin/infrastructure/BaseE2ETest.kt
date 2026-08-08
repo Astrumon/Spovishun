@@ -47,6 +47,7 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
 import com.ua.astrumon.presentation.controller.RandomController
@@ -247,14 +248,19 @@ abstract class BaseE2ETest {
 
     private fun initCommands() {
         messagesProvider = BotMessagesProvider(chatService)
-        val groupController = GroupController(groupService, memberService, messagesProvider)
-        val membersController = MembersController(memberService, messagesProvider)
         val birthdayService = BirthdayService(memberRepo, memberChatRepo, birthdayGreetingRepo)
+        pingController = PingController(memberService, groupService, chatService, messagesProvider)
+        registerCommands(birthdayService)
+    }
+
+    private fun registerCommands(birthdayService: BirthdayService) {
+        val groupController = GroupController(groupService, memberService, messagesProvider)
+        val groupPickerController = GroupPickerController(groupService, memberService, messagesProvider)
+        val membersController = MembersController(memberService, messagesProvider)
         val registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
         val randomController = RandomController(memberService, groupService, messagesProvider)
         val birthdayController = BirthdayController(birthdayService, memberService, messagesProvider)
         val whatsNewController = WhatsNewController(ReleaseNotesService(releaseNotesRepo), chatService, memberService, messagesProvider)
-        pingController = PingController(memberService, groupService, chatService, messagesProvider)
 
         // Kept in lockstep with :app di/PresentationModule — a command missing here would make
         // dispatch() fail loudly rather than silently prove nothing.
@@ -263,12 +269,12 @@ abstract class BaseE2ETest {
                 StartCommand(registrationController, botAdminUtils, messagesProvider),
                 RegisterCommand(registrationController, botAdminUtils, messagesProvider),
                 MembersCommand(membersController, messagesProvider),
-                GrantRoleCommand(groupController, messagesProvider),
+                GrantRoleCommand(groupController, groupPickerController, messagesProvider),
                 ShowGroupsCommand(groupController, messagesProvider),
                 NewGroupCommand(groupController, messagesProvider),
-                DeleteGroupCommand(groupController, messagesProvider),
-                AddUserToGroupCommand(groupController, messagesProvider),
-                RemoveUserFromGroupCommand(groupController, messagesProvider),
+                DeleteGroupCommand(groupController, groupPickerController, messagesProvider),
+                AddUserToGroupCommand(groupController, groupPickerController, messagesProvider),
+                RemoveUserFromGroupCommand(groupController, groupPickerController, messagesProvider),
                 PingAllCommand(pingController, readinessSessionRunner, messagesProvider),
                 PingGroupCommand(pingController, readinessSessionRunner, messagesProvider),
                 BirthdayCommand(birthdayController, messagesProvider),

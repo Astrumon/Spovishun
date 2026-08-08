@@ -7,10 +7,12 @@ import com.ua.astrumon.presentation.bot.handler.PickerCopy
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallback
 import com.ua.astrumon.presentation.bot.handler.sendPicker
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 class RemoveUserFromGroupCommand(
     private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
     private val messagesProvider: BotMessagesProvider,
 ) : BotCommand {
     override val name = "removefromgroup"
@@ -25,7 +27,7 @@ class RemoveUserFromGroupCommand(
         if (args.isEmpty()) {
             bot.sendPicker(
                 chatId,
-                groupController.groupsForModeratorPicker(chatId, userId),
+                groupPickerController.groupsForModeratorPicker(chatId, userId),
                 PickerCopy(messages, messages.picker.groupPromptRemoveFrom, messages.group.empty, messages.error.onlyAdminsModerators),
             ) { "${RemoveFromGroupCallback.PREFIX}${it.id}" }
             return

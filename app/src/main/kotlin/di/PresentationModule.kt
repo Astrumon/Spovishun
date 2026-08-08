@@ -35,6 +35,7 @@ import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.bot.handler.RemoveFromGroupCallbackHandler
 import com.ua.astrumon.presentation.controller.BirthdayController
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.controller.GroupSettingsController
 import com.ua.astrumon.presentation.controller.LanguageController
 import com.ua.astrumon.presentation.controller.MembersController
@@ -56,6 +57,7 @@ internal val presentationModule = module {
 
     // Controllers
     single { GroupController(get(), get(), get()) }
+    single { GroupPickerController(get(), get(), get()) }
     single { GroupSettingsController(get(), get(), get()) }
     single { MembersController(get(), get()) }
     single { RegistrationController(get(), get(), get()) }
@@ -69,15 +71,15 @@ internal val presentationModule = module {
     single { StartCommand(get(), get(), get()) } bind BotCommand::class
     single { RegisterCommand(get(), get(), get()) } bind BotCommand::class
     single { MembersCommand(get(), get()) } bind BotCommand::class
-    single { GrantRoleCommand(get(), get()) } bind BotCommand::class
+    single { GrantRoleCommand(get(), get(), get()) } bind BotCommand::class
     single { PingAllCommand(get(), get(), get()) } bind BotCommand::class
     single { PingGroupCommand(get(), get(), get()) } bind BotCommand::class
     single { ShowGroupsCommand(get(), get()) } bind BotCommand::class
     single { NewGroupCommand(get(), get()) } bind BotCommand::class
-    single { DeleteGroupCommand(get(), get()) } bind BotCommand::class
+    single { DeleteGroupCommand(get(), get(), get()) } bind BotCommand::class
     single { EditGroupCommand(get(), get()) } bind BotCommand::class
-    single { AddUserToGroupCommand(get(), get()) } bind BotCommand::class
-    single { RemoveUserFromGroupCommand(get(), get()) } bind BotCommand::class
+    single { AddUserToGroupCommand(get(), get(), get()) } bind BotCommand::class
+    single { RemoveUserFromGroupCommand(get(), get(), get()) } bind BotCommand::class
     single { BirthdayCommand(get(), get()) } bind BotCommand::class
     single { WhatsNewCommand(get(), get()) } bind BotCommand::class
     single { RandomCommand(get(), get()) } bind BotCommand::class

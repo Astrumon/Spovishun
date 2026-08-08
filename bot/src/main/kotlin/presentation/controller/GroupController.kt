@@ -1,9 +1,7 @@
 package com.ua.astrumon.presentation.controller
 
-import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
-import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.domain.bot.model.MemberRole
@@ -14,9 +12,16 @@ import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
-import com.ua.astrumon.presentation.util.displayLabel
 import com.ua.astrumon.presentation.util.displayLabelHtml
 
+/**
+ * Backs the group commands driven by typed arguments — `/groups`, `/newgroup`, `/delgroup`,
+ * `/addtogroup`, `/removefromgroup`, `/grantrole`.
+ *
+ * The same operations driven by an inline picker live in [GroupPickerController] (spovishun-172):
+ * there a target is a database id and the answer is a listing, here it is a key or an `@username`
+ * and the answer is a usage error.
+ */
 class GroupController(
     private val groupService: GroupService,
     memberService: MemberService,
@@ -30,24 +35,30 @@ class GroupController(
                     CommandResponse.Success(messages.group.empty)
                 } else {
                     val lines = mutableListOf(messages.group.listHeader)
-                    groups.forEach { group ->
-                        val names = if (group.members.isNotEmpty()) {
-                            group.members.map { username ->
-                                val badge = memberService
-                                    .getMemberWithChatByUsername(chatId, username)
-                                    .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
-                                "@${username.escapeHtml()}$badge"
-                            }
-                        } else {
-                            listOf("—")
-                        }
-                        lines.add(messages.group.listItem(group.displayLabelHtml(), group.key.escapeHtml(), names.joinToString(", ")))
-                    }
+                    groups.forEach { group -> lines.add(groupLine(chatId, messages, group)) }
                     CommandResponse.Success(lines.joinToString("\n"))
                 }
             },
             onFailure = { CommandResponse.Error(it.userMessage) },
         )
+    }
+
+    private suspend fun groupLine(
+        chatId: Long,
+        messages: BotMessages,
+        group: GroupWithMembers,
+    ): String {
+        val names = if (group.members.isEmpty()) {
+            listOf("—")
+        } else {
+            group.members.map { username ->
+                val badge = memberService
+                    .getMemberWithChatByUsername(chatId, username)
+                    .fold(onSuccess = { it.role.badge() }, onFailure = { "" })
+                "@${username.escapeHtml()}$badge"
+            }
+        }
+        return messages.group.listItem(group.displayLabelHtml(), group.key.escapeHtml(), names.joinToString(", "))
     }
 
     suspend fun createGroup(
@@ -113,55 +124,29 @@ class GroupController(
         userId: Long,
         args: List<String>,
     ): CommandResponse {
-        requireModeratorAccess(chatId, userId)?.let { return it }
-
         val messages = messagesProvider.forChat(chatId)
-        if (args.isEmpty()) {
-            return CommandResponse.Error(messages.group.usageAdd)
+        val target = when (val resolved = resolveMembershipTarget(chatId, userId, args, messages.group.usageAdd)) {
+            is MembershipTarget.Rejected -> return resolved.response
+            is MembershipTarget.Resolved -> resolved
         }
-
-        val key = args[0].lowercase()
-        val parsed = UsernameInputSanitizer.parseUsernames(args.drop(1).joinToString(" "))
-
-        if (parsed.valid.isEmpty() && parsed.invalid.isEmpty()) {
-            return CommandResponse.Error(messages.group.usageAdd)
-        }
-
-        val group = groupService.getGroupByKey(chatId, key).fold(
-            onSuccess = { it },
-            onFailure = { exception ->
-                return when (exception) {
-                    is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
-                    else -> CommandResponse.Error(exception.userMessage)
-                }
-            },
-        )
 
         val succeeded = mutableListOf<String>()
-        val failed = mutableListOf<Pair<String, String>>()
+        val failed = mutableListOf<String>()
 
-        parsed.invalid.forEach { token ->
-            failed.add("@${token.escapeHtml()}" to messages.group.failureInvalidUsername)
+        target.usernames.invalid.forEach { token ->
+            failed.add("@${token.escapeHtml()} (${messages.group.failureInvalidUsername})")
         }
 
-        for (username in parsed.valid) {
-            groupService.addMemberToGroup(chatId, key, username).fold(
+        for (username in target.usernames.valid) {
+            groupService.addMemberToGroup(chatId, target.group.key, username).fold(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
-                onFailure = { exception ->
-                    val reason = when (exception) {
-                        is ValidationException -> messages.group.failureNotRegistered
-                        is DuplicateResourceException -> messages.group.failureAlreadyIn
-                        is ResourceNotFoundException -> messages.group.failureNotFound
-                        else -> messages.group.failureError
-                    }
-                    failed.add("@${username.escapeHtml()}" to reason)
-                },
+                onFailure = { failed.add("@${username.escapeHtml()} (${addFailureReason(messages, it)})") },
             )
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add(messages.group.addedTo(succeeded.joinToString(", "), group.name.escapeHtml()))
-        if (failed.isNotEmpty()) lines.add(messages.group.notAdded(failed.joinToString(", ") { "${it.first} (${it.second})" }))
+        if (succeeded.isNotEmpty()) lines.add(messages.group.addedTo(succeeded.joinToString(", "), target.group.name.escapeHtml()))
+        if (failed.isNotEmpty()) lines.add(messages.group.notAdded(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
     }
 
@@ -170,48 +155,76 @@ class GroupController(
         userId: Long,
         args: List<String>,
     ): CommandResponse {
-        requireModeratorAccess(chatId, userId)?.let { return it }
-
         val messages = messagesProvider.forChat(chatId)
-        if (args.isEmpty()) {
-            return CommandResponse.Error(messages.group.usageRemove)
+        val target = when (val resolved = resolveMembershipTarget(chatId, userId, args, messages.group.usageRemove)) {
+            is MembershipTarget.Rejected -> return resolved.response
+            is MembershipTarget.Resolved -> resolved
         }
-
-        val key = args[0].lowercase()
-        val parsed = UsernameInputSanitizer.parseUsernames(args.drop(1).joinToString(" "))
-
-        if (parsed.valid.isEmpty() && parsed.invalid.isEmpty()) {
-            return CommandResponse.Error(messages.group.usageRemove)
-        }
-
-        val group = groupService.getGroupByKey(chatId, key).fold(
-            onSuccess = { it },
-            onFailure = { exception ->
-                return when (exception) {
-                    is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
-                    else -> CommandResponse.Error(exception.userMessage)
-                }
-            },
-        )
 
         val succeeded = mutableListOf<String>()
         val failed = mutableListOf<String>()
 
-        parsed.invalid.forEach { token ->
+        target.usernames.invalid.forEach { token ->
             failed.add("@${token.escapeHtml()} (${messages.group.failureInvalidUsername})")
         }
 
-        for (username in parsed.valid) {
-            groupService.removeMemberFromGroup(chatId, key, username).fold(
+        for (username in target.usernames.valid) {
+            groupService.removeMemberFromGroup(chatId, target.group.key, username).fold(
                 onSuccess = { succeeded.add("@${username.escapeHtml()}") },
                 onFailure = { failed.add("@${username.escapeHtml()}") },
             )
         }
 
         val lines = mutableListOf<String>()
-        if (succeeded.isNotEmpty()) lines.add(messages.group.removedFrom(succeeded.joinToString(", "), group.name.escapeHtml()))
+        if (succeeded.isNotEmpty()) {
+            lines.add(messages.group.removedFrom(succeeded.joinToString(", "), target.group.name.escapeHtml()))
+        }
         if (failed.isNotEmpty()) lines.add(messages.group.notFoundInGroup(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
+    }
+
+    /**
+     * `<group> @user…` resolved once: the role gate, the usage checks and the group lookup that
+     * `/addtogroup` and `/removefromgroup` open with are identical, and each was four early returns.
+     */
+    private suspend fun resolveMembershipTarget(
+        chatId: Long,
+        userId: Long,
+        args: List<String>,
+        usage: String,
+    ): MembershipTarget {
+        requireModeratorAccess(chatId, userId)?.let { return MembershipTarget.Rejected(it) }
+        if (args.isEmpty()) return MembershipTarget.Rejected(CommandResponse.Error(usage))
+
+        val key = args[0].lowercase()
+        val parsed = UsernameInputSanitizer.parseUsernames(args.drop(1).joinToString(" "))
+        if (parsed.valid.isEmpty() && parsed.invalid.isEmpty()) {
+            return MembershipTarget.Rejected(CommandResponse.Error(usage))
+        }
+
+        return groupService.getGroupByKey(chatId, key).fold(
+            onSuccess = { MembershipTarget.Resolved(it, parsed) },
+            onFailure = { exception ->
+                MembershipTarget.Rejected(
+                    when (exception) {
+                        is ResourceNotFoundException -> CommandResponse.NotFound("Група", key)
+                        else -> CommandResponse.Error(exception.userMessage)
+                    },
+                )
+            },
+        )
+    }
+
+    /** Either a group and the usernames to move in or out of it, or the reply that says why not. */
+    private sealed interface MembershipTarget {
+        data class Resolved(
+            val group: GroupWithMembers,
+            val usernames: UsernameInputSanitizer.ParseResult,
+        ) : MembershipTarget
+
+        data class Rejected(
+            val response: CommandResponse,
+        ) : MembershipTarget
     }
 
     suspend fun grantRole(
@@ -251,147 +264,5 @@ class GroupController(
         if (succeeded.isNotEmpty()) lines.add(messages.group.rolesGranted(succeeded.joinToString(", "), role.name.lowercase()))
         if (failed.isNotEmpty()) lines.add(messages.group.rolesNotFound(failed.joinToString(", ")))
         return CommandResponse.Success(lines.joinToString("\n"))
-    }
-
-    // --- Inline-picker listings (spovishun-123) ---
-
-    suspend fun groupsForModeratorPicker(
-        chatId: Long,
-        userId: Long,
-    ): PickerListing {
-        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
-        return groupService.getAllGroupsWithMembers(chatId).fold(
-            onSuccess = { groups -> PickerListing.Show(groups.map { PickerOption(it.id, it.displayLabel()) }) },
-            onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
-        )
-    }
-
-    suspend fun chatMembersForModeratorPicker(
-        chatId: Long,
-        userId: Long,
-    ): PickerListing {
-        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
-        return chatMemberOptions(chatId)
-    }
-
-    suspend fun chatMembersForAdminPicker(
-        chatId: Long,
-        userId: Long,
-    ): PickerListing {
-        requireAdminAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
-        return chatMemberOptions(chatId)
-    }
-
-    suspend fun groupMembersForPicker(
-        chatId: Long,
-        userId: Long,
-        groupId: Long,
-    ): PickerListing {
-        requireModeratorAccess(chatId, userId)?.let { return PickerListing.Reject(it) }
-        val group = resolveGroup(chatId, groupId)
-            ?: return PickerListing.Reject(CommandResponse.NotFound("Група", groupId.toString()))
-        return memberService.getAllMembersInChat(chatId).fold(
-            onSuccess = { members ->
-                val inGroup = members.filter { it.username in group.members }
-                PickerListing.Show(inGroup.map { PickerOption(it.userId, "@${it.username}") })
-            },
-            onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
-        )
-    }
-
-    // --- Inline-picker actions by id (spovishun-123) ---
-
-    suspend fun deleteGroupById(
-        chatId: Long,
-        userId: Long,
-        groupId: Long,
-    ): CommandResponse {
-        requireModeratorAccess(chatId, userId)?.let { return it }
-        val messages = messagesProvider.forChat(chatId)
-        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
-        return groupService.deleteGroup(chatId, group.key).fold(
-            onSuccess = { CommandResponse.Success(messages.group.deleted(group.name.escapeHtml())) },
-            onFailure = { CommandResponse.Error(it.userMessage) },
-        )
-    }
-
-    suspend fun addUserToGroupById(
-        chatId: Long,
-        userId: Long,
-        groupId: Long,
-        memberId: Long,
-    ): CommandResponse {
-        requireModeratorAccess(chatId, userId)?.let { return it }
-        val messages = messagesProvider.forChat(chatId)
-        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
-        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
-        return groupService.addMemberToGroup(chatId, group.key, username).fold(
-            onSuccess = { CommandResponse.Success(messages.group.addedTo("@${username.escapeHtml()}", group.name.escapeHtml())) },
-            onFailure = {
-                CommandResponse.Success(
-                    messages.group.notAdded("@${username.escapeHtml()} (${addFailureReason(messages, it)})"),
-                )
-            },
-        )
-    }
-
-    suspend fun removeUserFromGroupById(
-        chatId: Long,
-        userId: Long,
-        groupId: Long,
-        memberId: Long,
-    ): CommandResponse {
-        requireModeratorAccess(chatId, userId)?.let { return it }
-        val messages = messagesProvider.forChat(chatId)
-        val group = resolveGroup(chatId, groupId) ?: return CommandResponse.NotFound("Група", groupId.toString())
-        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
-        return groupService.removeMemberFromGroup(chatId, group.key, username).fold(
-            onSuccess = { CommandResponse.Success(messages.group.removedFrom("@${username.escapeHtml()}", group.name.escapeHtml())) },
-            onFailure = { CommandResponse.Success(messages.group.notFoundInGroup("@${username.escapeHtml()}")) },
-        )
-    }
-
-    suspend fun grantRoleById(
-        chatId: Long,
-        userId: Long,
-        memberId: Long,
-        role: MemberRole,
-    ): CommandResponse {
-        requireAdminAccess(chatId, userId)?.let { return it }
-        val messages = messagesProvider.forChat(chatId)
-        val username = resolveMemberUsername(chatId, memberId) ?: return CommandResponse.NotFound("Учасник", memberId.toString())
-        return memberService.setMemberRole(chatId, memberId, role).fold(
-            onSuccess = { CommandResponse.Success(messages.group.rolesGranted("@${username.escapeHtml()}", role.name.lowercase())) },
-            onFailure = { CommandResponse.Success(messages.group.rolesNotFound("@${username.escapeHtml()}")) },
-        )
-    }
-
-    private suspend fun chatMemberOptions(chatId: Long): PickerListing = memberService.getAllMembersInChat(chatId).fold(
-        onSuccess = { members -> PickerListing.Show(members.map { PickerOption(it.userId, "@${it.username}") }) },
-        onFailure = { PickerListing.Reject(CommandResponse.Error(it.userMessage)) },
-    )
-
-    private suspend fun resolveGroup(
-        chatId: Long,
-        groupId: Long,
-    ): GroupWithMembers? = groupService.getGroupById(chatId, groupId).getOrNull()
-
-    private suspend fun resolveMemberUsername(
-        chatId: Long,
-        memberId: Long,
-    ): String? = memberService
-        .getAllMembersInChat(chatId)
-        .getOrNull()
-        ?.firstOrNull { it.userId == memberId }
-        ?.username
-
-    private fun addFailureReason(
-        messages: BotMessages,
-        exception: BaseException,
-    ): String = when (exception) {
-        is ValidationException -> messages.group.failureNotRegistered
-        is DuplicateResourceException -> messages.group.failureAlreadyIn
-        is ResourceNotFoundException -> messages.group.failureNotFound
-        else -> messages.group.failureError
     }
 }

@@ -48,10 +48,10 @@ class CallbackRouterIntegrationTest : BaseIntegrationTest() {
         router = CallbackRouter(
             listOf(
                 PingCallbackHandler(pingController, readinessSessionRunner),
-                DeleteGroupCallbackHandler(groupController),
-                AddToGroupCallbackHandler(groupController),
-                RemoveFromGroupCallbackHandler(groupController),
-                GrantRoleCallbackHandler(groupController),
+                DeleteGroupCallbackHandler(groupPickerController),
+                AddToGroupCallbackHandler(groupPickerController),
+                RemoveFromGroupCallbackHandler(groupPickerController),
+                GrantRoleCallbackHandler(groupPickerController),
                 RandomCallbackHandler(randomController),
                 ReadinessCallbackHandler(readinessSessionRunner),
             ),

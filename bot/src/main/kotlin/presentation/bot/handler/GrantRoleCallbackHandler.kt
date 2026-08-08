@@ -5,7 +5,7 @@ import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.bot.BotMessages
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 object GrantRoleCallback {
@@ -20,7 +20,7 @@ object GrantRoleCallback {
  * has neither a [com.ua.astrumon.presentation.controller.PickerListing] source nor a numeric target.
  */
 class GrantRoleCallbackHandler(
-    private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
 ) : CallbackHandler {
     override val prefix = GrantRoleCallback.PREFIX
 
@@ -37,7 +37,7 @@ class GrantRoleCallbackHandler(
         }
 
         val role = runCatching { MemberRole.valueOf(parts[1]) }.getOrNull() ?: return
-        val text = groupController.grantRoleById(ctx.chatId, ctx.clicker.id, memberId, role).toText(
+        val text = groupPickerController.grantRoleById(ctx.chatId, ctx.clicker.id, memberId, role).toText(
             messages,
             successPrefix = messages.success.prefix,
             onAccessDenied = { messages.error.onlyAdminsRoles },

@@ -5,8 +5,6 @@
     <ID>AbstractClassCanBeConcreteClass:BaseController.kt:BaseController$BaseController</ID>
     <ID>AbstractClassCanBeInterface:CommandResponse.kt:CommandResponse$CommandResponse</ID>
     <ID>HasPlatformType:ChatContextCommand.kt:ChatContextCommand.Companion$val logger = LoggerFactory.getLogger(ChatContextCommand::class.java)</ID>
-    <ID>LongMethod:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
-    <ID>LongMethod:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
     <ID>LongParameterList:CommandResponse.kt:fun CommandResponse.toText: String</ID>
     <ID>LongParameterList:PickerRender.kt:internal fun Bot.advancePicker</ID>
     <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
@@ -14,8 +12,6 @@
     <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$29</ID>
     <ID>RedundantSuspendModifier:TelegramBot.kt:TelegramBot$suspend</ID>
     <ID>ReturnCount:BirthdayController.kt:BirthdayController$suspend fun setBirthdayForOther: CommandResponse</ID>
-    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun addUserToGroup: CommandResponse</ID>
-    <ID>ReturnCount:GroupController.kt:GroupController$suspend fun removeUserFromGroup: CommandResponse</ID>
     <ID>TooGenericExceptionCaught:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BotAdminUtils.kt:BotAdminUtils$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>

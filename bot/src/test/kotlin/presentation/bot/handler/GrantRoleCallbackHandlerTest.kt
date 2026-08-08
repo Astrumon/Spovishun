@@ -5,7 +5,7 @@ import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.handler.CallbackContext
 import com.ua.astrumon.presentation.bot.handler.GrantRoleCallbackHandler
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,7 +17,7 @@ import kotlin.test.Test
 
 class GrantRoleCallbackHandlerTest {
     private val bot: Bot = mockk(relaxed = true)
-    private val groupController: GroupController = mockk()
+    private val groupController: GroupPickerController = mockk()
     private lateinit var handler: GrantRoleCallbackHandler
 
     private val chatId = 1L

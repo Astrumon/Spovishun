@@ -2,7 +2,7 @@ package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
 import com.ua.astrumon.presentation.bot.BotMessages
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 object RemoveFromGroupCallback {
@@ -14,13 +14,13 @@ object RemoveFromGroupCallback {
  * `removefrom:{groupId}:{memberId}` → remove. The second step is scoped to the chosen group.
  */
 class RemoveFromGroupCallbackHandler(
-    private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
 ) : CallbackHandler {
     override val prefix = RemoveFromGroupCallback.PREFIX
 
     private val picker = TwoStepMemberPicker(
         prefix = RemoveFromGroupCallback.PREFIX,
-        candidates = { ctx, groupId -> groupController.groupMembersForPicker(ctx.chatId, ctx.clicker.id, groupId) },
+        candidates = { ctx, groupId -> groupPickerController.groupMembersForPicker(ctx.chatId, ctx.clicker.id, groupId) },
         copy = { messages ->
             PickerCopy(
                 messages,
@@ -30,7 +30,7 @@ class RemoveFromGroupCallbackHandler(
             )
         },
         act = { ctx, messages, groupId, memberId ->
-            groupController.removeUserFromGroupById(ctx.chatId, ctx.clicker.id, groupId, memberId).toText(
+            groupPickerController.removeUserFromGroupById(ctx.chatId, ctx.clicker.id, groupId, memberId).toText(
                 messages,
                 successPrefix = messages.success.prefix,
                 onError = { messages.success.warning(it) },

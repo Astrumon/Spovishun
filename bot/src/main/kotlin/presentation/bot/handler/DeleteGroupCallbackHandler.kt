@@ -4,7 +4,7 @@ import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import com.ua.astrumon.presentation.bot.BotMessages
-import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.toText
 
 object DeleteGroupCallback {
@@ -18,7 +18,7 @@ object DeleteGroupCallback {
  * `delgroup:cancel` → abort. The destructive delete never runs without the confirm step.
  */
 class DeleteGroupCallbackHandler(
-    private val groupController: GroupController,
+    private val groupPickerController: GroupPickerController,
 ) : CallbackHandler {
     override val prefix = DeleteGroupCallback.PREFIX
 
@@ -69,7 +69,7 @@ class DeleteGroupCallbackHandler(
         rawGroupId: String,
     ) {
         val groupId = rawGroupId.toLongOrNull() ?: return
-        val text = groupController.deleteGroupById(ctx.chatId, ctx.clicker.id, groupId).toText(
+        val text = groupPickerController.deleteGroupById(ctx.chatId, ctx.clicker.id, groupId).toText(
             messages,
             successPrefix = messages.success.deletePrefix,
             onAccessDenied = { messages.error.onlyAdminsModerators },

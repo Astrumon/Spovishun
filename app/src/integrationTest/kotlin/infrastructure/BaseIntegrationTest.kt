@@ -45,6 +45,7 @@ import com.ua.astrumon.presentation.bot.handler.MessageHandler
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionRunner
 import com.ua.astrumon.presentation.bot.handler.ReadinessSessionStore
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import com.ua.astrumon.presentation.controller.GroupSettingsController
 import com.ua.astrumon.presentation.controller.MembersController
 import com.ua.astrumon.presentation.controller.PingController
@@ -101,6 +102,7 @@ abstract class BaseIntegrationTest {
 
     // Controllers — real
     protected lateinit var groupController: GroupController
+    protected lateinit var groupPickerController: GroupPickerController
     protected lateinit var groupSettingsController: GroupSettingsController
     protected lateinit var membersController: MembersController
     protected lateinit var registrationController: RegistrationController
@@ -199,6 +201,7 @@ abstract class BaseIntegrationTest {
 
     private fun initControllers() {
         groupController = GroupController(groupService, memberService, messagesProvider)
+        groupPickerController = GroupPickerController(groupService, memberService, messagesProvider)
         groupSettingsController = GroupSettingsController(groupService, memberService, messagesProvider)
         membersController = MembersController(memberService, messagesProvider)
         registrationController = RegistrationController(autoRegisterService, birthdayService, messagesProvider)
@@ -227,13 +230,13 @@ abstract class BaseIntegrationTest {
         startCommand = StartCommand(registrationController, botAdminUtils, messagesProvider)
         registerCommand = RegisterCommand(registrationController, botAdminUtils, messagesProvider)
         membersCommand = MembersCommand(membersController, messagesProvider)
-        grantRoleCommand = GrantRoleCommand(groupController, messagesProvider)
+        grantRoleCommand = GrantRoleCommand(groupController, groupPickerController, messagesProvider)
         showGroupsCommand = ShowGroupsCommand(groupController, messagesProvider)
         newGroupCommand = NewGroupCommand(groupController, messagesProvider)
-        deleteGroupCommand = DeleteGroupCommand(groupController, messagesProvider)
+        deleteGroupCommand = DeleteGroupCommand(groupController, groupPickerController, messagesProvider)
         editGroupCommand = EditGroupCommand(groupSettingsController, messagesProvider)
-        addUserToGroupCommand = AddUserToGroupCommand(groupController, messagesProvider)
-        removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController, messagesProvider)
+        addUserToGroupCommand = AddUserToGroupCommand(groupController, groupPickerController, messagesProvider)
+        removeUserFromGroupCommand = RemoveUserFromGroupCommand(groupController, groupPickerController, messagesProvider)
         pingAllCommand = PingAllCommand(pingController, readinessSessionRunner, messagesProvider)
         pingGroupCommand = PingGroupCommand(pingController, readinessSessionRunner, messagesProvider)
         randomCommand = RandomCommand(randomController, messagesProvider)
