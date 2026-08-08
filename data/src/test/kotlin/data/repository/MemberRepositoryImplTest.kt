@@ -1,7 +1,9 @@
 package data.repository
 
+import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.data.bot.repository.MemberRepositoryImpl
 import com.ua.astrumon.data.bot.table.Members
+import com.ua.astrumon.domain.bot.model.BirthDate
 import data.db.H2TestDatabaseFactory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
@@ -43,6 +45,36 @@ class MemberRepositoryImplTest {
         val member = result.getOrThrow()
         assertEquals("alice_new", member.username)
         assertEquals("Alice New", member.firstName)
+    }
+
+    @Test
+    fun `updateBirthday should persist the date and return the stored member`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+
+        val result = repository.updateBirthday(1L, BirthDate(day = 7, month = 3))
+
+        assertTrue(result.isSuccess)
+        assertEquals(BirthDate(day = 7, month = 3), result.getOrThrow().birthday)
+        assertEquals(BirthDate(day = 7, month = 3), repository.findByUserId(1L).getOrThrow()?.birthday)
+    }
+
+    @Test
+    fun `updateBirthday with null should clear the date`() = runTest {
+        repository.saveOrUpdate(1L, "alice", "Alice")
+        repository.updateBirthday(1L, BirthDate(day = 7, month = 3))
+
+        val result = repository.updateBirthday(1L, null)
+
+        assertTrue(result.isSuccess)
+        assertNull(result.getOrThrow().birthday)
+    }
+
+    @Test
+    fun `updateBirthday should fail for an unknown userId`() = runTest {
+        val result = repository.updateBirthday(999L, BirthDate(day = 7, month = 3))
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is ResourceNotFoundException)
     }
 
     @Test
