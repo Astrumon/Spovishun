@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.1",
+    "date": "2026-08-09",
+    "changes": {
+      "uk": [
+        "/newgroup тепер приймає іконку та позначку одразу при створенні — $icon= і $mark=, окремо редагувати групу через /editg не треба",
+        "Хто запускає перевірку готовності (/ping, /all) — той одразу рахується готовим, тиснути кнопку самому більше не потрібно"
+      ],
+      "en": [
+        "/newgroup now takes the icon and the /ping mark right at creation via $icon= and $mark= — no follow-up /editg needed",
+        "Whoever starts a readiness check (/ping, /all) is counted as ready automatically — no need to press the button yourself"
+      ]
+    }
+  },
+  {
     "version": "1.8.0",
     "date": "2026-08-09",
     "changes": {

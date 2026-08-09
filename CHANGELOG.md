@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.8.1] - 2026-08-09
+
+### Added
+- `/newgroup` accepts `$icon=` and `$mark=` alongside the group name, so a group can be created
+  fully configured without a follow-up `/editg` (spovishun-182).
+- The readiness poll counts its initiator as ready — the member who runs `/ping` or `/all` in
+  readiness mode no longer has to press the button (spovishun-183).
+
+### Changed
+- README and CLAUDE.md synced with the codebase (spovishun-178).
+- The e2e testing doc rewritten (spovishun-181).
+
+---
+
 ## [1.8.0] - 2026-08-09
 
 ### Added
