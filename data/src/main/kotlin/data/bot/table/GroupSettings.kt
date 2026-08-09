@@ -12,11 +12,19 @@ import org.jetbrains.exposed.sql.Table
  */
 object GroupSettings : Table("group_settings") {
     val groupId = reference("group_id", Groups, onDelete = ReferenceOption.CASCADE)
-    val icon = varchar("icon", ICON_MAX_LENGTH).nullable()
+    val icon = varchar("icon", EMOJI_MAX_LENGTH).nullable()
     val readinessEnabled = bool("readiness_enabled").default(true)
+
+    /**
+     * The emoji `/ping` repeats once per member (spovishun-180). Null means "use the locale default";
+     * [pingMarkEnabled] off means "render nothing", and deliberately leaves this column alone so the
+     * chosen emoji survives being hidden.
+     */
+    val pingMark = varchar("ping_mark", EMOJI_MAX_LENGTH).nullable()
+    val pingMarkEnabled = bool("ping_mark_enabled").default(true)
 
     override val primaryKey = PrimaryKey(groupId)
 
     /** Room for a multi-codepoint emoji sequence (ZWJ family, skin-tone modifier, variation selector). */
-    const val ICON_MAX_LENGTH = 32
+    const val EMOJI_MAX_LENGTH = 32
 }

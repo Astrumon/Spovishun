@@ -13,6 +13,7 @@ import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.displayLabel
 import com.ua.astrumon.presentation.util.displayLabelHtml
+import com.ua.astrumon.presentation.util.pingMarks
 import com.ua.astrumon.presentation.util.toHtmlMention
 import org.slf4j.LoggerFactory
 
@@ -42,7 +43,7 @@ class PingController(
         }
 
         val header = messages.ping.headerAll(
-            messages.ping.iconAll.repeat(members.size),
+            messages.ping.markAll.repeat(members.size),
             args.joinToString(" ").escapeHtml(),
         )
         return outcome(header, members, readiness = isChatReadinessEnabled(chatId))
@@ -176,11 +177,16 @@ class PingController(
             return plain(CommandResponse.Success(messages.ping.noTargets))
         }
 
-        val icons = messages.ping.iconGroup.repeat(members.size)
         // The header is rendered with ParseMode.HTML and BotMessages never escapes — a stray `<`
         // makes Telegram reject the whole send. The moderator-chosen group name is neutralised by
         // displayLabelHtml, the caller's free text has to be neutralised here.
-        val header = messages.ping.headerGroup(group.displayLabelHtml(), icons, extra.escapeHtml())
+        //
+        // Marks and free text are joined before formatting rather than passed as two placeholders:
+        // a hidden mark is an empty string, and a template with a slot for it would render the gap.
+        val suffix = listOf(group.pingMarks(members.size, messages.ping.markGroup), extra.escapeHtml())
+            .filter { it.isNotEmpty() }
+            .joinToString(" ")
+        val header = messages.ping.headerGroup(group.displayLabelHtml(), suffix)
         return outcome(header, members, readiness = group.readinessEnabled)
     }
 

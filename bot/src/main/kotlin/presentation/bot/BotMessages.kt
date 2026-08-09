@@ -95,29 +95,34 @@ class BotMessages private constructor(
     inner class Ping {
         val readiness = Readiness()
 
-        val iconAll: String get() = get("ping.icon.all")
-        val iconGroup: String get() = get("ping.icon.group")
+        val markAll: String get() = get("ping.mark.all")
+
+        /** The default a group falls back to; a group may override or hide it (spovishun-180). */
+        val markGroup: String get() = get("ping.mark.group")
         val noRegistered: String get() = get("ping.no_registered")
         val noTargets: String get() = get("ping.no_targets")
         val usage: String get() = get("ping.usage")
 
         fun headerAll(
-            crabs: String,
+            marks: String,
             extra: String,
         ): String = if (extra.isEmpty()) {
-            format("ping.header.all_no_extra", crabs)
+            format("ping.header.all_no_extra", marks)
         } else {
-            format("ping.header.all_with_extra", crabs, extra)
+            format("ping.header.all_with_extra", marks, extra)
         }
 
+        /**
+         * [suffix] is marks and free text already joined: a group's marks can be hidden entirely, and
+         * a placeholder for an empty string would render as a gap in the header.
+         */
         fun headerGroup(
             groupName: String,
-            crabs: String,
-            extra: String,
-        ): String = if (extra.isEmpty()) {
-            format("ping.header.group_no_extra", groupName, crabs)
+            suffix: String,
+        ): String = if (suffix.isEmpty()) {
+            format("ping.header.group_bare", groupName)
         } else {
-            format("ping.header.group_with_extra", groupName, crabs, extra)
+            format("ping.header.group", groupName, suffix)
         }
 
         val menuPrompt: String get() = get("ping.menuPrompt")
@@ -154,6 +159,9 @@ class BotMessages private constructor(
     }
 
     inner class Group {
+        val settings = Settings()
+        val paramError = ParamError()
+
         val empty: String get() = get("group.empty")
         val listHeader: String get() = get("group.list_header")
 
@@ -190,19 +198,9 @@ class BotMessages private constructor(
         val usageGrant: String get() = get("group.usage_grant")
         val usageEditg: String get() = get("group.usage_editg")
 
-        fun iconSet(
-            groupNameEscaped: String,
-            icon: String,
-        ): String = format("group.icon_set", groupNameEscaped, icon)
-
-        fun iconCleared(groupNameEscaped: String): String = format("group.icon_cleared", groupNameEscaped)
-
         val iconInvalid: String get() = get("group.icon_invalid")
-
-        fun unknownParam(
-            paramEscaped: String,
-            supported: String,
-        ): String = format("group.unknown_param", paramEscaped, supported)
+        val markInvalid: String get() = get("group.mark_invalid")
+        val nameInvalid: String get() = get("group.name_invalid")
 
         fun rolesGranted(
             usersJoined: String,
@@ -216,6 +214,54 @@ class BotMessages private constructor(
         val failureNotFound: String get() = get("group.failure.not_found")
         val failureError: String get() = get("group.failure.error")
         val failureInvalidUsername: String get() = get("group.failure.invalid_username")
+
+        /**
+         * The `/editg` listings (spovishun-180). Editing and reading share the row format and differ
+         * only in the header, so one row key serves both — a second one would drift.
+         */
+        inner class Settings {
+            fun updatedHeader(groupNameEscaped: String): String = format("group.updated_header", groupNameEscaped)
+
+            fun header(groupNameEscaped: String): String = format("group.settings_header", groupNameEscaped)
+
+            fun item(
+                label: String,
+                value: String,
+            ): String = format("group.settings_item", label, value)
+
+            val paramName: String get() = get("group.param.name")
+            val paramIcon: String get() = get("group.param.icon")
+            val paramMark: String get() = get("group.param.mark")
+            val paramReadiness: String get() = get("group.param.readiness")
+            val paramMembers: String get() = get("group.param.members")
+
+            val valueNone: String get() = get("group.value.none")
+            val valueHidden: String get() = get("group.value.hidden")
+
+            fun valueDefault(mark: String): String = format("group.value.default", mark)
+
+            /** Readiness is read-only in `/editg`, so its value names the command that changes it. */
+            fun readinessOn(groupKeyEscaped: String): String = format("group.value.readiness_on", groupKeyEscaped)
+
+            fun readinessOff(groupKeyEscaped: String): String = format("group.value.readiness_off", groupKeyEscaped)
+        }
+
+        /** Everything the `/editg` parser can reject (spovishun-180). */
+        inner class ParamError {
+            fun unknown(
+                paramEscaped: String,
+                supported: String,
+            ): String = format("group.unknown_param", paramEscaped, supported)
+
+            fun notAParameter(tokenEscaped: String): String = format("group.not_a_parameter", tokenEscaped)
+
+            /** The pre-spovishun-180 space syntax: name the parameter and show it written correctly. */
+            fun missingSeparator(flag: String): String = format("group.missing_separator", flag)
+
+            fun duplicate(flag: String): String = format("group.duplicate_param", flag)
+
+            fun emptyValue(flag: String): String = format("group.empty_value", flag)
+        }
     }
 
     inner class Picker {

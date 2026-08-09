@@ -9,6 +9,9 @@ import com.ua.astrumon.data.bot.table.Groups
 import com.ua.astrumon.data.bot.table.rowFor
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.model.Group
+import com.ua.astrumon.domain.bot.model.GroupSettingsPatch
+import com.ua.astrumon.domain.bot.model.Patch
+import com.ua.astrumon.domain.bot.model.PingMark
 import com.ua.astrumon.domain.bot.repository.GroupRepository
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Column
@@ -18,6 +21,8 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.leftJoin
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.statements.UpsertStatement
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.upsert
 
 class GroupRepositoryImpl : GroupRepository {
@@ -98,37 +103,58 @@ class GroupRepositoryImpl : GroupRepository {
         key: String,
         enabled: Boolean,
     ): ResultContainer<Unit> = safeDbQuery {
-        updateSetting(chatId, key, GroupSettings.readinessEnabled, enabled)
+        writeSettings(requireGroupId(chatId, key), listOf(SettingWrite(GroupSettings.readinessEnabled, enabled)))
     }
 
-    override suspend fun setIcon(
+    /**
+     * The group is resolved **once**, by the name the caller passed, before anything is written. That
+     * is what makes parameter order irrelevant: a rename in the same patch would otherwise invalidate
+     * the very key a settings write needs to look itself up with (spovishun-180).
+     */
+    override suspend fun updateGroup(
         chatId: Long,
         key: String,
-        icon: String?,
+        patch: GroupSettingsPatch,
     ): ResultContainer<Unit> = safeDbQuery {
-        updateSetting(chatId, key, GroupSettings.icon, icon)
+        val groupId = requireGroupId(chatId, key)
+
+        (patch.name as? Patch.Value)?.let { rename(chatId, groupId, it.value) }
+        writeSettings(groupId, patch.settingWrites())
+    }
+
+    /** Renaming onto the group's own name is a no-op, not a conflict — the row it finds is itself. */
+    private fun rename(
+        chatId: Long,
+        groupId: EntityID<Long>,
+        newName: String,
+    ) {
+        val taken = Groups.rowFor(chatId, newName)?.get(Groups.id)
+        if (taken != null && taken != groupId) {
+            throw DuplicateResourceException("Group", newName)
+        }
+        Groups.update({ Groups.id eq groupId }) { it[name] = newName }
     }
 
     /**
      * The only writer of [GroupSettings]. Its `onUpdateExclude` is derived, never listed: every
-     * settings column except the one this write owns. Without the exclusion the upsert's DO UPDATE
+     * settings column except the ones this write owns. Without the exclusion the upsert's DO UPDATE
      * would also write the defaults of columns it never meant to touch — clearing a group's icon
      * while toggling readiness, say. Deriving it means a column added to [GroupSettings] joins the
      * exclusion set on its own, instead of waiting to be forgotten in a hand-written list.
      */
-    private fun <T> updateSetting(
-        chatId: Long,
-        key: String,
-        column: Column<T>,
-        value: T,
+    private fun writeSettings(
+        groupId: EntityID<Long>,
+        writes: List<SettingWrite<*>>,
     ) {
-        val groupId = requireGroupId(chatId, key)
+        if (writes.isEmpty()) return
+
+        val written = writes.map { it.column }.toSet()
         GroupSettings.upsert(
             GroupSettings.groupId,
-            onUpdateExclude = GroupSettings.columns - column - GroupSettings.groupId,
-        ) {
-            it[GroupSettings.groupId] = groupId
-            it[column] = value
+            onUpdateExclude = GroupSettings.columns - written - GroupSettings.groupId,
+        ) { statement ->
+            statement[GroupSettings.groupId] = groupId
+            writes.forEach { it.applyTo(statement) }
         }
     }
 
@@ -137,4 +163,38 @@ class GroupRepositoryImpl : GroupRepository {
         chatId: Long,
         key: String,
     ): EntityID<Long> = Groups.rowFor(chatId, key)?.get(Groups.id) ?: throw ResourceNotFoundException("Group", key)
+}
+
+/**
+ * One column and the value bound to it, kept together so a heterogeneous list of writes stays typed:
+ * the element's own type parameter is what makes `statement[column] = value` check out.
+ */
+private class SettingWrite<T>(
+    val column: Column<T>,
+    private val value: T,
+) {
+    fun applyTo(statement: UpsertStatement<Long>) {
+        statement[column] = value
+    }
+}
+
+private fun GroupSettingsPatch.settingWrites(): List<SettingWrite<*>> = buildList {
+    (icon as? Patch.Value)?.let { add(SettingWrite(GroupSettings.icon, it.value)) }
+    (pingMark as? Patch.Value)?.let { addAll(it.value.settingWrites()) }
+}
+
+/**
+ * [PingMark.Hidden] writes the flag and nothing else — leaving `ping_mark` out of the write is what
+ * puts it in `onUpdateExclude`, and therefore what makes hiding a mark preserve the emoji behind it.
+ */
+private fun PingMark.settingWrites(): List<SettingWrite<*>> = when (this) {
+    PingMark.Hidden -> listOf(SettingWrite(GroupSettings.pingMarkEnabled, false))
+    PingMark.Default -> listOf(
+        SettingWrite(GroupSettings.pingMark, null),
+        SettingWrite(GroupSettings.pingMarkEnabled, true),
+    )
+    is PingMark.Custom -> listOf(
+        SettingWrite(GroupSettings.pingMark, emoji),
+        SettingWrite(GroupSettings.pingMarkEnabled, true),
+    )
 }
