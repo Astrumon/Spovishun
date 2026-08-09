@@ -53,6 +53,40 @@ class GroupRepositoryImplTest {
         assertTrue(group.memberUsernames.isEmpty())
     }
 
+    /**
+     * The settings land in the same transaction as the group (spovishun-182), and the returned group
+     * reports them — a caller that reads the result instead of re-querying must not see the defaults.
+     */
+    @Test
+    fun `createGroup should persist the given settings and return them on the created group`() = runTest {
+        ensureChat(100L)
+
+        val created = repository
+            .createGroup(
+                100L,
+                "devs",
+                GroupSettingsPatch(icon = Patch.Value("🔥"), pingMark = Patch.Value(PingMark.Custom("🦀"))),
+            ).getOrThrow()
+
+        assertEquals("🔥", created.icon)
+        assertEquals(PingMark.Custom("🦀"), created.pingMark)
+
+        val reread = repository.findGroupByKey(100L, "devs").getOrThrow()
+        assertEquals("🔥", reread.icon)
+        assertEquals(PingMark.Custom("🦀"), reread.pingMark)
+    }
+
+    @Test
+    fun `createGroup without settings should leave the defaults in place`() = runTest {
+        ensureChat(100L)
+
+        val created = repository.createGroup(100L, "devs").getOrThrow()
+
+        assertNull(created.icon)
+        assertEquals(PingMark.Default, created.pingMark)
+        assertEquals(PingMark.Default, repository.findGroupByKey(100L, "devs").getOrThrow().pingMark)
+    }
+
     @Test
     fun `createGroup should return failure when duplicate name in same chat`() = runTest {
         ensureChat(100L)

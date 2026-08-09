@@ -7,23 +7,29 @@ import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.exception.ValidationException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Group
+import com.ua.astrumon.domain.bot.model.GroupSettingsPatch
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberChat
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
+import com.ua.astrumon.domain.bot.model.Patch
+import com.ua.astrumon.domain.bot.model.PingMark
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupParam
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import presentation.testMessagesProvider
+import presentation.ukMessages
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GroupControllerTest {
@@ -133,13 +139,23 @@ class GroupControllerTest {
     }
 
     @Test
+    fun `createGroup should leave every setting untouched when no parameters are given`() = runTest {
+        coEvery { groupService.createGroup(chatId, "devs", GroupSettingsPatch()) } returns
+            ResultContainer.success(Group(1L, chatId, "devs", emptyList()))
+
+        groupController.createGroup(chatId, userId, listOf("devs"))
+
+        coVerify(exactly = 1) { groupService.createGroup(chatId, "devs", GroupSettingsPatch()) }
+    }
+
+    @Test
     fun `createGroup should return AccessDenied when caller is regular member`() = runTest {
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns false
 
         val result = groupController.createGroup(chatId, userId, listOf("devs"))
 
         assertTrue(result is CommandResponse.AccessDenied)
-        coVerify(exactly = 0) { groupService.createGroup(any(), any()) }
+        coVerify(exactly = 0) { groupService.createGroup(any(), any(), any()) }
     }
 
     @Test
@@ -160,6 +176,135 @@ class GroupControllerTest {
 
         assertTrue(result is CommandResponse.Error)
         assertTrue(result.message.contains("вже існує"))
+    }
+
+    // --- createGroup parameter tests (spovishun-182) ---
+
+    /**
+     * Stubbing the exact patch is the assertion: a looser `any()` would pass just as happily if the
+     * controller dropped the parameter on the way to the service, which is the whole failure mode.
+     */
+    private fun expectCreate(patch: GroupSettingsPatch) {
+        coEvery { groupService.createGroup(chatId, "devs", patch) } returns
+            ResultContainer.success(Group(1L, chatId, "devs", emptyList()))
+    }
+
+    /** Every rejection has the same two halves: an error back, and nothing written. */
+    private fun assertRejected(
+        result: CommandResponse,
+        expectedMessage: String,
+    ) {
+        assertTrue(result is CommandResponse.Error)
+        assertEquals(expectedMessage, result.message)
+        coVerify(exactly = 0) { groupService.createGroup(any(), any(), any()) }
+    }
+
+    @Test
+    fun `createGroup should store the icon when icon parameter is given`() = runTest {
+        expectCreate(GroupSettingsPatch(icon = Patch.Value("🔥")))
+
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon=🔥"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("🔥"))
+        coVerify(exactly = 1) { groupService.createGroup(chatId, "devs", GroupSettingsPatch(icon = Patch.Value("🔥"))) }
+    }
+
+    @Test
+    fun `createGroup should store the ping mark when mark parameter is given`() = runTest {
+        val patch = GroupSettingsPatch(pingMark = Patch.Value(PingMark.Custom("🦀")))
+        expectCreate(patch)
+
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$mark=🦀"))
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("🦀"))
+        coVerify(exactly = 1) { groupService.createGroup(chatId, "devs", patch) }
+    }
+
+    @Test
+    fun `createGroup should hide the ping mark when mark is off`() = runTest {
+        val patch = GroupSettingsPatch(pingMark = Patch.Value(PingMark.Hidden))
+        expectCreate(patch)
+
+        groupController.createGroup(chatId, userId, listOf("devs", "\$mark=off"))
+
+        coVerify(exactly = 1) { groupService.createGroup(chatId, "devs", patch) }
+    }
+
+    @Test
+    fun `createGroup should apply icon and mark in one call`() = runTest {
+        val patch = GroupSettingsPatch(icon = Patch.Value("🔥"), pingMark = Patch.Value(PingMark.Custom("🦀")))
+        expectCreate(patch)
+
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon=🔥", "\$mark=🦀"))
+
+        assertTrue(result is CommandResponse.Success)
+        coVerify(exactly = 1) { groupService.createGroup(chatId, "devs", patch) }
+    }
+
+    @Test
+    fun `createGroup should reject a token that is not a parameter`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "qa"))
+
+        assertRejected(result, ukMessages.group.paramError.notAParameter("qa"))
+    }
+
+    @Test
+    fun `createGroup should reject a known parameter written without the separator`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon", "🔥"))
+
+        assertRejected(result, ukMessages.group.paramError.missingSeparator(GroupParam.ICON.flag))
+    }
+
+    @Test
+    fun `createGroup should reject an unknown parameter`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$colour=red"))
+
+        assertRejected(result, ukMessages.group.paramError.unknown("\$colour", GroupParam.supported()))
+    }
+
+    @Test
+    fun `createGroup should reject a duplicated parameter`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon=🔥", "\$icon=⚡"))
+
+        assertRejected(result, ukMessages.group.paramError.duplicate(GroupParam.ICON.flag))
+    }
+
+    @Test
+    fun `createGroup should reject a parameter with an empty value`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon="))
+
+        assertRejected(result, ukMessages.group.paramError.emptyValue(GroupParam.ICON.flag))
+    }
+
+    @Test
+    fun `createGroup should reject name parameter because the name is positional`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$name=qa"))
+
+        assertRejected(result, ukMessages.group.nameParamNotAllowed)
+    }
+
+    @Test
+    fun `createGroup should reject an icon that is not a single emoji`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$icon=abc"))
+
+        assertRejected(result, ukMessages.group.iconInvalid)
+    }
+
+    @Test
+    fun `createGroup should reject a mark that is not a single emoji`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("devs", "\$mark=abc"))
+
+        assertRejected(result, ukMessages.group.markInvalid)
+    }
+
+    /** A name starting with `$` would be re-read as a parameter by every command that follows. */
+    @Test
+    fun `createGroup should reject a name that starts with the parameter prefix`() = runTest {
+        val result = groupController.createGroup(chatId, userId, listOf("\$icon=🔥"))
+
+        assertRejected(result, ukMessages.group.usageNew)
     }
 
     // --- deleteGroup tests ---

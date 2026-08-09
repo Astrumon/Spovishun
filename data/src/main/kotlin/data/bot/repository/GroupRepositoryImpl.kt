@@ -65,6 +65,7 @@ class GroupRepositoryImpl : GroupRepository {
     override suspend fun createGroup(
         chatId: Long,
         name: String,
+        settings: GroupSettingsPatch,
     ): ResultContainer<Group> = safeDbQuery {
         if (Groups.rowFor(chatId, name) != null) {
             throw DuplicateResourceException("Group", name)
@@ -80,11 +81,22 @@ class GroupRepositoryImpl : GroupRepository {
             it[groupId] = insertedId
         }
 
+        // The row is defaulted first and then patched through the one writer, rather than having the
+        // insert carry the values: that keeps `onUpdateExclude` the single description of which
+        // columns a write owns, instead of splitting it across a create path and an edit path.
+        // `patch.name` is deliberately ignored — the name is already this insert's own argument.
+        writeSettings(insertedId, settings.settingWrites())
+
+        // The returned group carries what was just written, not the model's defaults: a method that
+        // accepts settings and hands back a group claiming to have none is a trap for the first
+        // caller who reads the result instead of re-querying.
         Group(
             id = insertedId.value,
             chatId = chatId,
             name = name,
             memberUsernames = emptyList(),
+            icon = (settings.icon as? Patch.Value)?.value,
+            pingMark = (settings.pingMark as? Patch.Value)?.value ?: PingMark.Default,
         )
     }
 

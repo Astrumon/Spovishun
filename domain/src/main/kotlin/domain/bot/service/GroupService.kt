@@ -19,10 +19,12 @@ class GroupService(
             }
         }
 
+    /** Creates the group and its [settings] in one transaction — never half of each (spovishun-182). */
     suspend fun createGroup(
         chatId: Long,
         name: String,
-    ): ResultContainer<Group> = groupRepository.createGroup(chatId, name)
+        settings: GroupSettingsPatch = GroupSettingsPatch(),
+    ): ResultContainer<Group> = groupRepository.createGroup(chatId, name, settings)
 
     suspend fun deleteGroup(
         chatId: Long,
