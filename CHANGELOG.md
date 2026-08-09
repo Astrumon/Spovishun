@@ -5,6 +5,50 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.8.0] - 2026-08-09
+
+### Added
+- Inline pickers for the admin group and role commands — the group is chosen from buttons instead
+  of typed by name (spovishun-123), and `/random` gained the same picker (spovishun-122).
+- Readiness-check mode for `/ping` and `/all` — members confirm readiness from the message itself
+  (spovishun-119), and the `/ping` inline menu now offers a default "all" option (spovishun-151).
+- `/editg` — group settings editing: `$icon` (spovishun-32), extended to the multi-parameter
+  `$name=` / `$icon=` / `$mark=` form for rename and `/ping` mark (spovishun-180, migration
+  `V15__add_group_ping_mark.sql`).
+- `/language` — per-chat language selection; bot messages and release notes render in the chosen
+  language (spovishun-152).
+- Optional `$b DD.MM` flag in `/register` — the birthday can be set at registration time
+  (spovishun-81).
+- Prefix-based `CallbackRouter` for inline callbacks (spovishun-121).
+- Chat context on every log line (spovishun-168).
+- SSE live log streaming endpoint in `:admin-api` (spovishun-111).
+- `/release` and `/hotfix` GitFlow automation skills (spovishun-80).
+
+### Changed
+- Restructured the `:bot` presentation layer (spovishun-172); the Koin graph is bound with the
+  constructor DSL (spovishun-176), the admin module renamed and the graph verified (spovishun-156),
+  coroutine bindings moved and the graph closed on shutdown (spovishun-155).
+- Canonicalized group resolution and collapsed settings writes into one patch (spovishun-174);
+  batched group member reads and resolved groups by id (spovishun-171).
+- Removed `safeDbTransaction` — `safeDbQuery` is the single DB entry point (spovishun-173).
+- Encapsulated Docker client transport errors behind the repository (spovishun-143).
+- Revived the `ResultContainer` combinators and dropped dead code (spovishun-170); `AutoRegisterService`
+  now requires explicit caches (spovishun-154).
+- Closed integration coverage gaps (spovishun-161); the e2e suite asserts real Telegram responses
+  (spovishun-160).
+
+### Fixed
+- Birthday greetings render a proper Telegram mention instead of plain text (spovishun-141).
+
+### Build
+- detekt runs with type resolution and thresholds aligned to the project style rules, with
+  per-source-set baselines (spovishun-169).
+- CI caches and parallelizes Gradle builds (spovishun-159).
+- `:admin-api` added to the Dockerfile multi-module build.
+- spovishun-skills updated to v1.21.0.
+
+---
+
 ## [1.7.0] - 2026-06-20
 
 ### Added

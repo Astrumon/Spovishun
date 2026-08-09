@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-08-09",
+    "changes": {
+      "uk": [
+        "Команди керування групами й ролями тепер пропонують вибір групи кнопками — назву вводити не треба",
+        "/random теж отримав вибір групи кнопками",
+        "/ping і /all мають режим готовності — учасники підтверджують готовність прямо з повідомлення",
+        "В інлайн-меню /ping з'явилася кнопка «всі»",
+        "Додано /editg — перейменування групи, зміна іконки та позначки для /ping",
+        "Додано /language — вибір мови бота для чату",
+        "/register приймає необов'язковий $b ДД.ММ — день народження можна вказати одразу",
+        "Виправлено привітання з днем народження — бот коректно згадує учасника"
+      ],
+      "en": [
+        "Group and role commands now offer the group as buttons — no need to type its name",
+        "/random got the same button-based group picker",
+        "/ping and /all have a readiness mode — members confirm readiness from the message itself",
+        "The /ping inline menu now has an \"all\" button",
+        "Added /editg — rename a group, change its icon and its /ping mark",
+        "Added /language — pick the bot's language for the chat",
+        "/register accepts an optional $b DD.MM — the birthday can be set at registration",
+        "Fixed birthday greetings — the bot now mentions the member correctly"
+      ]
+    }
+  },
+  {
     "version": "1.7.0",
     "date": "2026-06-20",
     "changes": {}

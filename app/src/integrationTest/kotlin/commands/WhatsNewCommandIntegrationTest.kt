@@ -29,9 +29,11 @@ class WhatsNewCommandIntegrationTest : BaseIntegrationTest() {
     fun `whatsnew reply reflects the latest entry`() = runTest {
         // Derive the expectation from the same source the controller reads, so the assertion never
         // goes stale on a version bump. An internal-only latest entry (empty changes) yields no reply
-        // (spovishun-134); a normal entry yields its formatted text.
+        // (spovishun-134); a normal entry yields its formatted text behind the command's prefix —
+        // the command, not the controller, assembles the final text.
         val notes = releaseNotesService.getAll(BotLanguage.UK).getOrThrow()
-        val expected = ReleaseNotesFormatter.formatLatest(notes)
+        val prefix = messagesProvider.forChat(testChatId).whatsNew.prefix
+        val expected = ReleaseNotesFormatter.formatLatest(notes)?.let { prefix + it }
         val update = buildUpdate("/whatsnew")
 
         whatsNewCommand.execute(bot, update)
