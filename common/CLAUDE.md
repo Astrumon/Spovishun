@@ -5,7 +5,7 @@ Pure-Kotlin shared kernel. Has no dependency on any other project module and pul
 
 Packages (under `common/`): `result/` (`ResultContainer`), `exception/` (`BaseException` +
 domain/not-found exceptions), `extension/` (`ResultExtensions` — `orFailure`),
-`util/` (HTML escaping, `UsernameInputSanitizer`, `VersionInfo`).
+`util/` (HTML escaping, `UsernameInputSanitizer`, `EmojiValidator`, `VersionInfo`).
 
 ## Rules
 - Keep it framework-free: no `org.koin.*`, `org.jetbrains.exposed.*`, `com.github.kotlintelegrambot.*`,
