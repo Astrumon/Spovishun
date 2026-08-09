@@ -21,9 +21,30 @@ Top level: `Main.kt` (entry point), `Application.kt` (`initializeKoin()`, reusab
 `AppModules.kt` collects the five into `appModules` — the single list `Application.initializeKoin()`
 starts Koin with and `KoinModuleGraphTest` verifies. Register a new module there, not in `Application.kt`,
 so it cannot reach production wiring unverified. All declarations are `internal`; `:app` is the top of
-the dependency graph. Bind by interface; constructor injection only. `PROFILE` selects the DB
-connection string (local PostgreSQL for dev, self-hosted PostgreSQL for prod) — not which
-implementations are bound.
+the dependency graph. `PROFILE` selects the DB connection string (local PostgreSQL for dev,
+self-hosted PostgreSQL for prod) — not which implementations are bound.
+
+### Binding style (spovishun-176)
+Bindings use the constructor DSL: `singleOf(::PingController)`, plus `bind BotCommand::class` /
+`bind CallbackHandler::class` for the secondary type. The gain is legibility and decoupling from
+constructor arity: a chain of `get()` had to be counted by hand against the constructor, and adding
+a parameter broke the module file even though nothing about the wiring had changed. It is **not** a
+correctness fix — `get()` is reified and infers each parameter's type, so a `get()` chain was never
+positionally unsafe either. The one wiring mistake neither style catches is two parameters of the
+same type: both resolve to the same instance regardless.
+
+An explicit `single { … }` lambda is kept only where the constructor DSL cannot express the
+resolution, and each one says why inline:
+- a **qualified parameter** — the two schedulers and `ReadinessSessionRunner` take a
+  `named<…Scope>()` `CoroutineScope`, and `singleOf` has no way to qualify a parameter;
+- **`getAll()`** collection injection — `CommandRegistry`, `CallbackRouter`;
+- a **factory call**, not a constructor — `AdminApiConfig.fromEnv()`, `Clock.system(…)`,
+  `DockerApiClient(get<AdminApiConfig>().dockerApiUrl)`.
+
+`RepositoryModule` stays on `single<MemberRepository> { MemberRepositoryImpl() }`: bind-by-interface
+outranks the DSL here, since `singleOf(::MemberRepositoryImpl) bind …` would make the impl the
+primary type and therefore injectable. Constructor injection only — `by inject()` is legitimate in
+`Application.kt` alone (an `object` composition root has no constructor), never in a business class.
 
 ## Shutdown
 `Application.run()` registers a JVM shutdown hook — **after** `initializeKoin()`, since `shutdown()`
