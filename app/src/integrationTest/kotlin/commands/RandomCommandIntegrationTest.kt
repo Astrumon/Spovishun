@@ -12,7 +12,7 @@ class RandomCommandIntegrationTest : BaseIntegrationTest() {
     fun `random with only invoker registered should mention the invoker`() = runTest {
         val update = buildUpdate("/random")
 
-        randomCommand.execute(bot, update)
+        dispatch(randomCommand, update)
 
         verify {
             bot.sendMessage(

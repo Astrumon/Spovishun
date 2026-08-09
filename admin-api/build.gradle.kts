@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.sse)
+    implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // Ktor client (read-only Docker API via docker-socket-proxy)
@@ -34,11 +36,6 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.server.test.host)
-}
-
-// Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline).
-detekt {
-    baseline = file("detekt-baseline.xml")
 }
 
 tasks.test {

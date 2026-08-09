@@ -34,7 +34,7 @@ class StartCommandIntegrationTest : BaseIntegrationTest() {
     fun `start should auto-register the calling user via full service stack`() = runTest {
         val update = buildUpdate("/start")
 
-        startCommand.execute(bot, update)
+        dispatch(startCommand, update)
 
         val member = memberService.getMemberByUsername(testUsername).getOrThrow()
         assertTrue(member.userId == testUserId)

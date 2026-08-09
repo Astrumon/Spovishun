@@ -3,21 +3,26 @@ package commands
 import infrastructure.BaseE2ETest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
+/**
+ * Registration outcomes are covered in `RegisterCommandIntegrationTest`; this checks that the reply
+ * a user would actually see arrives in the chat unchanged.
+ */
 class RegisterCommandE2ETest : BaseE2ETest() {
+    /**
+     * The second `/register` is the deterministic one: whatever role the live chat reports for the
+     * helper bot on the first call, the follow-up must render the already-registered copy.
+     */
     @Test
-    fun `register command creates the sender in the repository`() {
+    fun `second register delivers the already-registered reply to the chat`() {
         dispatch("/register")
-        val members = allMembers()
-        assertTrue(members.any { it.userId == helperBotId }, "Expected helperBot to be registered after /register")
-    }
 
-    @Test
-    fun `register command is idempotent — duplicate dispatch keeps one member`() {
-        dispatch("/register")
-        dispatch("/register")
-        val members = allMembers()
-        assertEquals(1, members.count { it.userId == helperBotId }, "Expected exactly one entry for helperBot after duplicate /register")
+        val sent = dispatchExpectingReply("/register")
+
+        assertEquals(
+            ukMessages.success.prefix + ukMessages.registration.alreadyRegistered("HelperBot"),
+            sent.text,
+        )
+        assertEquals(1, allMembers().count { it.userId == helperBotId }, "The repeat must not duplicate the member")
     }
 }

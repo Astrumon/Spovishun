@@ -5,9 +5,18 @@ import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 
+/**
+ * Owns the test database connection for the `integrationTest` and `e2eTest` source sets.
+ *
+ * Initialization is destructive — it opens with `flyway.clean()`, which drops the schema — so it
+ * must happen **once per JVM**, not once per test class. The pool is therefore released by a JVM
+ * shutdown hook rather than an `@AfterAll`: a class-scoped `shutdown()` would make the next class
+ * re-enter [initialize] and wipe the schema again mid-run (spovishun-160).
+ */
 object TestDatabaseFactory {
     private var dataSource: HikariDataSource? = null
     private var initializedUrl: String? = null
+    private var shutdownHookRegistered = false
 
     fun initialize(
         url: String,
@@ -44,6 +53,11 @@ object TestDatabaseFactory {
 
         initializedUrl = url
         dataSource = ds
+
+        if (!shutdownHookRegistered) {
+            Runtime.getRuntime().addShutdownHook(Thread(::shutdown, "test-db-shutdown"))
+            shutdownHookRegistered = true
+        }
     }
 
     fun shutdown() {

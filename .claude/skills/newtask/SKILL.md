@@ -146,7 +146,7 @@ The script sets `Status = "Not started"` automatically — do not pass `status` 
 Alternatively (MCP path, if no relations needed):
 ```
 notion-create-pages(
-  parent: { type: "database_id", database_id: "36f3462f68a981328625d728cac86ea3" },
+  parent: { type: "database_id", database_id: "36f3462f-68a9-8132-8625-d728cac86ea3" },
   pages: [{
     properties: {
       "Name": "feature/spovishun-{N}: {task title}",

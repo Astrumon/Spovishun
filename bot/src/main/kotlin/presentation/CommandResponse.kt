@@ -27,12 +27,18 @@ sealed class CommandResponse {
 /**
  * Universal rendering for all commands.
  * Provide callbacks only for the cases that differ from defaults.
+ *
+ * [messages] comes first so the default callbacks can read from it — a default-parameter expression
+ * may reference earlier parameters. That is what keeps every call site a one-argument change.
+ * The parameter count is the documented DSL exception to the 3-parameter rule: four of the five are
+ * optional rendering hooks, not inputs.
  */
 fun CommandResponse.toText(
+    messages: BotMessages,
     successPrefix: String = "",
-    onError: (String) -> String = { BotMessages.Error.prefixed(it) },
-    onAccessDenied: (String) -> String = { BotMessages.Error.accessDenied(it) },
-    onNotFound: (CommandResponse.NotFound) -> String = { BotMessages.Error.notFound },
+    onError: (String) -> String = { messages.error.prefixed(it) },
+    onAccessDenied: (String) -> String = { messages.error.accessDenied(it) },
+    onNotFound: (CommandResponse.NotFound) -> String = { messages.error.notFound },
 ): String = when (this) {
     is CommandResponse.Success -> "$successPrefix$message"
     is CommandResponse.Error -> onError(message)

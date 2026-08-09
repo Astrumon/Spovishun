@@ -7,6 +7,7 @@ import com.ua.astrumon.data.bot.mapper.toMemberWithChat
 import com.ua.astrumon.data.bot.table.MemberChats
 import com.ua.astrumon.data.bot.table.Members
 import com.ua.astrumon.data.db.eqIgnoreCase
+import com.ua.astrumon.data.db.inListIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.model.Member
@@ -28,11 +29,7 @@ class MemberRepositoryImpl : MemberRepository {
     }
 
     override suspend fun findByUserId(userId: Long): ResultContainer<Member?> = safeDbQuery {
-        Members
-            .selectAll()
-            .where { Members.userId eq userId }
-            .singleOrNull()
-            ?.toMember()
+        memberByUserId(userId)
     }
 
     override suspend fun findByUsername(username: String): ResultContainer<Member?> = safeDbQuery {
@@ -41,6 +38,16 @@ class MemberRepositoryImpl : MemberRepository {
             .where { Members.username eqIgnoreCase username }
             .singleOrNull()
             ?.toMember()
+    }
+
+    override suspend fun findAllByUsernames(usernames: Collection<String>): ResultContainer<List<Member>> = safeDbQuery {
+        if (usernames.isEmpty()) {
+            return@safeDbQuery emptyList()
+        }
+        Members
+            .selectAll()
+            .where { Members.username inListIgnoreCase usernames }
+            .map { it.toMember() }
     }
 
     override suspend fun saveOrUpdate(
@@ -53,12 +60,7 @@ class MemberRepositoryImpl : MemberRepository {
             it[Members.username] = username
             it[Members.firstname] = firstName
         }
-        Members
-            .selectAll()
-            .where { Members.userId eq userId }
-            .singleOrNull()
-            ?.toMember()
-            ?: throw ResourceNotFoundException("Member", userId.toString())
+        requireMemberByUserId(userId)
     }
 
     override suspend fun findMemberWithChatByChatIdAndUsername(
@@ -95,11 +97,20 @@ class MemberRepositoryImpl : MemberRepository {
         Members.update({ Members.userId eq userId }) {
             it[Members.birthMd] = birthday?.toMmDd()?.toShort()
         }
-        Members
-            .selectAll()
-            .where { Members.userId eq userId }
-            .singleOrNull()
-            ?.toMember()
-            ?: throw ResourceNotFoundException("Member", userId.toString())
+        requireMemberByUserId(userId)
     }
+
+    private fun memberByUserId(userId: Long): Member? = Members
+        .selectAll()
+        .where { Members.userId eq userId }
+        .singleOrNull()
+        ?.toMember()
+
+    /**
+     * The read half of every write that has to answer with the stored row: an upsert and an update
+     * both report only how many rows they touched, so the member is re-selected rather than
+     * reconstructed from the arguments — that is what surfaces columns the write did not set.
+     */
+    private fun requireMemberByUserId(userId: Long): Member =
+        memberByUserId(userId) ?: throw ResourceNotFoundException("Member", userId.toString())
 }

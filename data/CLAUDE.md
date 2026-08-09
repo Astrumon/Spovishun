@@ -19,9 +19,15 @@ New `*RepositoryImpl`s go under the context they serve; shared DB infra stays in
 - A Gradle dependency on `:bot` or `:app`
 
 ## DB access
-Every DB operation must use `safeDbQuery { }` from `data.db.DatabaseFactory` — never a bare `transaction {}`, `withContext(Dispatchers.IO)`, or manual `ResultContainer.catching { dbQuery { } }`.
-`safeDbQuery` handles both dispatching and exception-to-`DatabaseException` conversion in one call.
+Every DB operation must use `safeDbQuery { }` from `data.db.DatabaseFactory` — never a bare `transaction {}`, `withContext(Dispatchers.IO)`, or a hand-assembled combination of the two.
+`safeDbQuery` is the only DB entry point: it handles dispatching, the transaction, and the
+exception-to-`DatabaseException` conversion in one call. Its `safeDbTransaction` sibling was removed
+in spovishun-173 — it ran blocking JDBC on the caller's dispatcher.
 `DatabaseFactory` is the only place allowed to touch `Dispatchers.IO`.
+
+`DatabaseFactory` retains the `HikariDataSource` it creates (in an `AtomicReference` — the shutdown hook
+closes it from another thread) and exposes an idempotent `close()`. `:app` calls it last in
+`Application.shutdown()`; nothing else should.
 
 ```kotlin
 // Correct
@@ -32,9 +38,10 @@ override suspend fun findByUsername(username: String): ResultContainer<Member?> 
             ?.let { MemberMapper.toDomain(it) }
     }
 
-// Wrong: manual wrapping, bare transaction, no ResultContainer
+// Wrong: bare transaction on the caller's dispatcher, no ResultContainer
 override suspend fun findAll() = transaction { Members.selectAll().map { MemberMapper.toDomain(it) } }
-override suspend fun findAll() = dbQuery { ... }.let { ResultContainer.catching { it } }
+// Wrong: hand-assembling what safeDbQuery already does
+override suspend fun findAll() = withContext(Dispatchers.IO) { ResultContainer.catching { transaction { ... } } }
 ```
 
 ## Testing the data layer

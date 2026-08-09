@@ -12,7 +12,8 @@ import org.slf4j.LoggerFactory
  * Embedded Ktor (CIO) server hosting the read-only admin observability API (spovishun-110).
  *
  * Started from the composition root alongside Telegram long-polling and bound to the configured
- * interface only (tailnet IP in prod). Lifecycle is owned here; routing lives in [adminApiModule].
+ * interface only (tailnet IP in prod). Lifecycle is owned here; routing lives in the Ktor
+ * `Application` module [adminApiModule].
  */
 class AdminApiServer(
     private val config: AdminApiConfig,

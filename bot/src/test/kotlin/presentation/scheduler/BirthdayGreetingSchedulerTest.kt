@@ -8,21 +8,29 @@ import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
+import com.ua.astrumon.presentation.util.ChatLogContext
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import org.slf4j.MDC
+import presentation.testMessagesProvider
 import java.time.Clock
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 class BirthdayGreetingSchedulerTest {
     private val birthdayService: BirthdayService = mockk()
@@ -53,7 +61,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should immediately run catch-up for today's date`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(emptyList())
 
@@ -68,7 +76,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should send message to all registered chats for member`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -78,8 +86,68 @@ class BirthdayGreetingSchedulerTest {
         scheduler.start(bot)
         testScheduler.runCurrent()
 
-        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) }
+        val sentTexts = mutableListOf<String>()
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = capture(sentTexts), parseMode = ParseMode.HTML) }
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = capture(sentTexts), parseMode = ParseMode.HTML) }
+        sentTexts.forEach { text ->
+            assertContains(text, "@alice")
+            assertFalse(text.contains("Alice alice"), "raw username must not leak next to the name")
+        }
+        scope.cancel()
+    }
+
+    /**
+     * A send that blows up is logged against the chat it was aimed at, not as `system`
+     * (spovishun-168) — that attribution is the whole point of the live-log view. The remaining
+     * chats still get their greeting, and the member is not recorded as greeted, so the partial
+     * failure is retried rather than swallowed.
+     */
+    @Test
+    fun `greet should attribute a failed send to its chat and skip recording`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
+        var chatIdWhenSendFailed: String? = null
+
+        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
+        coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
+        coEvery { birthdayService.findChatIdsForMember(1L) } returns ResultContainer.success(listOf(-100L, -200L))
+        every { bot.sendMessage(chatId = ChatId.fromId(-100L), text = any(), parseMode = ParseMode.HTML) } answers {
+            chatIdWhenSendFailed = MDC.get(ChatLogContext.CHAT_ID)
+            throw IllegalStateException("telegram unreachable")
+        }
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        assertEquals("-100", chatIdWhenSendFailed)
+        // The second chat is still served, and the member stays un-recorded for a later retry.
         coVerify { bot.sendMessage(chatId = ChatId.fromId(-200L), text = any(), parseMode = ParseMode.HTML) }
+        coVerify(exactly = 0) { birthdayService.recordGreetingSent(any(), any(), any()) }
+        assertNull(MDC.get(ChatLogContext.CHAT_ID))
+        scope.cancel()
+    }
+
+    @Test
+    fun `greet should use tg user link mention for member without real username`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
+        val memberNoUsername = Member(3L, 300L, "user_300", "Карл <&>", BirthDate(25, 12))
+
+        coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
+            ResultContainer.success(listOf(memberNoUsername))
+        coEvery { birthdayService.wasGreetedThisYear(3L, 2025) } returns ResultContainer.success(false)
+        coEvery { birthdayService.findChatIdsForMember(3L) } returns ResultContainer.success(listOf(-100L))
+        coEvery { birthdayService.recordGreetingSent(3L, 2025, any()) } returns ResultContainer.success(Unit)
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        val sentText = slot<String>()
+        coVerify { bot.sendMessage(chatId = ChatId.fromId(-100L), text = capture(sentText), parseMode = ParseMode.HTML) }
+        assertContains(sentText.captured, "<a href=\"tg://user?id=300\">Карл &lt;&amp;&gt;</a>")
+        assertFalse(sentText.captured.contains("user_300"), "synthetic username must not leak into the greeting")
         scope.cancel()
     }
 
@@ -87,7 +155,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should record greeting after sending messages`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -105,7 +173,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should skip member already greeted this year`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(true)
@@ -122,7 +190,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should skip member with no registered chats`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns ResultContainer.success(listOf(memberAlice))
         coEvery { birthdayService.wasGreetedThisYear(1L, 2025) } returns ResultContainer.success(false)
@@ -139,7 +207,7 @@ class BirthdayGreetingSchedulerTest {
     fun `greet should continue to next member when one fails`() = runTest {
         val clock = clockAt(2025, 12, 25)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(25, 12)) } returns
             ResultContainer.success(listOf(memberAlice, memberBob))
@@ -165,7 +233,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should also process feb 29 birthdays on feb 28 in non-leap year`() = runTest {
         val clock = clockAt(2025, 2, 28) // 2025 is not a leap year
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(28, 2)) } returns ResultContainer.success(emptyList())
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(29, 2)) } returns ResultContainer.success(emptyList())
@@ -182,7 +250,7 @@ class BirthdayGreetingSchedulerTest {
     fun `start should not process feb 29 birthdays on feb 28 in leap year`() = runTest {
         val clock = clockAt(2028, 2, 28) // 2028 is a leap year
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope)
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
 
         coEvery { birthdayService.getMembersWithBirthday(BirthDate(28, 2)) } returns ResultContainer.success(emptyList())
 

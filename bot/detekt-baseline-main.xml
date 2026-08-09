@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>AbstractClassCanBeConcreteClass:BaseController.kt:BaseController$BaseController</ID>
+    <ID>AbstractClassCanBeInterface:CommandResponse.kt:CommandResponse$CommandResponse</ID>
+    <ID>HasPlatformType:ChatContextCommand.kt:ChatContextCommand.Companion$val logger = LoggerFactory.getLogger(ChatContextCommand::class.java)</ID>
+    <ID>LongParameterList:CommandResponse.kt:fun CommandResponse.toText: String</ID>
+    <ID>LongParameterList:PickerRender.kt:internal fun Bot.advancePicker</ID>
+    <ID>LoopWithTooManyJumpStatements:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$for</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$28</ID>
+    <ID>MagicNumber:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$29</ID>
+    <ID>RedundantSuspendModifier:TelegramBot.kt:TelegramBot$suspend</ID>
+    <ID>ReturnCount:BirthdayController.kt:BirthdayController$suspend fun setBirthdayForOther: CommandResponse</ID>
+    <ID>TooGenericExceptionCaught:BirthdayGreetingScheduler.kt:BirthdayGreetingScheduler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BotAdminUtils.kt:BotAdminUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ReleaseAnnouncer.kt:ReleaseAnnouncer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TelegramBot.kt:TelegramBot$e: Exception</ID>
+    <ID>UnreachableCode:CallbackContext.kt:callbackQuery.data ?: return null</ID>
+    <ID>UnreachableCode:CallbackRouter.kt:CallbackRouter$callbackQuery.data ?: return</ID>
+    <ID>UseOrEmpty:BotCommand.kt:message?.text?.split(" ")?.drop(1) ?: emptyList()</ID>
+    <ID>UseOrEmpty:PingController.kt:PingController$groupService.getAllGroupsWithMembers(chatId).getOrNull()?.map { it.key } ?: emptyList()</ID>
+    <ID>UseOrEmpty:RandomController.kt:RandomController$groupResult.getOrNull()?.members ?: emptyList()</ID>
+    <ID>UseOrEmpty:RandomController.kt:RandomController$groupService .getAllGroupsWithMembers(chatId) .getOrNull() ?.map { it.key } ?: emptyList()</ID>
+    <ID>UseOrEmpty:RandomController.kt:RandomController$membersResult.getOrNull() ?: emptyList()</ID>
+  </CurrentIssues>
+</SmellBaseline>

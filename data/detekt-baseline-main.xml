@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>HasPlatformType:DatabaseFactory.kt:DatabaseFactory$val logger = LoggerFactory.getLogger(DatabaseFactory::class.java)</ID>
+    <ID>InjectDispatcher:DatabaseFactory.kt:IO</ID>
+    <ID>LongMethod:MigrationGenerator.kt:@OptIn(ExperimentalDatabaseMigrationApi::class) fun main</ID>
+    <ID>LongParameterList:DataSourceFactory.kt:DataSourceFactory$fun create: HikariConfig</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$1800000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$30000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$60000</ID>
+    <ID>MagicNumber:DataSourceFactory.kt:DataSourceFactory$600000</ID>
+    <ID>TooGenericExceptionCaught:DatabaseFactory.kt:DatabaseFactory$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

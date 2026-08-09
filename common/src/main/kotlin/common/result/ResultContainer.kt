@@ -2,6 +2,7 @@ package com.ua.astrumon.common.result
 
 import com.ua.astrumon.common.exception.BaseException
 import com.ua.astrumon.common.exception.DatabaseException
+import kotlin.coroutines.cancellation.CancellationException
 
 sealed class ResultContainer<out T> {
     data class Success<T>(
@@ -66,8 +67,19 @@ sealed class ResultContainer<out T> {
 
         fun failure(exception: BaseException): ResultContainer<Nothing> = Failure(exception)
 
+        /**
+         * Runs [block], turning a throw into [Failure].
+         *
+         * [CancellationException] is deliberately re-thrown rather than captured (spovishun-173).
+         * It is an `Exception`, so a bare `catch (e: Exception)` swallows it: a coroutine cancelled
+         * mid-call would stop unwinding and hand its caller a fabricated `Failure` instead. Since
+         * `safeDbQuery` is the single entry point for every database call, that turned every
+         * shutdown-time query into a spurious error line.
+         */
         inline fun <T> catching(block: () -> T): ResultContainer<T> = try {
             success(block())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: BaseException) {
             failure(e)
         } catch (e: Exception) {

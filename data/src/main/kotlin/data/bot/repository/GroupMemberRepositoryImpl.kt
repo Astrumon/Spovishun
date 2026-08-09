@@ -7,11 +7,13 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.data.bot.table.GroupMembers
 import com.ua.astrumon.data.bot.table.Groups
 import com.ua.astrumon.data.bot.table.Members
+import com.ua.astrumon.data.bot.table.rowFor
 import com.ua.astrumon.data.db.eqIgnoreCase
 import com.ua.astrumon.data.db.safeDbQuery
 import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.innerJoin
@@ -24,7 +26,7 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         groupKey: String,
         username: String,
     ): ResultContainer<Unit> = safeDbQuery {
-        val group = getGroupByChat(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
+        val group = Groups.rowFor(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
         val member = getMemberByUsername(username) ?: throw ResourceNotFoundException("Member", username)
 
         val existing = GroupMembers
@@ -49,7 +51,7 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         groupKey: String,
         username: String,
     ): ResultContainer<Unit> = safeDbQuery {
-        val group = getGroupByChat(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
+        val group = Groups.rowFor(chatId, groupKey) ?: throw ResourceNotFoundException("Group", groupKey)
         val member = getMemberByUsername(username) ?: throw ResourceNotFoundException("Member", username)
 
         val deletedCount = GroupMembers.deleteWhere {
@@ -61,30 +63,34 @@ class GroupMemberRepositoryImpl : GroupMemberRepository {
         }
     }
 
-    override suspend fun getGroupMembers(
+    /**
+     * One round trip for the whole set — the per-group variant made a chat with N groups cost N
+     * queries, each of which also re-selected the `groups` row for an id the caller already had.
+     *
+     * The join on [Groups] is what makes [chatId] a real guard rather than a decorative parameter:
+     * a group id from another chat can never leak into the result. Ordering by the membership row id
+     * keeps insertion order, which is what the per-group queries returned.
+     *
+     * A chat with no groups short-circuits before [safeDbQuery], so it opens no transaction at all.
+     */
+    override suspend fun getMembersForGroups(
         chatId: Long,
-        groupKey: String,
-    ): ResultContainer<List<String>> = safeDbQuery {
-        val group = Groups
-            .selectAll()
-            .where { (Groups.chatId eq chatId) and (Groups.name eq groupKey) }
-            .singleOrNull()
-            ?: throw ResourceNotFoundException("Group", groupKey)
+        groupIds: Collection<Long>,
+    ): ResultContainer<Map<Long, List<String>>> {
+        if (groupIds.isEmpty()) {
+            return ResultContainer.success(emptyMap())
+        }
 
-        GroupMembers
-            .innerJoin(Members)
-            .selectAll()
-            .where { GroupMembers.group eq group[Groups.id] }
-            .map { row -> row[Members.username] }
+        return safeDbQuery {
+            GroupMembers
+                .innerJoin(Members)
+                .innerJoin(Groups)
+                .selectAll()
+                .where { (Groups.chatId eq chatId) and (GroupMembers.group inList groupIds) }
+                .orderBy(GroupMembers.id)
+                .groupBy({ row -> row[GroupMembers.group].value }, { row -> row[Members.username] })
+        }
     }
-
-    private fun getGroupByChat(
-        chatId: Long,
-        groupKey: String,
-    ) = Groups
-        .selectAll()
-        .where { (Groups.chatId eq chatId) and (Groups.name eq groupKey) }
-        .singleOrNull()
 
     private fun getMemberByUsername(username: String) = Members.selectAll().where { Members.username eqIgnoreCase username }.singleOrNull()
 }

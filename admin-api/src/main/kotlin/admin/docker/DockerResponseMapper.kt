@@ -2,6 +2,7 @@ package com.ua.astrumon.admin.docker
 
 import com.ua.astrumon.admin.dto.ContainerDto
 import com.ua.astrumon.admin.dto.ContainerStatsDto
+import com.ua.astrumon.admin.dto.LogLineDto
 import com.ua.astrumon.admin.dto.MetricsDto
 
 /**
@@ -10,9 +11,10 @@ import com.ua.astrumon.admin.dto.MetricsDto
  * No I/O — every function is deterministic and unit-tested in isolation (spovishun-110).
  */
 object DockerResponseMapper {
-    private const val LOG_FRAME_HEADER_SIZE = 8
-    private const val MAX_STREAM_TYPE = 2
     private const val CPU_PERCENT_SCALE = 100.0
+    private const val STREAM_TYPE_STDERR = 2
+    private const val STREAM_STDOUT = "stdout"
+    private const val STREAM_STDERR = "stderr"
 
     fun toContainerDto(container: DockerContainer): ContainerDto = ContainerDto(
         id = container.id,
@@ -61,9 +63,9 @@ object DockerResponseMapper {
         if (raw.isEmpty()) return ""
         val builder = StringBuilder()
         var offset = 0
-        while (offset + LOG_FRAME_HEADER_SIZE <= raw.size && isFrameHeader(raw, offset)) {
-            val size = readFrameSize(raw, offset)
-            val start = offset + LOG_FRAME_HEADER_SIZE
+        while (offset + LogFrameHeader.HEADER_SIZE <= raw.size && LogFrameHeader.isHeaderAt(raw, offset)) {
+            val size = LogFrameHeader.sizeAt(raw, offset)
+            val start = offset + LogFrameHeader.HEADER_SIZE
             val end = (start + size).coerceAtMost(raw.size)
             builder.append(String(raw, start, end - start, Charsets.UTF_8))
             offset = end
@@ -72,6 +74,24 @@ object DockerResponseMapper {
             builder.append(String(raw, offset, raw.size - offset, Charsets.UTF_8))
         }
         return builder.toString()
+    }
+
+    /**
+     * Parses one de-framed log line into the [LogLineDto] wire shape (spovishun-111).
+     *
+     * With `timestamps=true` Docker prefixes each line with an RFC3339 timestamp and a single space.
+     * A line without that prefix still relays with an empty [LogLineDto.ts] rather than being dropped.
+     */
+    fun parseLogLine(
+        streamType: Int,
+        payloadLine: String,
+    ): LogLineDto {
+        val trimmed = payloadLine.removeSuffix("\r")
+        val spaceIndex = trimmed.indexOf(' ')
+        val ts = if (spaceIndex > 0) trimmed.substring(0, spaceIndex) else ""
+        val line = if (spaceIndex > 0) trimmed.substring(spaceIndex + 1) else trimmed
+        val stream = if (streamType == STREAM_TYPE_STDERR) STREAM_STDERR else STREAM_STDOUT
+        return LogLineDto(ts = ts, stream = stream, line = line)
     }
 
     private fun containerName(names: List<String>): String = names.firstOrNull()?.removePrefix("/").orEmpty()
@@ -85,21 +105,4 @@ object DockerResponseMapper {
         memoryUsageBytes = stats.memoryStats.usage,
         cpuPercent = cpuPercent(stats),
     )
-
-    // A valid frame header has a known stream type in byte 0 and zero padding in bytes 1..3.
-    private fun isFrameHeader(
-        raw: ByteArray,
-        offset: Int,
-    ): Boolean = (raw[offset].toInt() and 0xFF) <= MAX_STREAM_TYPE &&
-        raw[offset + 1].toInt() == 0 &&
-        raw[offset + 2].toInt() == 0 &&
-        raw[offset + 3].toInt() == 0
-
-    private fun readFrameSize(
-        raw: ByteArray,
-        offset: Int,
-    ): Int = ((raw[offset + 4].toInt() and 0xFF) shl 24) or
-        ((raw[offset + 5].toInt() and 0xFF) shl 16) or
-        ((raw[offset + 6].toInt() and 0xFF) shl 8) or
-        (raw[offset + 7].toInt() and 0xFF)
 }

@@ -36,18 +36,15 @@ val generateVersionInfo by tasks.registering {
 
 // Every task that reads the main source set consumes the generated VersionInfo.kt, so each must
 // depend on its producer (Gradle 9 fails the build on an undeclared implicit dependency otherwise).
+// `startsWith("detekt")`, not `== "detekt"`: since spovishun-169 the analysis lives in the
+// per-source-set tasks (`detektMain`, `detektMainSourceSet`, …) and the aggregate `detekt` task
+// itself reads nothing.
 tasks
     .matching {
-        it.name == "compileKotlin" || it.name == "detekt" || it.name.startsWith("runKtlint")
+        it.name == "compileKotlin" || it.name.startsWith("detekt") || it.name.startsWith("runKtlint")
     }.configureEach {
         dependsOn(generateVersionInfo)
     }
-
-// Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline as it
-// receives code). Holds the intentional generic catch in ResultContainer.catching.
-detekt {
-    baseline = file("detekt-baseline.xml")
-}
 
 tasks.test {
     useJUnitPlatform()

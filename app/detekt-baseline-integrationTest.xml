@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>AbstractClassCanBeConcreteClass:BaseIntegrationTest.kt:BaseIntegrationTest$BaseIntegrationTest</ID>
+    <ID>InjectDispatcher:BaseIntegrationTest.kt:BaseIntegrationTest$Default</ID>
+    <ID>InjectDispatcher:BirthdayGreetingSchedulerIntegrationTest.kt:BirthdayGreetingSchedulerIntegrationTest$Default</ID>
+    <ID>InjectDispatcher:ReleaseAnnouncerIntegrationTest.kt:ReleaseAnnouncerIntegrationTest$Default</ID>
+    <ID>LongParameterList:BaseIntegrationTest.kt:BaseIntegrationTest$protected fun buildCallbackUpdate: Update</ID>
+    <ID>LongParameterList:BaseIntegrationTest.kt:BaseIntegrationTest$protected fun buildUpdate: Update</ID>
+    <ID>LongParameterList:BaseIntegrationTest.kt:BaseIntegrationTest$protected suspend fun registerMember: MemberWithChat</ID>
+    <ID>SwallowedException:BaseIntegrationTest.kt:BaseIntegrationTest$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BaseIntegrationTest.kt:BaseIntegrationTest$e: Exception</ID>
+    <ID>UnusedVariable:RegisterCommandIntegrationTest.kt:RegisterCommandIntegrationTest$val update = buildUpdate("/register", username = null.toString())</ID>
+    <ID>UseOrEmpty:IntegrationDbConfig.kt:IntegrationDbConfig$get("E2E_DATABASE_PASSWORD") ?: ""</ID>
+  </CurrentIssues>
+</SmellBaseline>

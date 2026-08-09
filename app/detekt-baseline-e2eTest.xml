@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>AbstractClassCanBeConcreteClass:BaseE2ETest.kt:BaseE2ETest$BaseE2ETest</ID>
+    <ID>InjectDispatcher:BaseE2ETest.kt:BaseE2ETest$Default</ID>
+    <ID>LongParameterList:BaseE2ETest.kt:BaseE2ETest$protected fun buildUpdate: Update</ID>
+    <ID>LongParameterList:PingGroupSelectionE2ETest.kt:PingGroupSelectionE2ETest$private fun buildCallbackUpdate: Update</ID>
+    <ID>UnsafeCallOnNullableType:BaseE2ETest.kt:BaseE2ETest$E2EConfig.helperBotToken!!</ID>
+    <ID>UnsafeCallOnNullableType:BaseE2ETest.kt:BaseE2ETest$E2EConfig.mainBotToken!!</ID>
+    <ID>UnsafeCallOnNullableType:BaseE2ETest.kt:BaseE2ETest$E2EConfig.testChatId!!</ID>
+    <ID>UseOrEmpty:E2EDbConfig.kt:E2EDbConfig$get("E2E_DATABASE_PASSWORD") ?: ""</ID>
+  </CurrentIssues>
+</SmellBaseline>

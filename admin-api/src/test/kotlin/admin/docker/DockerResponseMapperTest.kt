@@ -111,4 +111,65 @@ class DockerResponseMapperTest {
     fun should_returnEmpty_when_logStreamIsEmpty() {
         assertTrue(DockerResponseMapper.deframeLogs(ByteArray(0)).isEmpty())
     }
+
+    @Test
+    fun should_splitTimestampAndText_when_parsingLogLine() {
+        val dto = DockerResponseMapper.parseLogLine(1, "2026-06-21T10:00:01.123456789Z Bot started")
+
+        assertEquals("2026-06-21T10:00:01.123456789Z", dto.ts)
+        assertEquals("stdout", dto.stream)
+        assertEquals("Bot started", dto.line)
+    }
+
+    @Test
+    fun should_mapStderr_when_streamTypeIsTwo() {
+        val dto = DockerResponseMapper.parseLogLine(2, "2026-06-21T10:00:02Z WARN retry")
+
+        assertEquals("stderr", dto.stream)
+        assertEquals("WARN retry", dto.line)
+    }
+
+    @Test
+    fun should_keepWholeLineWithEmptyTs_when_noTimestampPrefix() {
+        val dto = DockerResponseMapper.parseLogLine(1, "plain")
+
+        assertEquals("", dto.ts)
+        assertEquals("plain", dto.line)
+    }
+
+    @Test
+    fun should_stripTrailingCarriageReturn_when_parsingLogLine() {
+        val dto = DockerResponseMapper.parseLogLine(1, "2026-06-21T10:00:03Z hello\r")
+
+        assertEquals("hello", dto.line)
+    }
+
+    /**
+     * The chat context the bot stamps on every line (spovishun-168) must reach the Admin client
+     * untouched. This relay is deliberately format-agnostic — it streams whatever a container
+     * writes — so the guarantee is that the field survives verbatim, not that it is parsed here.
+     */
+    @Test
+    fun should_relayChatContextVerbatim_when_parsingLogLine() {
+        val payload = "2026-06-21T10:00:04Z 2026-06-21 10:00:04 INFO  [chatId=-1001234567890 chatType=supergroup] " +
+            "c.u.a.p.b.c.ChatContextCommand - Command 'ping' invoked"
+
+        val dto = DockerResponseMapper.parseLogLine(1, payload)
+
+        assertTrue(dto.line.contains("[chatId=-1001234567890 chatType=supergroup]"))
+        assertEquals(
+            listOf("-1001234567890", "supergroup"),
+            Regex("""\[chatId=(\S+) chatType=(\S+)]""").find(dto.line)?.destructured?.toList(),
+        )
+    }
+
+    @Test
+    fun should_relaySystemChatContext_when_lineHasNoOriginatingChat() {
+        val payload = "2026-06-21T10:00:05Z 2026-06-21 10:00:05 INFO  [chatId=system chatType=system] " +
+            "c.u.a.data.db.DatabaseFactory - Initializing database"
+
+        val dto = DockerResponseMapper.parseLogLine(1, payload)
+
+        assertTrue(dto.line.contains("[chatId=system chatType=system]"))
+    }
 }

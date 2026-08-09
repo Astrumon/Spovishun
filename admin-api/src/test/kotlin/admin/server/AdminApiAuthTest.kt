@@ -24,7 +24,7 @@ class AdminApiAuthTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        coEvery { dockerClient.containers() } returns emptyList()
+        coEvery { dockerClient.containers() } returns ResultContainer.Success(emptyList())
         coEvery { healthRepository.check() } returns ResultContainer.Success(ServerHealth(dbSizeBytes = 1_024))
     }
 
@@ -68,5 +68,14 @@ class AdminApiAuthTest {
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun should_return401_when_tokenMissingOnLogsStream() = testApplication {
+        application { adminApiModule(token, dockerClient, healthRepository) }
+
+        val response = client.get("/api/v1/containers/abc/logs/stream")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 }

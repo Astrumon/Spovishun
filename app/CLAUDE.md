@@ -8,22 +8,117 @@ Packages: `config/` (`AppConfig` — env bindings via dotenv), `di/` (Koin modul
 Top level: `Main.kt` (entry point), `Application.kt` (`initializeKoin()`, reusable in tests).
 
 ## Koin modules (all live here)
-- `ConfigModule` — `AppConfig` + coroutine scopes/dispatchers/handlers
+- `ConfigModule` — `AppConfig` + the background-coroutine infrastructure: the default
+  `CoroutineDispatcher`, the `BlockingTelegramDispatcher`-qualified one for blocking Telegram calls,
+  `CoroutineExceptionHandler`, and the three qualified `CoroutineScope`s with their `internal object`
+  qualifier markers (`BirthdaySchedulerScope`, `ReleaseAnnouncerScope`, `ReadinessScope`)
 - `RepositoryModule` — binds each `*Repository` interface to its `:data` `*RepositoryImpl`
 - `ServiceModule` — domain services
 - `PresentationModule` — controllers, commands (`bind BotCommand::class`), bot, schedulers
+- `AdminApiDiModule` — `AdminApiConfig`, `DockerApiClient`, `AdminApiServer`. Named `…DiModule` to stay
+  distinct from the Ktor routing module `Application.adminApiModule` in `:admin-api` (spovishun-156)
 
-Bind by interface; constructor injection only. `PROFILE` selects the DB connection string
-(local PostgreSQL for dev, self-hosted PostgreSQL for prod) — not which implementations are bound.
+`AppModules.kt` collects the five into `appModules` — the single list `Application.initializeKoin()`
+starts Koin with and `KoinModuleGraphTest` verifies. Register a new module there, not in `Application.kt`,
+so it cannot reach production wiring unverified. All declarations are `internal`; `:app` is the top of
+the dependency graph. `PROFILE` selects the DB connection string (local PostgreSQL for dev,
+self-hosted PostgreSQL for prod) — not which implementations are bound.
+
+### Binding style (spovishun-176)
+Bindings use the constructor DSL: `singleOf(::PingController)`, plus `bind BotCommand::class` /
+`bind CallbackHandler::class` for the secondary type. The gain is legibility and decoupling from
+constructor arity: a chain of `get()` had to be counted by hand against the constructor, and adding
+a parameter broke the module file even though nothing about the wiring had changed. It is **not** a
+correctness fix — `get()` is reified and infers each parameter's type, so a `get()` chain was never
+positionally unsafe either. The one wiring mistake neither style catches is two parameters of the
+same type: both resolve to the same instance regardless.
+
+An explicit `single { … }` lambda is kept only where the constructor DSL cannot express the
+resolution, and each one says why inline:
+- a **qualified parameter** — the two schedulers and `ReadinessSessionRunner` take a
+  `named<…Scope>()` `CoroutineScope`, and `singleOf` has no way to qualify a parameter;
+- **`getAll()`** collection injection — `CommandRegistry`, `CallbackRouter`;
+- a **factory call**, not a constructor — `AdminApiConfig.fromEnv()`, `Clock.system(…)`,
+  `DockerApiClient(get<AdminApiConfig>().dockerApiUrl)`.
+
+`RepositoryModule` stays on `single<MemberRepository> { MemberRepositoryImpl() }`: bind-by-interface
+outranks the DSL here, since `singleOf(::MemberRepositoryImpl) bind …` would make the impl the
+primary type and therefore injectable. Constructor injection only — `by inject()` is legitimate in
+`Application.kt` alone (an `object` composition root has no constructor), never in a business class.
+
+## Shutdown
+`Application.run()` registers a JVM shutdown hook — **after** `initializeKoin()`, since `shutdown()`
+resolves its dependencies from Koin. It runs outside-in: `AdminApiServer.stop()` (grace period) →
+`stopKoin()` → `DatabaseFactory.close()` (Hikari pool, last). Koin-owned resources release themselves
+through `onClose` on their binding — the two scheduler scopes are cancelled and `DockerApiClient` closes
+its `HttpClient`. Declare cleanup with the binding (`single { … }.onClose { … }`), not in the hook; only
+the DB pool, which is initialized outside Koin, is closed explicitly.
+
+Scope cancellation is cooperative and non-blocking: it stops new scheduler work, it does not drain
+queries already running on `Dispatchers.IO`.
 
 ## Test source sets (owned by this module)
-- `test` (`./gradlew test`) — unit tests with MockK; H2 available for any DB-touching helpers.
+Only `integrationTest` and `e2eTest` are project-wide — they are here because they need every layer
+at once. `test` is **not** the project's unit suite: every module owns its own `src/test`, and
+`:bot`'s is the large one. See the Testing section of the root `CLAUDE.md`.
+
+- `test` (`./gradlew test`) — app-level unit tests only: `AppConfig` parsing, `KoinModuleGraphTest`,
+  the logback chat-context pattern. It also holds `TestDatabaseFactory` / `TestDatabaseCleaner`,
+  which **both** `integrationTest` and `e2eTest` reuse — each adds `sourceSets.test.output` to its
+  compile and runtime classpath in `build.gradle.kts`.
 - `integrationTest` (`./gradlew integrationTest`) — real services/commands over a real PostgreSQL;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips when `E2E_DATABASE_URL` is unset.
-- `e2eTest` (`./gradlew e2eTest`) — real Telegram API + real PostgreSQL via `TelegramHelperBot`
-  (Ktor client). Requires the `TEST_*` / `E2E_DATABASE_URL` env vars; skips otherwise.
+  Beyond commands it also covers (spovishun-161) the two schedulers, the full `CallbackRouter`
+  press → route → handler → reply chain, and `:admin-api` — that last one starts the real
+  `AdminApiServer` (CIO) on a free port and drives it with a ktor client, which is why the source
+  set carries `ktor-client-*` deps of its own in `build.gradle.kts`.
+- `e2eTest` (`./gradlew e2eTest`) — real Telegram API + real PostgreSQL. Requires the `TEST_*` /
+  `E2E_DATABASE_URL` env vars; skips otherwise. Note that unsetting them is not enough locally —
+  `E2EConfig` falls back to the repo-root `.env` and `E2EDbConfig` to `.env.e2e`.
+
+### Driving background work in `integrationTest` (spovishun-161)
+Neither scheduler entry point returns: `ReleaseAnnouncer.notifyIfNewVersion()` is fire-and-forget and
+`BirthdayGreetingScheduler.start()` loops on a 24-hour `delay`. Virtual time cannot drive either here
+— the collaborators suspend on real database IO, which no `TestCoroutineScheduler` tracks, so
+`runCurrent()`/`advanceUntilIdle()` return before the query does. Await the *observable end* of the
+pass instead: join the launched child (announcer), or complete a `CompletableDeferred` from the last
+repository call the pass makes (birthday scheduler). Never a `delay`/`Thread.sleep`.
+
+Two traps that cost real debugging time:
+- **MockK `callOriginal()` does not work on a `spyk` of a class with `suspend` members** — the pass
+  hangs with no error. Gate on a **repository interface** wrapped by Kotlin `by` delegation instead;
+  it is real code, needs no MockK, and each override is one line.
+- **Callback picker ids are Telegram `userId`s, not `members.id`** — `PickerOption(member.userId, …)`
+  and `GroupController.resolveMemberUsername` match on `userId`, even though the parameter is named
+  `memberId` all the way down. Passing a row id resolves nobody and the action silently no-ops.
+
+### What belongs in e2e (spovishun-160)
+**e2e is only for assertions that need Telegram's own answer.** Anything provable over real
+PostgreSQL with a mocked `Bot` belongs in `integrationTest`, which already covers every command and
+role gate. Concretely, e2e owns: HTML parse mode, the 4096-character limit, inline-keyboard
+acceptance, mention entities, and `getChatMember`/`getChatAdministrators` role derivation.
+
+`BaseE2ETest` makes that possible by wrapping the real `Bot` in a MockK spy that records the
+`TelegramBotResult<Message>` of every send — Telegram's view of the delivered message. It stubs
+nothing; the calls are real. A helper bot cannot be used to read replies back: Telegram never
+delivers one bot's messages to another, which is why the old `TelegramHelperBot` polling API was
+dead code.
+
+Two consequences to respect when adding tests:
+- **Every `dispatch()` posts to a real chat.** Telegram allows roughly 20 messages per minute per
+  chat; the suite sits at ~11 per run. The harness honours `retry_after` on a 429, but do not treat
+  that as headroom — a test that only checks database rows must not live here.
+- **`dispatch()` fails on an unregistered command name.** Keep `BaseE2ETest`'s registry in lockstep
+  with `di/PresentationModule`. Plain non-command messages are `MessageHandler`'s job and stay in
+  `MessageHandlerIntegrationTest`.
+
+Full coverage matrix and rationale: Notion → Documentation → Testing → *E2E Suite Audit & Layer Split
+(spovishun-160)* (`notion.so/3ad3462f68a98122b5abfad51a4fcefb`).
 
 Do NOT unit test Koin modules, `TelegramBot`, `MessageHandler`, or `DatabaseFactory`.
+Exception: `KoinModuleGraphTest` runs `koin-test`'s `verify()` over all five modules. That is a static
+reflection check of the graph (nothing is instantiated), not a test of module logic — it exists so a
+forgotten binding fails in CI instead of on production startup (spovishun-156).
 
 ## Logging
 `logback.xml` and the logging backend live with this entry-point module.

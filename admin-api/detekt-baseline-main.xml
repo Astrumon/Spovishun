@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$0xFF</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$16</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$24</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$3</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$4</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$5</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$6</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$7</ID>
+    <ID>MagicNumber:LogFrameHeader.kt:LogFrameHeader$8</ID>
+    <ID>TooGenericExceptionCaught:AdminApiRoutes.kt:error: Exception</ID>
+    <ID>TooGenericExceptionCaught:DockerApiClient.kt:DockerApiClient$error: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

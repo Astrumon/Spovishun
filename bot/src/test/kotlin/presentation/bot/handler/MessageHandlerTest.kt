@@ -5,25 +5,25 @@ import com.github.kotlintelegrambot.entities.Chat
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.Update
 import com.github.kotlintelegrambot.entities.User
-import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.config.ChatAccessConfig
-import com.ua.astrumon.domain.bot.model.MemberRole
-import com.ua.astrumon.domain.bot.model.MemberWithChat
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
-import com.ua.astrumon.presentation.util.BotAdminUtils
+import com.ua.astrumon.presentation.util.ChatLogContext
+import com.ua.astrumon.presentation.util.MemberAutoRegistrar
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.slf4j.MDC
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class MessageHandlerTest {
-    private val autoRegisterService: AutoRegisterService = mockk()
-    private val botAdminUtils: BotAdminUtils = mockk()
+    private val autoRegistrar: MemberAutoRegistrar = mockk(relaxed = true)
     private val config: ChatAccessConfig = mockk(relaxed = true)
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var messageHandler: MessageHandler
@@ -34,9 +34,13 @@ class MessageHandlerTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        messageHandler = MessageHandler(autoRegisterService, botAdminUtils, config)
-        every { botAdminUtils.getMemberRole(any(), any(), any()) } returns MemberRole.MEMBER
+        MDC.clear()
+        messageHandler = MessageHandler(autoRegistrar, config)
+        every { config.allowedChatIds } returns emptySet()
     }
+
+    @AfterTest
+    fun tearDown() = MDC.clear()
 
     private fun createUpdate(
         fromUser: User? = User(id = userId, isBot = false, firstName = "Alice", username = "alice"),
@@ -48,95 +52,53 @@ class MessageHandlerTest {
     }
 
     @Test
-    fun `handleIncomingMessage should auto-register user`() = runTest {
-        // Given
+    fun `handleIncomingMessage should auto-register the sender`() = runTest {
         val update = createUpdate()
-        val member = MemberWithChat(1L, userId, "alice", "Alice", MemberRole.MEMBER, null)
-        coEvery {
-            autoRegisterService.ensureUserRegistered(
-                chatId,
-                userId,
-                "alice",
-                "Alice",
-                MemberRole.MEMBER,
-                null,
-                "group",
-            )
-        } returns ResultContainer.success(member)
 
-        // When
         messageHandler.handleIncomingMessage(bot, update)
 
-        // Then
-        coVerify {
-            autoRegisterService.ensureUserRegistered(
-                chatId,
-                userId,
-                "alice",
-                "Alice",
-                MemberRole.MEMBER,
-                null,
-                "group",
-            )
+        coVerify(exactly = 1) {
+            autoRegistrar.ensure(bot, match { it.id == chatId }, match { it.id == userId })
         }
     }
 
     @Test
-    fun `handleIncomingMessage should use user_id when username is null`() = runTest {
-        // Given
-        val user = User(id = userId, isBot = false, firstName = "Alice", username = null)
-        val update = createUpdate(fromUser = user)
-        val member = MemberWithChat(1L, userId, "user_$userId", "Alice", MemberRole.MEMBER, null)
-        coEvery {
-            autoRegisterService.ensureUserRegistered(
-                chatId,
-                userId,
-                "user_$userId",
-                "Alice",
-                MemberRole.MEMBER,
-                null,
-                "group",
-            )
-        } returns ResultContainer.success(member)
-
-        // When
-        messageHandler.handleIncomingMessage(bot, update)
-
-        // Then
-        coVerify {
-            autoRegisterService.ensureUserRegistered(
-                chatId,
-                userId,
-                "user_$userId",
-                "Alice",
-                MemberRole.MEMBER,
-                null,
-                "group",
-            )
+    fun `handleIncomingMessage should expose the originating chat while registering`() = runTest {
+        var chatIdDuringDispatch: String? = null
+        var chatTypeDuringDispatch: String? = null
+        coEvery { autoRegistrar.ensure(any(), any(), any()) } answers {
+            chatIdDuringDispatch = MDC.get(ChatLogContext.CHAT_ID)
+            chatTypeDuringDispatch = MDC.get(ChatLogContext.CHAT_TYPE)
         }
+
+        messageHandler.handleIncomingMessage(bot, createUpdate())
+
+        assertEquals(chatId.toString(), chatIdDuringDispatch)
+        assertEquals("group", chatTypeDuringDispatch)
+        assertNull(MDC.get(ChatLogContext.CHAT_ID))
+        assertNull(MDC.get(ChatLogContext.CHAT_TYPE))
     }
 
     @Test
     fun `handleIncomingMessage should return early when message is null`() = runTest {
-        // Given
-        val update = Update(updateId = 1L, message = null)
+        messageHandler.handleIncomingMessage(bot, Update(updateId = 1L, message = null))
 
-        // When
-        messageHandler.handleIncomingMessage(bot, update)
-
-        // Then
-        coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { autoRegistrar.ensure(any(), any(), any()) }
     }
 
     @Test
     fun `handleIncomingMessage should return early when user is null`() = runTest {
-        // Given
-        val update = createUpdate(fromUser = null)
+        messageHandler.handleIncomingMessage(bot, createUpdate(fromUser = null))
 
-        // When
-        messageHandler.handleIncomingMessage(bot, update)
+        coVerify(exactly = 0) { autoRegistrar.ensure(any(), any(), any()) }
+    }
 
-        // Then
-        coVerify(exactly = 0) { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any(), any()) }
+    @Test
+    fun `handleIncomingMessage should ignore chats outside the allow-list`() = runTest {
+        every { config.allowedChatIds } returns setOf(chatId)
+
+        messageHandler.handleIncomingMessage(bot, createUpdate(chatIdVal = 999L))
+
+        coVerify(exactly = 0) { autoRegistrar.ensure(any(), any(), any()) }
     }
 }

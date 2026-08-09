@@ -3,6 +3,7 @@ package presentation.util
 import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.domain.bot.model.ReleaseNote
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
+import presentation.ukMessages
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertNull
@@ -61,7 +62,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatHistory should include all versions`() {
-        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(listOf(singleNote, oldNote)))
+        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(ukMessages, listOf(singleNote, oldNote)))
 
         assertContains(result, "2.0.0")
         assertContains(result, "1.0.0")
@@ -69,7 +70,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatHistory should include history title`() {
-        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(listOf(singleNote)))
+        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(ukMessages, listOf(singleNote)))
 
         assertTrue(result.isNotBlank())
         assertTrue(result.indexOf("2.0.0") > 0)
@@ -77,7 +78,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatHistory should include changes for all versions`() {
-        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(listOf(singleNote, oldNote)))
+        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(ukMessages, listOf(singleNote, oldNote)))
 
         assertContains(result, "Feature A")
         assertContains(result, "Initial release")
@@ -85,7 +86,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatHistory should omit entries with no changes`() {
-        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(listOf(emptyNote, singleNote)))
+        val result = requireNotNull(ReleaseNotesFormatter.formatHistory(ukMessages, listOf(emptyNote, singleNote)))
 
         assertContains(result, "2.0.0")
         assertTrue(!result.contains("1.6.0"))
@@ -93,7 +94,7 @@ class ReleaseNotesFormatterTest {
 
     @Test
     fun `formatHistory should return null when all entries have no changes`() {
-        val result = ReleaseNotesFormatter.formatHistory(listOf(emptyNote))
+        val result = ReleaseNotesFormatter.formatHistory(ukMessages, listOf(emptyNote))
 
         assertNull(result)
     }

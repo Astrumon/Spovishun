@@ -3,6 +3,7 @@ package data.db
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.data.bot.table.Chats
 import com.ua.astrumon.data.bot.table.GroupMembers
+import com.ua.astrumon.data.bot.table.GroupSettings
 import com.ua.astrumon.data.bot.table.Groups
 import com.ua.astrumon.data.bot.table.MemberChats
 import com.ua.astrumon.data.bot.table.Members
@@ -37,7 +38,7 @@ object H2TestDatabaseFactory {
             Database.connect(dataSource)
 
             transaction {
-                SchemaUtils.create(Chats, Members, MemberChats, Groups, GroupMembers)
+                SchemaUtils.create(Chats, Members, MemberChats, Groups, GroupMembers, GroupSettings)
             }
 
             initialized = true

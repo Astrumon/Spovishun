@@ -37,6 +37,20 @@ data class ContainerLogsDto(
     val logs: String,
 )
 
+/**
+ * One live log line streamed over SSE by `GET /containers/{id}/logs/stream` (spovishun-111).
+ *
+ * Wire shape per SSE message: `event: log`, `data:` = this DTO as JSON. [ts] is the RFC3339
+ * timestamp Docker emits with `timestamps=true`; the client uses it to merge the tail snapshot with
+ * the live stream without duplicates or gaps. [stream] is `"stdout"` or `"stderr"`.
+ */
+@Serializable
+data class LogLineDto(
+    val ts: String,
+    val stream: String,
+    val line: String,
+)
+
 @Serializable
 data class MetricsDto(
     val serverVersion: String,

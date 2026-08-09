@@ -11,17 +11,20 @@ import com.github.kotlintelegrambot.types.TelegramBotResult
 import com.ua.astrumon.presentation.CommandResponse
 import com.ua.astrumon.presentation.bot.commands.DeleteGroupCommand
 import com.ua.astrumon.presentation.controller.GroupController
+import com.ua.astrumon.presentation.controller.GroupPickerController
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class DeleteGroupCommandTest {
     private val groupController: GroupController = mockk()
+    private val groupPickerController: GroupPickerController = mockk()
     private val bot: Bot = mockk(relaxed = true)
     private lateinit var command: DeleteGroupCommand
 
@@ -32,7 +35,7 @@ class DeleteGroupCommandTest {
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        command = DeleteGroupCommand(groupController)
+        command = DeleteGroupCommand(groupController, groupPickerController, testMessagesProvider())
     }
 
     private fun createUpdate(

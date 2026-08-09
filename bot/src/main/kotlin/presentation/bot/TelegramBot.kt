@@ -8,15 +8,15 @@ import com.github.kotlintelegrambot.dispatcher.command
 import com.github.kotlintelegrambot.dispatcher.message
 import com.github.kotlintelegrambot.extensions.filters.Filter
 import com.ua.astrumon.domain.bot.config.ChatAccessConfig
+import com.ua.astrumon.presentation.bot.handler.CallbackRouter
 import com.ua.astrumon.presentation.bot.handler.MessageHandler
-import com.ua.astrumon.presentation.bot.handler.PingCallbackHandler
 import org.slf4j.LoggerFactory
 
 class TelegramBot(
     private val commandRegistry: CommandRegistry,
     private val messageHandler: MessageHandler,
     private val config: ChatAccessConfig,
-    private val pingCallbackHandler: PingCallbackHandler,
+    private val callbackRouter: CallbackRouter,
 ) {
     private val logger = LoggerFactory.getLogger(TelegramBot::class.java)
 
@@ -28,7 +28,8 @@ class TelegramBot(
                 command(cmd.name) {
                     val chatId = update.message?.chat?.id
                     if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@command
-                    logger.info("Command '{}' invoked", cmd.name)
+                    // The "invoked" line moved into ChatContextCommand, which wraps every registry
+                    // entry — logged there it carries the originating chat (spovishun-168).
                     cmd.execute(bot, update)
                 }
             }
@@ -43,7 +44,7 @@ class TelegramBot(
                     ?.chat
                     ?.id
                 if (config.allowedChatIds.isNotEmpty() && chatId !in config.allowedChatIds) return@callbackQuery
-                pingCallbackHandler.handle(bot, update)
+                callbackRouter.route(bot, update)
             }
         }
     }

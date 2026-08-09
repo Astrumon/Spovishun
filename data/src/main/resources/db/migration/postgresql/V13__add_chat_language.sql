@@ -1,0 +1,2 @@
+ALTER TABLE chats
+    ADD COLUMN language VARCHAR(8) NOT NULL DEFAULT 'uk';

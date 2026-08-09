@@ -1,6 +1,8 @@
 package com.ua.astrumon.domain.bot.service
 
+import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
+import com.ua.astrumon.common.extension.orFailure
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberChat
@@ -27,10 +29,7 @@ class MemberService(
                 .existsByMemberIdAndChatId(member.id, chatId)
                 .flatMap { exists ->
                     if (exists) {
-                        ResultContainer.failure(
-                            com.ua.astrumon.common.exception
-                                .DuplicateResourceException("Member", username),
-                        )
+                        ResultContainer.failure(DuplicateResourceException("Member", username))
                     } else {
                         memberChatRepository
                             .save(member.id, chatId, role, Clock.System.now())
@@ -41,12 +40,18 @@ class MemberService(
 
     suspend fun getMemberByUsername(username: String): ResultContainer<Member> = memberRepository
         .findByUsername(username)
-        .flatMap { member ->
-            if (member != null) {
-                ResultContainer.success(member)
-            } else {
-                ResultContainer.failure(ResourceNotFoundException("Member", username))
-            }
+        .orFailure { ResourceNotFoundException("Member", username) }
+
+    /**
+     * Resolves [usernames] in a single query, keeping the caller's order and silently dropping
+     * anyone no longer in the member table — the batch counterpart of [getMemberByUsername], for
+     * callers that would otherwise loop and issue one query per name.
+     */
+    suspend fun getMembersByUsernames(usernames: List<String>): ResultContainer<List<Member>> = memberRepository
+        .findAllByUsernames(usernames)
+        .map { found ->
+            val byUsername = found.associateBy { it.username.lowercase() }
+            usernames.mapNotNull { byUsername[it.lowercase()] }
         }
 
     suspend fun getMemberWithChatByUsername(
@@ -54,37 +59,19 @@ class MemberService(
         username: String,
     ): ResultContainer<MemberWithChat> = memberRepository
         .findMemberWithChatByChatIdAndUsername(chatId, username)
-        .flatMap { memberWithChat ->
-            if (memberWithChat != null) {
-                ResultContainer.success(memberWithChat)
-            } else {
-                ResultContainer.failure(ResourceNotFoundException("Member", username))
-            }
-        }
+        .orFailure { ResourceNotFoundException("Member", username) }
 
     suspend fun getMemberChatByUserId(
         chatId: Long,
         userId: Long,
-    ): ResultContainer<MemberChat> {
-        return memberRepository
-            .findByUserId(userId)
-            .flatMap { member ->
-                if (member == null) {
-                    return@flatMap ResultContainer.failure(
-                        ResourceNotFoundException("Member", userId.toString()),
-                    )
-                }
-                memberChatRepository
-                    .findByMemberIdAndChatId(member.id, chatId)
-                    .flatMap { memberChat ->
-                        if (memberChat != null) {
-                            ResultContainer.success(memberChat)
-                        } else {
-                            ResultContainer.failure(ResourceNotFoundException("Member", userId.toString()))
-                        }
-                    }
-            }
-    }
+    ): ResultContainer<MemberChat> = memberRepository
+        .findByUserId(userId)
+        .orFailure { ResourceNotFoundException("Member", userId.toString()) }
+        .flatMap { member ->
+            memberChatRepository
+                .findByMemberIdAndChatId(member.id, chatId)
+                .orFailure { ResourceNotFoundException("Member", userId.toString()) }
+        }
 
     suspend fun updateMemberUsername(
         currentUsername: String,

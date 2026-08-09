@@ -6,7 +6,13 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
+/**
+ * Role-grant permutations — non-admin callers, unknown users, multiple targets, invalid role
+ * strings — are covered in `GrantRoleCommandIntegrationTest`. One case stays here to prove the
+ * confirmation, which interpolates a user-supplied username, is actually deliverable.
+ */
 class GrantRoleCommandE2ETest : BaseE2ETest() {
     @BeforeTest
     fun setUpAdminAndTarget() {
@@ -15,42 +21,11 @@ class GrantRoleCommandE2ETest : BaseE2ETest() {
     }
 
     @Test
-    fun `grantrole command grants moderator role to target user`() {
-        dispatch("/grantrole @roletarget moderator")
+    fun `grantrole delivers the confirmation and updates the target role`() {
+        val text = dispatchExpectingReply("/grantrole @roletarget moderator").text.orEmpty()
+
         val updated = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
         assertEquals(MemberRole.MODERATOR, updated.role, "Expected roletarget to have MODERATOR role")
-    }
-
-    @Test
-    fun `grantrole command grants admin role to target user`() {
-        dispatch("/grantrole @roletarget admin")
-        val updated = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
-        assertEquals(MemberRole.ADMIN, updated.role, "Expected roletarget to have ADMIN role")
-    }
-
-    @Test
-    fun `grantrole command is rejected when caller is not admin`() {
-        runBlocking { memberService.setMemberRole(testChatId, helperBotId, MemberRole.MEMBER) }
-        dispatch("/grantrole @roletarget moderator")
-        // Role should remain MEMBER — the command must have been rejected
-        val target = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
-        assertEquals(MemberRole.MEMBER, target.role, "Role should not be changed when caller lacks admin access")
-    }
-
-    @Test
-    fun `grantrole command for nonexistent user leaves repo unchanged`() {
-        dispatch("/grantrole @nonexistentuser999 moderator")
-        // Only the two pre-registered members should exist
-        assertEquals(2, allMembers().size, "No extra member should be created for unknown user")
-    }
-
-    @Test
-    fun `grantrole command grants role to multiple comma-separated users`() {
-        registerMember(userId = 996L, username = "roletarget2", firstName = "RoleTarget2", role = MemberRole.MEMBER)
-        dispatch("/grantrole @roletarget,@roletarget2 moderator")
-        val target1 = runBlocking { memberService.getMemberChatByUserId(testChatId, 995L).getOrThrow() }
-        val target2 = runBlocking { memberService.getMemberChatByUserId(testChatId, 996L).getOrThrow() }
-        assertEquals(MemberRole.MODERATOR, target1.role, "Expected roletarget to have MODERATOR role")
-        assertEquals(MemberRole.MODERATOR, target2.role, "Expected roletarget2 to have MODERATOR role")
+        assertTrue(text.contains("roletarget"), "The confirmation must name the user whose role changed")
     }
 }

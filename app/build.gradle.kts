@@ -42,6 +42,8 @@ dependencies {
 
     // Tests
     testImplementation(libs.kotlin.test)
+    // koin-test provides verify() — the static DI-graph check in KoinModuleGraphTest (spovishun-156).
+    testImplementation(libs.koin.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.h2)
@@ -61,11 +63,6 @@ application {
     applicationName = "spovishun"
 }
 
-// Per-module detekt baseline (ADR-0001: each module carries its own accepted-debt baseline).
-detekt {
-    baseline = file("detekt-baseline.xml")
-}
-
 registerAppTasks()
 
 tasks.test {
@@ -81,6 +78,18 @@ val integrationTestSourceSet = sourceSets.create("integrationTest") {
 
 configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
+
+// ktor client + JSON serialization are used ONLY by AdminApiIntegrationTest, which drives the real
+// embedded CIO server over a real socket (spovishun-161). :admin-api itself is already on the compile
+// classpath (implementation → testImplementation → integrationTestImplementation); only a client is
+// missing, since :admin-api declares its ktor artifacts as `implementation` (runtime-only for :app).
+dependencies {
+    "integrationTestImplementation"(libs.ktor.client.core)
+    "integrationTestImplementation"(libs.ktor.client.cio)
+    "integrationTestImplementation"(libs.ktor.client.content.negotiation)
+    "integrationTestImplementation"(libs.ktor.serialization.kotlinx.json)
+    "integrationTestImplementation"(libs.kotlinx.serialization.json)
+}
 
 tasks.register<Test>("integrationTest") {
     description = "Runs integration tests"
@@ -124,7 +133,11 @@ tasks.register<Test>("e2eTest") {
     classpath = e2eTestSourceSet.runtimeClasspath
     useJUnitPlatform()
     maxParallelForks = 1
-    shouldRunAfter(tasks.named("integrationTest"))
+    // Hard ordering, not a preference: both tasks point at the same database and TestDatabaseFactory
+    // opens with flyway.clean(), which drops the schema. Under `shouldRunAfter` a combined invocation
+    // (./gradlew integrationTest e2eTest) let the two overlap and one wiped the schema out from under
+    // the other — "flyway_schema_history does not exist" (spovishun-160).
+    mustRunAfter(tasks.named("integrationTest"))
     // E2EConfig/E2EDbConfig read the root `.env.e2e` via dotenv from the JVM working directory; pin it
     // to the repo root so local runs find it (the task otherwise defaults to this subproject's dir).
     workingDir = rootProject.projectDir

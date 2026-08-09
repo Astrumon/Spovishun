@@ -26,11 +26,30 @@ Two tools with split responsibility — never overlapping:
 - **detekt** (`dev.detekt`, 2.0 alpha) owns **code structure/smells**: complexity, return count, magic
   numbers, generic catches. Shared config in `config/detekt/detekt.yml` (`buildUponDefaultConfig = true`),
   applied to every module by the `spovishun.kotlin-common` convention plugin. Pre-existing findings are
-  captured **per module** in `<module>/detekt-baseline.xml`; new code is held to the standard.
-  detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha supports Kotlin 2.3 /
-  Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once detekt 2.0 is stable.
+  captured in **per-source-set** baselines (`<module>/detekt-baseline-<sourceSet>.xml`); new code is
+  held to the standard. detekt runs **non-blocking** in CI (`continue-on-error`) while only a 2.0 alpha
+  supports Kotlin 2.3 / Gradle 9 — the stable 1.23.x line is incompatible. Promote to a hard gate once
+  detekt 2.0 is stable.
 
-Workflow: run `./gradlew ktlintFormat` before committing; regenerate a module's baseline with
+**Type resolution (spovishun-169) — do not "simplify" the `detekt` task back.** 93 detekt rules
+implement `RequiresAnalysisApi` and run only when the analysed sources carry a compile classpath.
+They include exactly the rules that encode this project's own style rules: `LongParameterList`,
+`InjectDispatcher`, `UnsafeCallOnNullableType` (`!!`), `SleepInsteadOfDelay`, `VarCouldBeVal`. The
+plugin's whole-project `detekt` task has no classpath and skipped all of them **silently**. The
+convention plugin therefore disables that task and makes `detekt` a lifecycle aggregate over the
+per-source-set `detekt<SourceSet>` tasks, which do have one; `detektBaseline` is aggregated the same
+way. Consequences: `./gradlew detekt` now compiles first (slower, and `:app` custom source sets
+`integrationTest`/`e2eTest` are finally analysed — they had been invisible since the module split),
+and each module owns one baseline per source set instead of a single `detekt-baseline.xml`. The
+`detekt<SourceSet>SourceSet` tasks are the classpath-less duplicates — never wire those in.
+
+Thresholds are aligned to the project's style rules rather than to the existing code
+(spovishun-169): `LongMethod` 30, `LongParameterList` 4/4. The enforced numbers and how they relate
+to the softer targets in the generated `kotlin-style.md` live in
+`.claude/rules/kotlin/spovishun-architecture.md` — `kotlin-style.md` itself is plugin-managed and
+must not be hand-edited.
+
+Workflow: run `./gradlew ktlintFormat` before committing; regenerate a module's baselines with
 `./gradlew :<module>:detektBaseline` only when intentionally accepting new debt (review the diff).
 
 ### Pre-commit hook (ktlint)
@@ -46,6 +65,25 @@ safe. The hook passes the staged files via `-PinternalKtlintGitFilter`; the `spo
 convention plugin reads that property and narrows each module's ktlint to just the staged files it owns.
 The `multiline-expression-wrapping` rule is disabled in `.editorconfig` (keeps `val x = call(…)`
 on one line); all other `ktlint_official` rules apply.
+
+## CI/CD & Build Cache
+Workflows in `.github/workflows/`: `ci.yml` (PR gate — parallel `lint` + `test` jobs), `e2e.yml`
+(real Telegram API + PostgreSQL), `cache-warmup.yml`, `deploy.yml`, `close-notion-task.yml`.
+Gate semantics: **`ktlintCheck` blocks the PR; `detekt` runs `continue-on-error`** (see Linting).
+
+`gradle.properties` enables `org.gradle.parallel`, `org.gradle.caching`, and
+`org.gradle.configuration-cache` — all three verified against every task set this project runs.
+
+**Cache topology (spovishun-159) — do not "fix" the read-only setting.** `gradle/actions/setup-gradle`
+only writes the Gradle User Home cache from the default branch; on a `pull_request` event
+`github.ref` is `refs/pull/N/merge`, so it goes read-only. `cache-warmup.yml` is therefore the sole
+writer: it runs on `push` to `develop` (and on `workflow_dispatch`, which is how warm-cache timings
+are measured on a feature branch before merge) and seeds compile + lint cache entries. `ci.yml` and
+`e2e.yml` are read-only consumers on PR events. Letting PR runs write would not help — a PR cache is
+scoped to its own merge ref — and would evict the shared `develop` cache.
+Configuration-cache entries are only persisted when `cache-encryption-key` is passed; the repo
+secret `GRADLE_ENCRYPTION_KEY` supplies it. Without the secret the build still succeeds, it just
+stores no configuration cache.
 
 ## Source Structure
 Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :admin-api :app`).
@@ -78,10 +116,19 @@ See per-module `CLAUDE.md` files (`common/`, `domain/`, `data/`, `bot/`, `app/`)
 **ResultContainer** — own sealed class: `Success<T>(val data: T)` / `Failure(val exception: BaseException)`.
 Not related to Kotlin's `Result`. Services and repository interfaces return it.
 Chain with `.flatMap {}`, resolve with `.fold(onSuccess = {}, onFailure = {})`.
-Wrap DB calls with `ResultContainer.catching { }`.
+Wrap a throwing call with `ResultContainer.catching { }` — but never a DB call, which goes through
+`safeDbQuery { }` (below) and is already wrapped.
 
-**DB access** — always `safeDbQuery { }` (wraps `dbQuery {}` + `ResultContainer.catching`), never bare `transaction {}` or `ResultContainer.catching { dbQuery { } }` manually.
-`safeDbQuery` and `safeDbTransaction` live in `:data` `data/db/DatabaseFactory.kt`. Only `DatabaseFactory.kt` may use `Dispatchers.IO`.
+**DB access** — always `safeDbQuery { }`, never a bare `transaction {}` or a manual
+`withContext(Dispatchers.IO)` + `ResultContainer.catching` pair. It is the single entry point and
+lives in `:data` `data/db/DatabaseFactory.kt`: one function that does `withContext(Dispatchers.IO)`
++ `transaction {}` + `ResultContainer.catching`. There is deliberately no bare `dbQuery` sibling and
+no `safeDbTransaction` — the latter ran the transaction on the caller's dispatcher, parking the
+CPU-sized `Dispatchers.Default` pool on blocking JDBC (spovishun-173).
+No class may hardcode `Dispatchers.IO` — it appears in exactly two places: `DatabaseFactory.kt`, and the
+`BlockingTelegramDispatcher`-qualified binding in `:app` `di/ConfigModule.kt` that carries blocking
+Telegram API calls off the CPU-sized `Dispatchers.Default` pool (spovishun-119). Everything else injects
+a `CoroutineDispatcher`.
 
 **Command flow** — `Command` parses args → calls `Controller` → handles `CommandResponse` via `when` → sends to Telegram.
 Controllers return `CommandResponse` (never raw strings). Commands own emoji prefixes and final text assembly.
@@ -93,15 +140,33 @@ Never call a `Service` directly from a `Command`.
 **Profile DI** — single `repositoryModule` in `:app` `di/RepositoryModule.kt` binds all 5 repositories to `:data` `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, self-hosted PostgreSQL 16 in docker-compose for prod). All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
-All test source sets live in `:app` (`test`, `integrationTest`, `e2eTest`); `:data` additionally
-unit-tests repositories against H2.
+**A unit test lives in the module of the code it covers** — every one of the six modules has its own
+`src/test`, and `./gradlew test` runs all of them. `:app` additionally owns the two cross-module
+source sets, `integrationTest` and `e2eTest` (registered in `app/build.gradle.kts`), because only the
+composition root can see every layer at once.
+
+| Module | What its `src/test` covers |
+|---|---|
+| `:common` | `ResultContainer` (incl. `catching`), `ResultExtensions`, HTML escaping, `UsernameInputSanitizer`, `EmojiValidator` |
+| `:domain` | services with `mockk<*Repository>()`; `BirthDate` |
+| `:data` | `*RepositoryImpl` against H2 (`H2TestDatabaseFactory`), mappers, the `release_notes.json` key contract |
+| `:bot` | commands, controllers with `mockk<*Service>()`, callback handlers, schedulers, formatters — **the largest unit suite in the project**; fixtures `TestMessages.kt` + `CallbackUpdateFactory.kt` |
+| `:admin-api` | Ktor routes via `testApplication` with mocked `DockerApiClient`/`ServerHealthRepository`; Docker response mapping |
+| `:app` | `AppConfig`, `KoinModuleGraphTest`, the logback chat-context pattern, and the shared `TestDatabaseFactory`/`TestDatabaseCleaner` that `integrationTest` and `e2eTest` both reuse |
+
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
   Use `runTest {}`, `coEvery`/`coVerify`, `clearAllMocks()` in `@BeforeTest`. `:data` repository unit
   tests run against H2 (`H2TestDatabaseFactory`, PostgreSQL-compatibility mode) — there are no MockImpl repos.
 - **Integration** — extend `BaseIntegrationTest`: real services/commands over a **real PostgreSQL**;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips via `assumeTrue` when `E2E_DATABASE_URL` is unset.
-- **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `TEST_ADMINS`, `E2E_DATABASE_URL`.
-- Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
+- **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `E2E_DATABASE_URL`. Reserved for assertions only Telegram can answer — HTML parse mode, message limits, inline keyboards, mention entities, `getChatMember` (spovishun-160); anything else belongs in `integrationTest`.
+- Rules and traps for both cross-module source sets live in `app/CLAUDE.md` — read it before adding
+  an integration or e2e test rather than re-deriving them here.
+- Do NOT unit test: Koin modules, `DatabaseFactory`, `TelegramBot`'s polling loop, or `MessageHandler`'s
+  framework wiring. Three tests are sanctioned exceptions, each covering logic rather than the
+  framework: `KoinModuleGraphTest` (static `verify()` of the graph, nothing instantiated —
+  spovishun-156), `MessageHandlerTest` (chat-access gating and MDC propagation) and
+  `TelegramBotIdentityTest` (the pure `verifyIdentity` predicate).
 
 ## Skills Source (generated — do not hand-edit)
 The contents of `.claude/` (skills, agents, rules, hooks, `_templates/`, `scripts/notion/`,
@@ -115,18 +180,29 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
   picker filters to the Sprint stage (`notion.picker.stage_filter: "Sprint"`); `create-task.js`
   defaults new tasks to `Stage: Backlog`. The board DB id lives in config (`notion.database_id`);
   `.claude/scripts/notion/lib/constants.js` resolves it at runtime (env var → config, not hard-coded).
-- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.4.0`) then
+- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.21.0`) then
   `npx spovishun-skills install --target=claude` (or `npx spovishun-skills sync` to re-apply with the
   existing config + lockfile). State is tracked in `spovishun-skills.lock.yaml` (committed).
 - **Validate:** export `NOTION_TOKEN` from `.env`, then `npx spovishun-skills doctor` → expect 0 errors.
+  Since plugin 1.17.0 rules are lockfile artifacts too (`kind: rule`), so `doctor` covers
+  `.claude/rules/` — a missing or drifted rule is now reported instead of passing unseen.
 - **Project-owned (NOT plugin-managed), survive re-installs:**
   - `.claude/rules/kotlin/spovishun-architecture.md` — Spovishun concretions (`ResultContainer`,
     `safeDbQuery`/Exposed, Koin) that the generic installed `kotlin-style.md` omits.
+  - `.claude/skills/release/` + `.claude/skills/hotfix/` — the GitFlow release/hotfix automation
+    (`/release <version>`, `/hotfix <version>`, spovishun-80). No `x-spovishun` frontmatter key,
+    not in the lockfile — the plugin never generates, overwrites, or prunes them.
   - `.claude/scripts/notion/tests/` + `TEST-RESULTS.md` — the Notion CLI test suite (migrated from the
     old root `scripts/notion/`). The scripts themselves are now plugin-managed; only these tests are
     project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
     (a bare directory arg fails on Node ≥ 22, which tries to load the dir as a module). Integration
     tests skip themselves unless `NOTION_TOKEN` is set.
+  - `.claude/rules/common/testing.md` — **unmanaged since the 1.21.0 sync**, not by choice: the
+    plugin's 1.18.0 render added a KMP disclaimer, so the on-disk 1.12.0 body matched neither the
+    locked checksum nor the current render and was classified owner-authored. It has no `kind: rule`
+    lock entry, `doctor` does not see it, and plugin updates to it will not land. Kept deliberately —
+    the newer text points at `kmp/testing.md`, which is gated off for this project. Re-adopt by
+    overwriting it with the plugin render and re-running `sync`.
   - Per-module `common|domain|data|bot|app/CLAUDE.md` (at each module root) and gitignored local state
     (`settings.local.json`, `session-state.json`, learnings queue, `.claude/tmp/`).
 

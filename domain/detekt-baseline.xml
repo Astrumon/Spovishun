@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<SmellBaseline>
-  <ManuallySuppressedIssues/>
-  <CurrentIssues>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$100</ID>
-    <ID>MagicNumber:BirthDate.kt:BirthDate$12</ID>
-  </CurrentIssues>
-</SmellBaseline>

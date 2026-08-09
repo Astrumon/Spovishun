@@ -11,7 +11,6 @@ import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.model.MemberChat
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.MemberWithChat
-import com.ua.astrumon.domain.bot.service.AutoRegisterService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.GroupWithMembers
 import com.ua.astrumon.domain.bot.service.MemberService
@@ -22,6 +21,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import presentation.testMessagesProvider
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -29,22 +29,18 @@ import kotlin.test.assertTrue
 class GroupControllerTest {
     private val groupService: GroupService = mockk()
     private val memberService: MemberService = mockk()
-    private val autoRegisterService: AutoRegisterService = mockk()
     private lateinit var groupController: GroupController
 
     private val chatId = 123L
     private val userId = 456L
     private val username = "alice"
     private val firstName = "Alice"
-    private val adminMember = Member(1L, userId, username, firstName)
     private val adminMemberWithChat = MemberWithChat(1L, userId, username, firstName, MemberRole.ADMIN, null)
 
     @BeforeTest
     fun setup() {
         clearAllMocks()
-        groupController = GroupController(groupService, memberService, autoRegisterService)
-        coEvery { autoRegisterService.ensureUserRegistered(any(), any(), any(), any(), any()) } returns
-            ResultContainer.success(adminMemberWithChat)
+        groupController = GroupController(groupService, memberService, testMessagesProvider())
         coEvery { memberService.hasModeratorAccess(chatId, userId) } returns true
         coEvery { memberService.hasAdminAccess(chatId, userId) } returns true
     }
@@ -64,7 +60,7 @@ class GroupControllerTest {
         coEvery { memberService.getMemberWithChatByUsername(chatId, "bob") } returns ResultContainer.success(moderatorWithChat)
         coEvery { memberService.getMemberWithChatByUsername(chatId, "charlie") } returns ResultContainer.success(regularWithChat)
 
-        val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
+        val result = groupController.getGroups(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Групи:"))
@@ -75,6 +71,21 @@ class GroupControllerTest {
     }
 
     @Test
+    fun `getGroups should prefix a group with its icon`() = runTest {
+        val groups = listOf(
+            GroupWithMembers(1L, chatId, "devs", "devs", emptyList(), icon = "🔥"),
+            GroupWithMembers(2L, chatId, "qa", "qa", emptyList()),
+        )
+        coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
+
+        val result = groupController.getGroups(chatId)
+
+        assertTrue(result is CommandResponse.Success)
+        assertTrue(result.message.contains("🔥 devs"))
+        assertTrue(result.message.contains("<b>qa</b>"))
+    }
+
+    @Test
     fun `getGroups should handle member lookup failure gracefully`() = runTest {
         val groups = listOf(GroupWithMembers(1L, chatId, "devs", "devs", listOf("unknown")))
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(groups)
@@ -82,7 +93,7 @@ class GroupControllerTest {
             ResourceNotFoundException("Member", "unknown"),
         )
 
-        val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
+        val result = groupController.getGroups(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("@unknown"))
@@ -92,7 +103,7 @@ class GroupControllerTest {
     fun `getGroups should return success with empty message when no groups`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.success(emptyList())
 
-        val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
+        val result = groupController.getGroups(chatId)
 
         assertTrue(result is CommandResponse.Success)
         assertTrue(result.message.contains("Немає груп"))
@@ -102,7 +113,7 @@ class GroupControllerTest {
     fun `getGroups should return error on service failure`() = runTest {
         coEvery { groupService.getAllGroupsWithMembers(chatId) } returns ResultContainer.failure(DatabaseException("Connection lost"))
 
-        val result = groupController.getGroups(chatId, adminMember, MemberRole.ADMIN)
+        val result = groupController.getGroups(chatId)
 
         assertTrue(result is CommandResponse.Error)
     }
