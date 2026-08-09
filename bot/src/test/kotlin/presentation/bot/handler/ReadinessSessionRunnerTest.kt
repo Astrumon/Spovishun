@@ -75,9 +75,16 @@ class ReadinessSessionRunnerTest {
         chat = Chat(id = chatId, type = "group"),
     )
 
+    /**
+     * Opens the poll on behalf of someone outside the roster by default, so every case that predates
+     * the initiator auto-vote (spovishun-183) still starts from an empty tally.
+     */
+    private fun startPoll(initiatorId: Long = OUTSIDER_ID) =
+        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members), initiatorId)
+
     @Test
     fun `should publish the poll with a keyboard and register the session`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
 
         assertTrue(runner.isLive(key))
         verify(exactly = 1) {
@@ -90,13 +97,59 @@ class ReadinessSessionRunnerTest {
         }
     }
 
+    /**
+     * The initiator's 👍 must be part of the opening message, not an edit that follows it — an edit
+     * would spend a rate-limit slot to say what the first render could have said itself.
+     */
+    @Test
+    fun `should count an initiator who is a member as ready in the first render`() = runTest(dispatcher) {
+        startPoll(initiatorId = alice.userId)
+
+        assertEquals(ReadinessVote.ACCEPTED, store.get(key)?.votes?.get(alice.userId))
+        verify(exactly = 1) {
+            bot.sendMessage(
+                chatId = ChatId.fromId(chatId),
+                text = match { it.contains("👍 @alice") && it.contains("⏳ @bob") },
+                parseMode = ParseMode.HTML,
+                replyMarkup = any<InlineKeyboardMarkup>(),
+            )
+        }
+        verify(exactly = 0) { bot.editMessageText(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `should not vote for an initiator who is not a member`() = runTest(dispatcher) {
+        startPoll(initiatorId = OUTSIDER_ID)
+
+        assertEquals(emptyMap(), store.get(key)?.votes)
+        // Asserted on the rendered roster too, not only on the tally it is derived from: the promise
+        // this case carries is about what the chat sees.
+        verify(exactly = 1) {
+            bot.sendMessage(
+                chatId = ChatId.fromId(chatId),
+                text = match { it.contains("⏳ @alice") && it.contains("⏳ @bob") },
+                parseMode = ParseMode.HTML,
+                replyMarkup = any<InlineKeyboardMarkup>(),
+            )
+        }
+    }
+
+    @Test
+    fun `should let the initiator overrule their automatic vote`() = runTest(dispatcher) {
+        startPoll(initiatorId = alice.userId)
+
+        runner.onVote(bot, key, alice.userId, ReadinessVote.DECLINED)
+
+        assertEquals(ReadinessVote.DECLINED, store.get(key)?.votes?.get(alice.userId))
+    }
+
     @Test
     fun `should not register a session when Telegram returns no message`() = runTest(dispatcher) {
         every {
             bot.sendMessage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         } returns TelegramBotResult.Error.Unknown(IllegalStateException("boom"))
 
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
 
         assertFalse(runner.isLive(key))
     }
@@ -117,7 +170,7 @@ class ReadinessSessionRunnerTest {
         }
 
         withChatLogContext(chatId, "supergroup") {
-            runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+            startPoll()
             runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
         }
         advanceUntilIdle()
@@ -129,7 +182,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should coalesce a burst of votes into a single edit`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
 
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
         runner.onVote(bot, key, bob.userId, ReadinessVote.DECLINED)
@@ -140,7 +193,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should reject a vote from someone who was not invited`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
 
         val render = runner.onVote(bot, key, OUTSIDER_ID, ReadinessVote.ACCEPTED)
         advanceTimeBy(COALESCE_WINDOW + ONE_TICK)
@@ -151,7 +204,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should freeze the poll without a keyboard once the TTL expires`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
 
         advanceUntilIdle()
@@ -175,7 +228,7 @@ class ReadinessSessionRunnerTest {
      */
     @Test
     fun `should write the summary after any pending re-render`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
 
         advanceUntilIdle()
@@ -188,7 +241,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should ignore a vote arriving after the poll was finalized`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
         advanceUntilIdle()
 
         val render = runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
@@ -198,7 +251,7 @@ class ReadinessSessionRunnerTest {
 
     @Test
     fun `should keep the last vote of a member who changes their mind`() = runTest(dispatcher) {
-        runner.start(bot, chatId, ReadinessSession(ukMessages, "header", members))
+        startPoll()
 
         runner.onVote(bot, key, alice.userId, ReadinessVote.ACCEPTED)
         runner.onVote(bot, key, alice.userId, ReadinessVote.DECLINED)

@@ -22,14 +22,29 @@ object GroupSettingsPresenter {
         key: String,
         patch: GroupSettingsPatch,
         messages: BotMessages,
-    ): String {
+    ): String = (listOf(messages.group.settings.updatedHeader(key.escapeHtml())) + changedRows(patch, messages)).joinToString("\n")
+
+    /**
+     * `/newgroup` with parameters answers with what it created *and* what it set (spovishun-182) —
+     * the same rows `/editg` would have shown for the second call the user no longer has to make.
+     */
+    fun created(
+        createdMessage: String,
+        patch: GroupSettingsPatch,
+        messages: BotMessages,
+    ): String = (listOf(createdMessage) + changedRows(patch, messages)).joinToString("\n")
+
+    /** One row per field the patch actually states — an untouched field has nothing to report. */
+    private fun changedRows(
+        patch: GroupSettingsPatch,
+        messages: BotMessages,
+    ): List<String> {
         val settings = messages.group.settings
-        val rows = buildList {
+        return buildList {
             (patch.name as? Patch.Value)?.let { add(settings.item(settings.paramName, it.value.escapeHtml())) }
             (patch.icon as? Patch.Value)?.let { add(settings.item(settings.paramIcon, icon(it.value, messages))) }
             (patch.pingMark as? Patch.Value)?.let { add(settings.item(settings.paramMark, mark(it.value, messages))) }
         }
-        return (listOf(settings.updatedHeader(key.escapeHtml())) + rows).joinToString("\n")
     }
 
     fun listing(

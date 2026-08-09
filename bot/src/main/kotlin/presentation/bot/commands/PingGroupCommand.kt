@@ -30,11 +30,7 @@ class PingGroupCommand(
         val messages = messagesProvider.forChat(chatId)
 
         if (args.isEmpty()) {
-            bot.sendPicker(
-                chatId,
-                pingController.groupsForPicker(chatId),
-                PickerCopy(messages, messages.ping.menuPrompt, messages.ping.noGroups),
-            ) { "${PingCallback.PREFIX}${it.id}" }
+            sendGroupPicker(bot, chatId, messages)
             return
         }
 
@@ -55,8 +51,22 @@ class PingGroupCommand(
                 bot,
                 chatId,
                 ReadinessSession(messages, outcome.header, outcome.members),
+                initiatorId = userId,
             )
         }
+    }
+
+    /** `/ping` with no arguments asks which group — the answer arrives as a `ping:{groupId}` tap. */
+    private suspend fun sendGroupPicker(
+        bot: Bot,
+        chatId: Long,
+        messages: BotMessages,
+    ) {
+        bot.sendPicker(
+            chatId,
+            pingController.groupsForPicker(chatId),
+            PickerCopy(messages, messages.ping.menuPrompt, messages.ping.noGroups),
+        ) { "${PingCallback.PREFIX}${it.id}" }
     }
 
     private fun groupNotFoundText(

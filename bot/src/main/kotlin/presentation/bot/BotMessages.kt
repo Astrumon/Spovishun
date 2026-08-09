@@ -202,6 +202,9 @@ class BotMessages private constructor(
         val markInvalid: String get() = get("group.mark_invalid")
         val nameInvalid: String get() = get("group.name_invalid")
 
+        /** `/newgroup` takes the name positionally, so `$name=` there is a second name (spovishun-182). */
+        val nameParamNotAllowed: String get() = get("group.name_param_not_allowed")
+
         fun rolesGranted(
             usersJoined: String,
             roleName: String,

@@ -4,6 +4,7 @@ import com.ua.astrumon.common.exception.DuplicateResourceException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.util.UsernameInputSanitizer
 import com.ua.astrumon.common.util.escapeHtml
+import com.ua.astrumon.domain.bot.model.GroupSettingsPatch
 import com.ua.astrumon.domain.bot.model.MemberRole
 import com.ua.astrumon.domain.bot.model.badge
 import com.ua.astrumon.domain.bot.service.GroupService
@@ -61,6 +62,13 @@ class GroupController(
         return messages.group.listItem(group.displayLabelHtml(), group.key.escapeHtml(), names.joinToString(", "))
     }
 
+    /**
+     * `/newgroup <name> [$icon=… $mark=…]` — creates the group and, in the same transaction, the
+     * settings the same parameters set in `/editg` (spovishun-182).
+     *
+     * Nothing is created until every parameter has validated: a rejected token leaves the chat
+     * exactly as it was, so the user retypes one command rather than deleting a half-configured group.
+     */
     suspend fun createGroup(
         chatId: Long,
         userId: Long,
@@ -69,15 +77,23 @@ class GroupController(
         requireModeratorAccess(chatId, userId)?.let { return it }
 
         val messages = messagesProvider.forChat(chatId)
-        if (args.isEmpty()) {
+        // A name starting with `$` would be read back as a parameter by every later command, so
+        // `/newgroup $icon=🔥` is a missing name rather than a group called "$icon=🔥".
+        if (args.isEmpty() || args[0].startsWith(GroupParam.PREFIX)) {
             return CommandResponse.Error(messages.group.usageNew)
         }
 
         val name = args[0].lowercase()
+        val settings = when (val built = settingsFor(args.drop(1), messages)) {
+            is CreateSettings.Rejected -> return built.response
+            is CreateSettings.Ready -> built.patch
+        }
 
-        return groupService.createGroup(chatId, name).fold(
+        return groupService.createGroup(chatId, name, settings).fold(
             onSuccess = {
-                CommandResponse.Success(messages.group.created(name.escapeHtml()))
+                CommandResponse.Success(
+                    GroupSettingsPresenter.created(messages.group.created(name.escapeHtml()), settings, messages),
+                )
             },
             onFailure = { exception ->
                 when (exception) {
@@ -86,6 +102,43 @@ class GroupController(
                 }
             },
         )
+    }
+
+    /** The tokens after the positional name, as a patch — or the reply saying why they are not one. */
+    private fun settingsFor(
+        tokens: List<String>,
+        messages: BotMessages,
+    ): CreateSettings = when (val parsed = GroupParamParser.parse(tokens)) {
+        // No parameters is the pre-spovishun-182 call: create the group, touch no setting.
+        is GroupParamParseResult.Show -> CreateSettings.Ready(GroupSettingsPatch())
+        is GroupParamParseResult.Failure ->
+            CreateSettings.Rejected(CommandResponse.Error(GroupSettingsPresenter.parseFailure(parsed, messages)))
+        is GroupParamParseResult.Edit -> fromValues(parsed.values, messages)
+    }
+
+    private fun fromValues(
+        values: Map<GroupParam, String>,
+        messages: BotMessages,
+    ): CreateSettings {
+        // `$name` is a real parameter, just not this command's: here the name already arrived as the
+        // positional argument, so accepting it would mean two names and no rule for which one wins.
+        if (values.containsKey(GroupParam.NAME)) {
+            return CreateSettings.Rejected(CommandResponse.Error(messages.group.nameParamNotAllowed))
+        }
+        return when (val built = GroupParamPatchBuilder.build(values, messages)) {
+            is PatchResult.Invalid -> CreateSettings.Rejected(CommandResponse.Error(built.message))
+            is PatchResult.Built -> CreateSettings.Ready(built.patch)
+        }
+    }
+
+    private sealed interface CreateSettings {
+        data class Ready(
+            val patch: GroupSettingsPatch,
+        ) : CreateSettings
+
+        data class Rejected(
+            val response: CommandResponse,
+        ) : CreateSettings
     }
 
     suspend fun deleteGroup(
