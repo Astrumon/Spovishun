@@ -9,19 +9,21 @@ import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.GroupService
 import com.ua.astrumon.domain.bot.service.MemberService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import java.time.Clock
 import java.time.ZoneId
 
 internal val serviceModule = module {
-    single { UserCache() }
-    single { ChatCache() }
-    single { MemberService(get(), get()) }
-    single { GroupService(get(), get()) }
-    single { ChatService(get()) }
-    single { AutoRegisterService(get(), get(), get(), get()) }
-    single { BirthdayService(get(), get(), get()) }
+    singleOf(::UserCache)
+    singleOf(::ChatCache)
+    singleOf(::MemberService)
+    singleOf(::GroupService)
+    singleOf(::ChatService)
+    singleOf(::AutoRegisterService)
+    singleOf(::BirthdayService)
+    // Explicit lambda: a factory call with a literal argument, not a constructor reference.
     single<Clock> { Clock.system(ZoneId.of("Europe/Kyiv")) }
-    single { ReleaseNotesService(get()) }
-    single { BotMetaService(get()) }
+    singleOf(::ReleaseNotesService)
+    singleOf(::BotMetaService)
 }

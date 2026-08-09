@@ -47,66 +47,76 @@ import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import com.ua.astrumon.presentation.scheduler.ReleaseAnnouncer
 import com.ua.astrumon.presentation.util.BotAdminUtils
 import com.ua.astrumon.presentation.util.MemberAutoRegistrar
+import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+/**
+ * Bindings use the constructor DSL (`singleOf(::X)`), which resolves parameters by type rather than
+ * by position (spovishun-176). A chain of untyped `get()` is only kept where `singleOf` cannot
+ * express the resolution — a parameter qualifier or a `getAll()` collection — and each such binding
+ * says why below.
+ */
 internal val presentationModule = module {
     // Localized copy — every controller, command and handler resolves its bundle through this.
-    single { BotMessagesProvider(get()) }
+    singleOf(::BotMessagesProvider)
 
     // Controllers
-    single { GroupController(get(), get(), get()) }
-    single { GroupPickerController(get(), get(), get()) }
-    single { GroupSettingsController(get(), get(), get()) }
-    single { MembersController(get(), get()) }
-    single { RegistrationController(get(), get(), get()) }
-    single { PingController(get(), get(), get(), get()) }
-    single { BirthdayController(get(), get(), get()) }
-    single { WhatsNewController(get(), get(), get(), get()) }
-    single { RandomController(get(), get(), get()) }
-    single { LanguageController(get(), get(), get()) }
+    singleOf(::GroupController)
+    singleOf(::GroupPickerController)
+    singleOf(::GroupSettingsController)
+    singleOf(::MembersController)
+    singleOf(::RegistrationController)
+    singleOf(::PingController)
+    singleOf(::BirthdayController)
+    singleOf(::WhatsNewController)
+    singleOf(::RandomController)
+    singleOf(::LanguageController)
 
     // Commands
-    single { StartCommand(get(), get()) } bind BotCommand::class
-    single { RegisterCommand(get(), get(), get()) } bind BotCommand::class
-    single { MembersCommand(get(), get()) } bind BotCommand::class
-    single { GrantRoleCommand(get(), get(), get()) } bind BotCommand::class
-    single { PingAllCommand(get(), get(), get()) } bind BotCommand::class
-    single { PingGroupCommand(get(), get(), get()) } bind BotCommand::class
-    single { ShowGroupsCommand(get(), get()) } bind BotCommand::class
-    single { NewGroupCommand(get(), get()) } bind BotCommand::class
-    single { DeleteGroupCommand(get(), get(), get()) } bind BotCommand::class
-    single { EditGroupCommand(get(), get()) } bind BotCommand::class
-    single { AddUserToGroupCommand(get(), get(), get()) } bind BotCommand::class
-    single { RemoveUserFromGroupCommand(get(), get(), get()) } bind BotCommand::class
-    single { BirthdayCommand(get(), get()) } bind BotCommand::class
-    single { WhatsNewCommand(get(), get()) } bind BotCommand::class
-    single { RandomCommand(get(), get()) } bind BotCommand::class
-    single { LanguageCommand(get(), get()) } bind BotCommand::class
+    singleOf(::StartCommand) bind BotCommand::class
+    singleOf(::RegisterCommand) bind BotCommand::class
+    singleOf(::MembersCommand) bind BotCommand::class
+    singleOf(::GrantRoleCommand) bind BotCommand::class
+    singleOf(::PingAllCommand) bind BotCommand::class
+    singleOf(::PingGroupCommand) bind BotCommand::class
+    singleOf(::ShowGroupsCommand) bind BotCommand::class
+    singleOf(::NewGroupCommand) bind BotCommand::class
+    singleOf(::DeleteGroupCommand) bind BotCommand::class
+    singleOf(::EditGroupCommand) bind BotCommand::class
+    singleOf(::AddUserToGroupCommand) bind BotCommand::class
+    singleOf(::RemoveUserFromGroupCommand) bind BotCommand::class
+    singleOf(::BirthdayCommand) bind BotCommand::class
+    singleOf(::WhatsNewCommand) bind BotCommand::class
+    singleOf(::RandomCommand) bind BotCommand::class
+    singleOf(::LanguageCommand) bind BotCommand::class
 
-    // Schedulers — the qualified scopes they run on are declared in ConfigModule.
+    // Schedulers — explicit lambdas: each takes a qualified CoroutineScope declared in ConfigModule,
+    // and singleOf cannot express a parameter qualifier.
     single { BirthdayGreetingScheduler(get(), get(), get(named<BirthdaySchedulerScope>()), get()) }
     single { ReleaseAnnouncer(get(), get(), get(), get(named<ReleaseAnnouncerScope>())) }
 
-    // Bot components
+    // Bot components — explicit lambda: getAll() is collection injection, not a constructor resolve.
     single { CommandRegistry(getAll(), get()) }
 
-    // Readiness polls — the scope they re-render and expire on is declared in ConfigModule.
-    single { ReadinessSessionStore() }
+    // Readiness polls — the runner stays explicit for the same reason as the schedulers: the scope it
+    // re-renders and expires on is qualified.
+    singleOf(::ReadinessSessionStore)
     single { ReadinessSessionRunner(get(), get(named<ReadinessScope>()), get()) }
-    single { ReadinessCallbackHandler(get()) } bind CallbackHandler::class
+    singleOf(::ReadinessCallbackHandler) bind CallbackHandler::class
 
-    single { PingCallbackHandler(get(), get()) } bind CallbackHandler::class
-    single { DeleteGroupCallbackHandler(get()) } bind CallbackHandler::class
-    single { AddToGroupCallbackHandler(get()) } bind CallbackHandler::class
-    single { RemoveFromGroupCallbackHandler(get()) } bind CallbackHandler::class
-    single { GrantRoleCallbackHandler(get()) } bind CallbackHandler::class
-    single { RandomCallbackHandler(get()) } bind CallbackHandler::class
-    single { LanguageCallbackHandler(get(), get()) } bind CallbackHandler::class
+    singleOf(::PingCallbackHandler) bind CallbackHandler::class
+    singleOf(::DeleteGroupCallbackHandler) bind CallbackHandler::class
+    singleOf(::AddToGroupCallbackHandler) bind CallbackHandler::class
+    singleOf(::RemoveFromGroupCallbackHandler) bind CallbackHandler::class
+    singleOf(::GrantRoleCallbackHandler) bind CallbackHandler::class
+    singleOf(::RandomCallbackHandler) bind CallbackHandler::class
+    singleOf(::LanguageCallbackHandler) bind CallbackHandler::class
+    // Explicit lambda: getAll() collects every CallbackHandler bound above.
     single { CallbackRouter(getAll(), get(), get()) }
-    single { TelegramBot(get(), get(), get(), get()) }
-    single { MessageHandler(get(), get()) }
-    single { BotAdminUtils() }
-    single { MemberAutoRegistrar(get(), get()) }
+    singleOf(::TelegramBot)
+    singleOf(::MessageHandler)
+    singleOf(::BotAdminUtils)
+    singleOf(::MemberAutoRegistrar)
 }
