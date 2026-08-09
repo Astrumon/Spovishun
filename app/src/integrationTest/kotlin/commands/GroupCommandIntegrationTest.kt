@@ -3,11 +3,14 @@ package commands
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.ua.astrumon.domain.bot.model.MemberRole
+import com.ua.astrumon.domain.bot.model.PingMark
 import infrastructure.BaseIntegrationTest
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class GroupCommandIntegrationTest : BaseIntegrationTest() {
     @Test
@@ -75,6 +78,51 @@ class GroupCommandIntegrationTest : BaseIntegrationTest() {
         }
         val groups = groupService.getAllGroupsWithMembers(testChatId).getOrThrow()
         assert(groups.any { it.name == "devs" })
+    }
+
+    /**
+     * The whole point of spovishun-182: one command leaves both the group and its settings row in
+     * the state `/editg` would have produced with a second call.
+     */
+    @Test
+    fun `newgroup should create the group and its settings in one call`() = runTest {
+        registerMember(role = MemberRole.MODERATOR)
+
+        dispatch(newGroupCommand, buildUpdate("/newgroup devs \$icon=🔥 \$mark=🦀"))
+
+        val group = groupService.getGroupByKey(testChatId, "devs").getOrThrow()
+        assertEquals("🔥", group.icon)
+        assertEquals(PingMark.Custom("🦀"), group.pingMark)
+    }
+
+    @Test
+    fun `newgroup should hide the ping mark when mark is off`() = runTest {
+        registerMember(role = MemberRole.MODERATOR)
+
+        dispatch(newGroupCommand, buildUpdate("/newgroup devs \$mark=off"))
+
+        assertEquals(PingMark.Hidden, groupService.getGroupByKey(testChatId, "devs").getOrThrow().pingMark)
+    }
+
+    @Test
+    fun `newgroup without parameters should leave the settings at their defaults`() = runTest {
+        registerMember(role = MemberRole.MODERATOR)
+
+        dispatch(newGroupCommand, buildUpdate("/newgroup devs"))
+
+        val group = groupService.getGroupByKey(testChatId, "devs").getOrThrow()
+        assertNull(group.icon)
+        assertEquals(PingMark.Default, group.pingMark)
+    }
+
+    /** A rejected parameter must cost the user a retype, not a `/delgroup` — nothing is written. */
+    @Test
+    fun `newgroup with an invalid parameter should create nothing`() = runTest {
+        registerMember(role = MemberRole.MODERATOR)
+
+        dispatch(newGroupCommand, buildUpdate("/newgroup devs \$icon=abc"))
+
+        assertTrue(groupService.getAllGroupsWithMembers(testChatId).getOrThrow().isEmpty())
     }
 
     /**

@@ -17,9 +17,17 @@ interface GroupRepository {
         groupId: Long,
     ): ResultContainer<Group>
 
+    /**
+     * Creates the group and stores [settings] in the same transaction (spovishun-182).
+     *
+     * The settings are a parameter rather than a follow-up `updateGroup` call because a group that
+     * exists with the wrong parameters is a state `/newgroup` must never be able to produce: the two
+     * writes fail together or land together.
+     */
     suspend fun createGroup(
         chatId: Long,
         name: String,
+        settings: GroupSettingsPatch = GroupSettingsPatch(),
     ): ResultContainer<Group>
 
     suspend fun deleteGroup(
