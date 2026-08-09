@@ -1,7 +1,7 @@
 # :app
 
 Composition root and application entry point. The only module that depends on all others
-(`:common`, `:domain`, `:data`, `:bot`) and wires them together. Applies the `application` plugin
+(`:common`, `:domain`, `:data`, `:bot`, `:admin-api`) and wires them together. Applies the `application` plugin
 (dist name `spovishun`, `mainClass = com.ua.astrumon.MainKt`).
 
 Packages: `config/` (`AppConfig` — env bindings via dotenv), `di/` (Koin modules).

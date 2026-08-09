@@ -89,7 +89,8 @@ stores no configuration cache.
 Gradle multi-module build (`settings.gradle.kts` includes `:common :domain :data :bot :admin-api :app`).
 Shared config lives in `buildSrc` convention plugins (`spovishun.kotlin-common`,
 `spovishun.kotlin-library`); the root `build.gradle.kts` is a pure aggregator (single-sources `version`,
-lints its own scripts). Each module owns its `detekt-baseline.xml` and a `CLAUDE.md`.
+lints its own scripts). Each module owns a `CLAUDE.md` and one `detekt-baseline-<sourceSet>.xml`
+per source set (see Linting) — never a single `detekt-baseline.xml`.
 
 ```
 :common  — pure Kotlin, framework-free: result/ (ResultContainer), exception/, extension/, util/
@@ -203,7 +204,7 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
     lock entry, `doctor` does not see it, and plugin updates to it will not land. Kept deliberately —
     the newer text points at `kmp/testing.md`, which is gated off for this project. Re-adopt by
     overwriting it with the plugin render and re-running `sync`.
-  - Per-module `common|domain|data|bot|app/CLAUDE.md` (at each module root) and gitignored local state
+  - Per-module `common|domain|data|bot|admin-api|app/CLAUDE.md` (at each module root) and gitignored local state
     (`settings.local.json`, `session-state.json`, learnings queue, `.claude/tmp/`).
 
 ## Agent Workflow

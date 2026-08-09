@@ -161,6 +161,8 @@ chat type only; never a username, user id, or message body.
 ## Adding a new command
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)
 2. Create `controller/{Entity}Controller.kt` (if new domain area)
-3. Register in `:app` `di/PresentationModule.kt`: `single { NameCommand(get()) } bind BotCommand::class`
+3. Register in `:app` `di/PresentationModule.kt`: `singleOf(::NameCommand) bind BotCommand::class`
+   (constructor DSL — spovishun-176; an explicit `single { … }` lambda only where the DSL cannot
+   express the resolution, and it says why inline)
 4. Done — `TelegramBot` picks it up automatically via `CommandRegistry`, which also gives it the chat
    log context and caller auto-registration. Do not add either by hand.
