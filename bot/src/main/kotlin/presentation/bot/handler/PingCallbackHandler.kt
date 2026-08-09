@@ -55,7 +55,12 @@ class PingCallbackHandler(
         // The poll needs its own message to edit in place, so the picker prompt is dropped first.
         is PingOutcome.Readiness -> {
             runCatching { bot.deleteMessage(chatId = ChatId.fromId(ctx.chatId), messageId = ctx.messageId) }
-            readinessSessionRunner.start(bot, ctx.chatId, ReadinessSession(messages, outcome.header, outcome.members))
+            readinessSessionRunner.start(
+                bot,
+                ctx.chatId,
+                ReadinessSession(messages, outcome.header, outcome.members),
+                initiatorId = ctx.clicker.id,
+            )
         }
     }
 }

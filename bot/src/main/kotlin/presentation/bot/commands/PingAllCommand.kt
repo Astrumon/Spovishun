@@ -40,6 +40,7 @@ class PingAllCommand(
                 bot,
                 chatId,
                 ReadinessSession(messages, outcome.header, outcome.members),
+                initiatorId = userId,
             )
         }
     }

@@ -96,7 +96,7 @@ class PingAllCommandTest {
 
         command.execute(bot, update)
 
-        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📢 🗿", members)) }
+        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📢 🗿", members), userId) }
         verify(exactly = 0) { bot.sendMessage(ChatId.fromId(chatId), any<String>(), ParseMode.HTML) }
     }
 

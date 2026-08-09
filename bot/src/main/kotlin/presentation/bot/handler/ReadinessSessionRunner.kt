@@ -38,16 +38,32 @@ class ReadinessSessionRunner(
     /**
      * Publishes the poll and schedules its expiry. Falls back to a plain message when Telegram does
      * not return the sent message — without an id there is nothing to key a session on.
+     *
+     * [initiatorId] opened the poll and is already counted as ready in the message that announces
+     * it (spovishun-183): asking the person who called everyone together to also tap 👍 adds a step,
+     * and until they take it the tally reads one short. The vote is applied only when
+     * [ReadinessSession.isEligible] says so — pinging a group you do not belong to, or tapping the
+     * `/ping` picker as a bystander, opens the poll with nobody voted for.
+     *
+     * It happens here rather than at the three entry points because this is the one funnel all of
+     * them already pass through; three call sites would be three chances to forget.
      */
     fun start(
         bot: Bot,
         chatId: Long,
         session: ReadinessSession,
+        initiatorId: Long,
     ) {
+        // Applied before the first send, not as a follow-up edit: an extra editMessageText would
+        // spend a rate-limit slot to say what the opening message could have said itself. A picker
+        // tap or an `/all` from outside the pinged roster is not a vote — `isEligible` keeps the
+        // bystander out, and re-voting needs no special case since `withVote` overwrites.
+        val opened = if (session.isEligible(initiatorId)) session.withVote(initiatorId, ReadinessVote.ACCEPTED) else session
+
         val messageId = bot
             .sendMessage(
                 chatId = ChatId.fromId(chatId),
-                text = ReadinessRenderer.renderActive(session),
+                text = ReadinessRenderer.renderActive(opened),
                 parseMode = ParseMode.HTML,
                 replyMarkup = voteKeyboard(session.messages),
             ).getOrNull()
@@ -59,7 +75,7 @@ class ReadinessSessionRunner(
         }
 
         val key = SessionKey(chatId, messageId)
-        store.open(key, session)
+        store.open(key, opened)
         // The scope carries no chat of its own, so the expiry would log as `system` — hand it the
         // caller's context, which is the command that opened the poll (spovishun-168).
         scope.launch(chatLogContextSnapshot()) {
