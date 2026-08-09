@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 class ReleaseNotesResourceTest {
     private val supportedCodes = BotLanguage.entries.map { it.code }.toSet()
 
-    private val records: List<ReleaseNoteDto> = Json { ignoreUnknownKeys = true }
+    private val records: List<ReleaseNoteDto> = json
         .decodeFromString(
             checkNotNull(javaClass.classLoader.getResourceAsStream(RELEASE_NOTES_RESOURCE)) {
                 "$RELEASE_NOTES_RESOURCE is missing from the test classpath"
@@ -59,5 +59,6 @@ class ReleaseNotesResourceTest {
 
     private companion object {
         const val RELEASE_NOTES_RESOURCE = "release_notes.json"
+        val json = Json { ignoreUnknownKeys = true }
     }
 }

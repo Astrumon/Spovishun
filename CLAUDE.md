@@ -140,15 +140,33 @@ Never call a `Service` directly from a `Command`.
 **Profile DI** — single `repositoryModule` in `:app` `di/RepositoryModule.kt` binds all 5 repositories to `:data` `*RepositoryImpl` for both profiles. `PROFILE` controls the DB connection string only (local PostgreSQL for dev, self-hosted PostgreSQL 16 in docker-compose for prod). All bindings use the interface type: `single<MemberRepository> { ... }`.
 
 ## Testing
-All test source sets live in `:app` (`test`, `integrationTest`, `e2eTest`); `:data` additionally
-unit-tests repositories against H2.
+**A unit test lives in the module of the code it covers** — every one of the six modules has its own
+`src/test`, and `./gradlew test` runs all of them. `:app` additionally owns the two cross-module
+source sets, `integrationTest` and `e2eTest` (registered in `app/build.gradle.kts`), because only the
+composition root can see every layer at once.
+
+| Module | What its `src/test` covers |
+|---|---|
+| `:common` | `ResultContainer` (incl. `catching`), `ResultExtensions`, HTML escaping, `UsernameInputSanitizer`, `EmojiValidator` |
+| `:domain` | services with `mockk<*Repository>()`; `BirthDate` |
+| `:data` | `*RepositoryImpl` against H2 (`H2TestDatabaseFactory`), mappers, the `release_notes.json` key contract |
+| `:bot` | commands, controllers with `mockk<*Service>()`, callback handlers, schedulers, formatters — **the largest unit suite in the project**; fixtures `TestMessages.kt` + `CallbackUpdateFactory.kt` |
+| `:admin-api` | Ktor routes via `testApplication` with mocked `DockerApiClient`/`ServerHealthRepository`; Docker response mapping |
+| `:app` | `AppConfig`, `KoinModuleGraphTest`, the logback chat-context pattern, and the shared `TestDatabaseFactory`/`TestDatabaseCleaner` that `integrationTest` and `e2eTest` both reuse |
+
 - **Unit** — `mockk<*Repository>()` for Services; `mockk<*Service>()` for Controllers.
   Use `runTest {}`, `coEvery`/`coVerify`, `clearAllMocks()` in `@BeforeTest`. `:data` repository unit
   tests run against H2 (`H2TestDatabaseFactory`, PostgreSQL-compatibility mode) — there are no MockImpl repos.
 - **Integration** — extend `BaseIntegrationTest`: real services/commands over a **real PostgreSQL**;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips via `assumeTrue` when `E2E_DATABASE_URL` is unset.
 - **e2e** — real Telegram API + real PostgreSQL DB; requires `TEST_BOT_TOKEN`, `TEST_HELPER_BOT_TOKEN`, `TEST_CHAT_ID`, `E2E_DATABASE_URL`. Reserved for assertions only Telegram can answer — HTML parse mode, message limits, inline keyboards, mention entities, `getChatMember` (spovishun-160); anything else belongs in `integrationTest`.
-- Do NOT unit test: Koin modules, `TelegramBot`, `MessageHandler`, `DatabaseFactory`.
+- Rules and traps for both cross-module source sets live in `app/CLAUDE.md` — read it before adding
+  an integration or e2e test rather than re-deriving them here.
+- Do NOT unit test: Koin modules, `DatabaseFactory`, `TelegramBot`'s polling loop, or `MessageHandler`'s
+  framework wiring. Three tests are sanctioned exceptions, each covering logic rather than the
+  framework: `KoinModuleGraphTest` (static `verify()` of the graph, nothing instantiated —
+  spovishun-156), `MessageHandlerTest` (chat-access gating and MDC propagation) and
+  `TelegramBotIdentityTest` (the pure `verifyIdentity` predicate).
 
 ## Skills Source (generated — do not hand-edit)
 The contents of `.claude/` (skills, agents, rules, hooks, `_templates/`, `scripts/notion/`,

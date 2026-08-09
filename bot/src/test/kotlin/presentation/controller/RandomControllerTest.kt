@@ -135,7 +135,7 @@ class RandomControllerTest {
         val result = controller.pickRandomFromGroup(chatId, "ghost")
 
         assertTrue(result is CommandResponse.NotFound)
-        assertTrue((result as CommandResponse.NotFound).identifier == "ghost")
+        assertTrue(result.identifier == "ghost")
         assertTrue(result.available.contains("devs"))
     }
 
@@ -149,7 +149,7 @@ class RandomControllerTest {
         val result = controller.pickRandomFromGroup(chatId, "ghost")
 
         assertTrue(result is CommandResponse.NotFound)
-        assertTrue((result as CommandResponse.NotFound).available.isEmpty())
+        assertTrue(result.available.isEmpty())
     }
 
     // --- groupsForPicker ---

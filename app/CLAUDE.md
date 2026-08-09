@@ -58,7 +58,14 @@ Scope cancellation is cooperative and non-blocking: it stops new scheduler work,
 queries already running on `Dispatchers.IO`.
 
 ## Test source sets (owned by this module)
-- `test` (`./gradlew test`) — unit tests with MockK; H2 available for any DB-touching helpers.
+Only `integrationTest` and `e2eTest` are project-wide — they are here because they need every layer
+at once. `test` is **not** the project's unit suite: every module owns its own `src/test`, and
+`:bot`'s is the large one. See the Testing section of the root `CLAUDE.md`.
+
+- `test` (`./gradlew test`) — app-level unit tests only: `AppConfig` parsing, `KoinModuleGraphTest`,
+  the logback chat-context pattern. It also holds `TestDatabaseFactory` / `TestDatabaseCleaner`,
+  which **both** `integrationTest` and `e2eTest` reuse — each adds `sourceSets.test.output` to its
+  compile and runtime classpath in `build.gradle.kts`.
 - `integrationTest` (`./gradlew integrationTest`) — real services/commands over a real PostgreSQL;
   only `Bot` and `BotAdminUtils` are mocked. Reads `.env.e2e`; skips when `E2E_DATABASE_URL` is unset.
   Beyond commands it also covers (spovishun-161) the two schedulers, the full `CallbackRouter`

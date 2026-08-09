@@ -113,7 +113,24 @@ Runs on an injected `CoroutineScope` carrying `SupervisorJob` + a scope-level `C
 
 ## MessageHandler
 Routes updates to commands via `when`. No logic beyond routing.
-Do NOT unit test `MessageHandler` or `TelegramBot`.
+Do NOT unit test the framework parts of `MessageHandler` or `TelegramBot` — the polling loop, the
+dispatch `when`, the SDK handshake. What *is* unit-tested, and stays so, is the logic hanging off
+them: `MessageHandlerTest` covers chat-access gating and MDC propagation, `TelegramBotIdentityTest`
+covers the pure `verifyIdentity` predicate. Neither starts a bot.
+
+## Testing
+This module owns the unit tests for everything under `presentation/` — commands, controllers,
+callback handlers, schedulers, formatters. It is the largest unit suite in the project; do not look
+for it in `:app`. Two shared fixtures:
+- `presentation/TestMessages.kt` — `ukMessages` (the Ukrainian bundle every assertion is written
+  against) and `testMessagesProvider()`, a **real** `BotMessagesProvider` over a stubbed
+  `ChatService`, so the bundle lookup and its cache are exercised rather than doubled.
+- `presentation/bot/handler/CallbackUpdateFactory.kt` — `callbackContext(...)` builds the parsed
+  `CallbackContext` a handler now receives (the router owns the parsing, so handler tests skip the
+  `Update` round trip); `callbackUpdate(...)` builds the raw `Update` for router tests.
+
+Anything that needs a real database, a real registration or the dispatch decorators belongs to
+`:app` `integrationTest` — see the *Testing consequence* note in the Auto-registration section above.
 
 ## Chat log context (spovishun-168)
 Every log line emitted while handling an update carries the originating chat, so the Spovishun

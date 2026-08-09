@@ -173,7 +173,7 @@ class WhatsNewControllerTest {
         val result = controller.setAnnouncements(chatId, adminId, enabled = true)
 
         assertTrue(result is CommandResponse.Success)
-        assertTrue((result as CommandResponse.Success).message.contains("увімкнено"))
+        assertTrue(result.message.contains("увімкнено"))
     }
 
     @Test
@@ -184,7 +184,7 @@ class WhatsNewControllerTest {
         val result = controller.setAnnouncements(chatId, adminId, enabled = false)
 
         assertTrue(result is CommandResponse.Success)
-        assertTrue((result as CommandResponse.Success).message.contains("вимкнено"))
+        assertTrue(result.message.contains("вимкнено"))
     }
 
     @Test
