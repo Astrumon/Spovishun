@@ -20,6 +20,10 @@ class CallbackRouter(
         update: Update,
     ) {
         val callbackQuery = update.callbackQuery ?: return
+
+        // Non-null in the SDK's type, optional in Bot API, and filled by Gson without a null check
+        // — see the same guard in CallbackContext.callbackContext.
+        @Suppress("USELESS_ELVIS")
         val data = callbackQuery.data ?: return
         val chat = callbackQuery.message?.chat
 

@@ -42,3 +42,9 @@ suspend fun getAll(): List<Member> = withContext(Dispatchers.IO) {
 ## Access checks
 `hasAdminAccess()` / `hasModeratorAccess()` live in `MemberService` and query the DB.
 They do NOT call the Telegram API.
+
+## Testing
+Own `src/test`, run by `./gradlew test` like every other module's — services are unit-tested here,
+not in `:app`. Each service against `mockk<*Repository>()` inside `runTest {}`, with `coEvery` /
+`coVerify` and `clearAllMocks()` in `@BeforeTest`. Cover both `ResultContainer` branches: a service
+that only proves its success path is untested where it matters.

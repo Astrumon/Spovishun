@@ -31,6 +31,11 @@ data class CallbackContext(
 /** Extracts [CallbackContext] from an update, with [prefix] stripped from the callback data. */
 internal fun Update.callbackContext(prefix: String): CallbackContext? {
     val callbackQuery = callbackQuery ?: return null
+
+    // The SDK types `data` as non-null, but Bot API marks it optional — a game callback carries
+    // `game_short_name` instead — and Gson fills the field by reflection without running Kotlin's
+    // null check. The type lies, so the guard stays and the compiler's "useless" verdict is wrong.
+    @Suppress("USELESS_ELVIS")
     val data = callbackQuery.data ?: return null
     val message = callbackQuery.message ?: return null
     val user = callbackQuery.from
