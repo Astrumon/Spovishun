@@ -4,6 +4,9 @@ import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.exception.ResourceNotFoundException
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Group
+import com.ua.astrumon.domain.bot.model.GroupSettingsPatch
+import com.ua.astrumon.domain.bot.model.Patch
+import com.ua.astrumon.domain.bot.model.PingMark
 import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
 import com.ua.astrumon.domain.bot.repository.GroupRepository
 import com.ua.astrumon.domain.bot.service.GroupService
@@ -354,45 +357,48 @@ class GroupServiceTest {
     }
 
     @Test
-    fun `setIcon should delegate to the repository`() = runTest {
+    fun `updateGroup should delegate the patch to the repository`() = runTest {
         // Given
         val chatId = 123L
         val groupKey = "devs"
-        coEvery { groupRepository.setIcon(chatId, groupKey, "🔥") } returns ResultContainer.success(Unit)
+        val patch = GroupSettingsPatch(icon = Patch.Value("🔥"), pingMark = Patch.Value(PingMark.Custom("🦀")))
+        coEvery { groupRepository.updateGroup(chatId, groupKey, patch) } returns ResultContainer.success(Unit)
 
         // When
-        val result = groupService.setIcon(chatId, groupKey, "🔥")
+        val result = groupService.updateGroup(chatId, groupKey, patch)
 
         // Then
         assertTrue(result.isSuccess)
-        coVerify { groupRepository.setIcon(chatId, groupKey, "🔥") }
+        coVerify { groupRepository.updateGroup(chatId, groupKey, patch) }
     }
 
     @Test
-    fun `setIcon should pass a null icon through as a reset`() = runTest {
+    fun `updateGroup should pass an untouched patch through unchanged`() = runTest {
         // Given
         val chatId = 123L
         val groupKey = "devs"
-        coEvery { groupRepository.setIcon(chatId, groupKey, null) } returns ResultContainer.success(Unit)
+        val patch = GroupSettingsPatch()
+        coEvery { groupRepository.updateGroup(chatId, groupKey, patch) } returns ResultContainer.success(Unit)
 
         // When
-        val result = groupService.setIcon(chatId, groupKey, null)
+        val result = groupService.updateGroup(chatId, groupKey, patch)
 
         // Then
         assertTrue(result.isSuccess)
-        coVerify { groupRepository.setIcon(chatId, groupKey, null) }
+        coVerify { groupRepository.updateGroup(chatId, groupKey, patch) }
     }
 
     @Test
-    fun `setIcon should propagate repository error when group not found`() = runTest {
+    fun `updateGroup should propagate repository error when group not found`() = runTest {
         // Given
         val chatId = 123L
         val groupKey = "nope"
+        val patch = GroupSettingsPatch(icon = Patch.Value("🔥"))
         val error = ResourceNotFoundException("Group", groupKey)
-        coEvery { groupRepository.setIcon(chatId, groupKey, "🔥") } returns ResultContainer.failure(error)
+        coEvery { groupRepository.updateGroup(chatId, groupKey, patch) } returns ResultContainer.failure(error)
 
         // When
-        val result = groupService.setIcon(chatId, groupKey, "🔥")
+        val result = groupService.updateGroup(chatId, groupKey, patch)
 
         // Then
         assertTrue(result.isFailure)
@@ -414,6 +420,23 @@ class GroupServiceTest {
 
         // Then
         assertEquals("🔥", result.getOrThrow().icon)
+    }
+
+    @Test
+    fun `getGroupByKey should carry the ping mark into GroupWithMembers`() = runTest {
+        // Given
+        val chatId = 123L
+        val groupKey = "devs"
+        val group = Group(1L, chatId, groupKey, emptyList(), pingMark = PingMark.Custom("🦀"))
+        coEvery { groupRepository.findGroupByKey(chatId, groupKey) } returns ResultContainer.success(group)
+        coEvery { groupMemberRepository.getMembersForGroups(chatId, listOf(1L)) } returns
+            ResultContainer.success(mapOf(1L to listOf("alice")))
+
+        // When
+        val result = groupService.getGroupByKey(chatId, groupKey)
+
+        // Then
+        assertEquals(PingMark.Custom("🦀"), result.getOrThrow().pingMark)
     }
 
     @Test

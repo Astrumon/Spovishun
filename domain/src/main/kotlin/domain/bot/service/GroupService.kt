@@ -2,6 +2,8 @@ package com.ua.astrumon.domain.bot.service
 
 import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.Group
+import com.ua.astrumon.domain.bot.model.GroupSettingsPatch
+import com.ua.astrumon.domain.bot.model.PingMark
 import com.ua.astrumon.domain.bot.repository.GroupMemberRepository
 import com.ua.astrumon.domain.bot.repository.GroupRepository
 
@@ -63,12 +65,12 @@ class GroupService(
         enabled: Boolean,
     ): ResultContainer<Unit> = groupRepository.setReadinessEnabled(chatId, key, enabled)
 
-    /** A null [icon] clears the group's icon. */
-    suspend fun setIcon(
+    /** Applies every field [patch] states, and only those, in one transaction (spovishun-180). */
+    suspend fun updateGroup(
         chatId: Long,
         key: String,
-        icon: String?,
-    ): ResultContainer<Unit> = groupRepository.setIcon(chatId, key, icon)
+        patch: GroupSettingsPatch,
+    ): ResultContainer<Unit> = groupRepository.updateGroup(chatId, key, patch)
 
     private suspend fun loadMembers(
         chatId: Long,
@@ -86,6 +88,7 @@ class GroupService(
         members = members,
         readinessEnabled = readinessEnabled,
         icon = icon,
+        pingMark = pingMark,
     )
 }
 
@@ -97,4 +100,5 @@ data class GroupWithMembers(
     val members: List<String>,
     val readinessEnabled: Boolean = true,
     val icon: String? = null,
+    val pingMark: PingMark = PingMark.Default,
 )

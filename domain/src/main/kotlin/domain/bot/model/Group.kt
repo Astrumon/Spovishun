@@ -7,4 +7,5 @@ data class Group(
     val memberUsernames: List<String>,
     val readinessEnabled: Boolean = true,
     val icon: String? = null,
+    val pingMark: PingMark = PingMark.Default,
 )
