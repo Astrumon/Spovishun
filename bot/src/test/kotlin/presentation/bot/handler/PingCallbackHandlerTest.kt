@@ -86,6 +86,8 @@ class PingCallbackHandlerTest {
         handler.handle(bot, ctx("12"), ukMessages)
 
         verify(exactly = 1) { bot.deleteMessage(ChatId.fromId(chatId), 5L) }
-        verify(exactly = 1) { readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📣 devs 🦞", members)) }
+        verify(exactly = 1) {
+            readinessSessionRunner.start(bot, chatId, ReadinessSession(ukMessages, "📣 devs 🦞", members), clickerId)
+        }
     }
 }
