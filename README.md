@@ -115,12 +115,17 @@ Commands marked 🔘 open an inline picker when called without arguments.
 | `/whatsnew [$h]` | any | Latest release notes; `$h` shows the full version history |
 | `/whatsnew $on\|$off` | admin | Toggle release announcements for this chat |
 | `/language` 🔘 | mod | Pick the chat's language (🇺🇦 / 🇬🇧) |
-| `/newgroup <name>` 🔘 | mod | Create a group |
+| `/newgroup <name> [$icon=…] [$mark=…]` 🔘 | mod | Create a group, optionally with its icon and ping mark |
 | `/delgroup <name>` 🔘 | mod | Delete a group (with confirmation) |
 | `/addtogroup <name> @u1, @u2` 🔘 | mod | Add one or more members to a group |
 | `/removefromgroup <name> @u1, @u2` 🔘 | mod | Remove one or more members from a group |
 | `/editg <name> [$icon=…] [$mark=…] [$name=…]` | mod | Show or change a group's icon, ping mark and name |
 | `/grantrole @u1, @u2 member\|moderator\|admin` 🔘 | admin | Assign a role to one or more members |
+
+With readiness-poll mode on, `/all` and `/ping <group>` answer with a roster carrying 👍 / 👎 buttons
+instead of a plain mention. Whoever opened the poll is already counted as ready in that first
+message — provided they belong to the pinged roster — and can still change their mind by tapping.
+The poll freezes into a summary once its TTL expires.
 
 Passive components: a birthday scheduler greets members daily at 12:00 Europe/Kyiv, and on startup
 with a new version the bot broadcasts the release notes to every chat that has announcements
