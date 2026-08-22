@@ -7,6 +7,9 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { loadToken } = require('../../lib/load-token');
+// Taken from the script rather than hardcoded: the key was bumped to `claude-md-v2`
+// in plugin 1.28.0 and a literal filename here goes stale on the next bump.
+const { CACHE_KEY } = require('../../get-claude-md');
 
 const SCRIPTS_DIR = path.join(__dirname, '..', '..');
 const REPO_ROOT = path.join(SCRIPTS_DIR, '..', '..', '..');
@@ -36,12 +39,12 @@ describe('get-claude-md cache integration', { skip: SKIP_MSG }, () => {
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.ok(result.stdout.length > 0, 'should return non-empty content');
 
-    const cacheFile = path.join(tmpCacheDir, 'claude-md.json');
+    const cacheFile = path.join(tmpCacheDir, `${CACHE_KEY}.json`);
     assert.ok(fs.existsSync(cacheFile), 'cache file should exist after first call');
   });
 
   test('second call within TTL hits cache (mtime unchanged)', () => {
-    const cacheFile = path.join(tmpCacheDir, 'claude-md.json');
+    const cacheFile = path.join(tmpCacheDir, `${CACHE_KEY}.json`);
     const mtimeBefore = fs.statSync(cacheFile).mtimeMs;
 
     const result = spawnSync('node', [path.join(SCRIPTS_DIR, 'get-claude-md.js')], {

@@ -5,6 +5,7 @@ const http = require('./lib/notion-http');
 const { loadToken } = require('./lib/load-token');
 const constants = require('./lib/constants');
 const { richText, extractBlocks } = require('./lib/format-task');
+const { fetchBlockTree } = require('./lib/block-tree');
 const { extractBranchFromBlocks, deriveBranchFromName } = require('./lib/extract-branch');
 const { toDashed } = require('./lib/page-id');
 const { resolveRelationIds, extractRelationIds } = require('./lib/resolve-relations');
@@ -110,9 +111,11 @@ async function main() {
 
   const pageId = await resolvePageId(token, arg);
 
-  const [page, blocksResult] = await Promise.all([
+  const [page, blocks] = await Promise.all([
     http.get(token, `/v1/pages/${pageId}`),
-    http.get(token, `/v1/blocks/${pageId}/children?page_size=100`),
+    // Hydrates nested blocks (toggle bodies, callout children, table rows) and
+    // follows pagination, both of which a single /children call misses.
+    fetchBlockTree(http.childrenPageFetcher(token), pageId),
   ]);
 
   if (page?.object === 'error') {
@@ -120,7 +123,6 @@ async function main() {
     process.exit(1);
   }
 
-  const blocks = blocksResult?.results || [];
   const props = page.properties || {};
   const title = richText(props.Name?.title);
   const epicIds = extractRelationIds(props.Epic);

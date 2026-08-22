@@ -21,12 +21,12 @@ Map changed file paths to documentation zones using this table:
 
 | Zone | File pattern | Notion page |
 |------|-------------|-------------|
-| Database | `**/db/**`, `**/data/**`, `**/migration*` | https://www.notion.so/33c3462f-68a9-817e-83ae-f4f1a912a8dd |
-| Architecture | `**/domain/**`, `**/di/**`, `**/core/**` | https://www.notion.so/33c3462f-68a9-8198-94a4-df73c3b7d9fe |
-| Features | `**/feature/**`, `**/ui/**`, `**/presentation/**` | https://www.notion.so/35f3462f-68a9-8141-9511-fb0ea80d1bb4 |
-| AI Tools | `**/.claude/**`, `**/agents/**`, `**/skills/**` | https://www.notion.so/33c3462f-68a9-8143-9024-cf50673df3a7 |
-| CI/CD | `**/.github/**`, `**/gradle/**`, `**/Dockerfile*` | https://www.notion.so/33c3462f-68a9-8146-bf26-cc0e5f5c2799 |
-| Testing | `**/test/**`, `**/*Test*`, `**/*Spec*` | https://www.notion.so/33c3462f-68a9-8108-b41c-f3b5c83610fb |
+| Database | `**/db/**`, `**/data/**`, `**/migration*` | https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd |
+| Architecture | `**/domain/**`, `**/di/**`, `**/core/**` | https://www.notion.so/33c3462f68a9819894a4df73c3b7d9fe |
+| Features | `**/feature/**`, `**/ui/**`, `**/presentation/**` | https://www.notion.so/35f3462f68a981419511fb0ea80d1bb4 |
+| AI Tools | `**/.claude/**`, `**/agents/**`, `**/skills/**` | https://www.notion.so/33c3462f68a981439024cf50673df3a7 |
+| CI/CD | `**/.github/**`, `**/gradle/**`, `**/Dockerfile*` | https://www.notion.so/33c3462f68a98146bf26cc0e5f5c2799 |
+| Testing | `**/test/**`, `**/*Test*`, `**/*Spec*` | https://www.notion.so/33c3462f68a98108b41cf3b5c83610fb |
 
 If a file matches multiple zones, include it in all matching zones.
 
@@ -56,7 +56,7 @@ Return all proposals in the structured format below. Do not apply any changes.
 ## Documentation Update Proposals
 
 ### Zone: Database
-**Notion page:** https://www.notion.so/33c3462f-68a9-817e-83ae-f4f1a912a8dd
+**Notion page:** https://www.notion.so/33c3462f68a9817e83aef4f1a912a8dd
 **Changed files:** src/db/migrations/V20240315__add_user_roles.sql
 **Change summary:** Added user_roles table with FK to users. Migration includes index on user_id.
 **Proposed update:**
