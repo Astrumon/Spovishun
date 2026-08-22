@@ -21,6 +21,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import presentation.testMessagesProvider
+import java.io.IOException
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -143,11 +144,15 @@ class StartCommandTest {
     /**
      * Admin pre-registration is best-effort: the catch around it is narrow precisely so a Telegram
      * failure there cannot swallow the caller's own registration and welcome (spovishun-172).
+     *
+     * The thrown type is [IOException] rather than an arbitrary runtime exception because that is
+     * the only one the library can actually raise here — `runApiOperation` folds everything else
+     * into a `TelegramBotResult.Error` value (spovishun-190).
      */
     @Test
     fun `invoke should still welcome the caller when reading the admins throws`() = runTest {
         every { bot.getChat(ChatId.fromId(chatId)) } returns TelegramBotResult.Success(Chat(id = chatId, type = "supergroup"))
-        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
+        every { bot.getChatAdministrators(ChatId.fromId(chatId)) } throws IOException("telegram unreachable")
 
         startCommand.execute(bot, createUpdate(chatType = "supergroup"))
 
@@ -158,7 +163,7 @@ class StartCommandTest {
 
     @Test
     fun `invoke should still welcome the caller when reading the chat throws`() = runTest {
-        every { bot.getChat(ChatId.fromId(chatId)) } throws IllegalStateException("telegram unreachable")
+        every { bot.getChat(ChatId.fromId(chatId)) } throws IOException("telegram unreachable")
 
         startCommand.execute(bot, createUpdate())
 

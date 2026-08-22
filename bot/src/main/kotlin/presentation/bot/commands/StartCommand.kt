@@ -10,6 +10,7 @@ import com.ua.astrumon.presentation.controller.RegistrationController
 import com.ua.astrumon.presentation.controller.RegistrationRequest
 import com.ua.astrumon.presentation.toText
 import org.slf4j.LoggerFactory
+import java.io.IOException
 
 class StartCommand(
     private val registrationController: RegistrationController,
@@ -30,9 +31,16 @@ class StartCommand(
 
         // A group start pre-registers the admins so role gates work before anyone has spoken. It is
         // best-effort: whatever Telegram will not tell us must not cost the caller their welcome.
-        val chatType = runCatching { bot.getChat(ChatId.fromId(chatId)).getOrNull()?.type }
-            .onFailure { logger.error("Could not read chat info: ${it::class.simpleName}") }
-            .getOrNull()
+        // Narrow rather than broad: `getChat` returns a `TelegramBotResult`, and `runApiOperation`
+        // has already folded every exception from the send into that value — `getOrNull()` yields
+        // null on any API error without throwing. Only reading the error body of an unsuccessful
+        // response escapes as an [IOException].
+        val chatType = try {
+            bot.getChat(ChatId.fromId(chatId)).getOrNull()?.type
+        } catch (e: IOException) {
+            logger.error("Could not read chat info: ${e::class.simpleName}")
+            null
+        }
 
         if (chatType in GROUP_CHAT_TYPES) {
             preregisterAdmins(bot, chatId)
@@ -54,9 +62,14 @@ class StartCommand(
         bot: Bot,
         chatId: Long,
     ) {
-        val admins = runCatching { bot.getChatAdministrators(ChatId.fromId(chatId)).getOrNull() }
-            .onFailure { logger.error("Could not read chat administrators: ${it::class.simpleName}") }
-            .getOrNull()
+        // Same shape as the `getChat` call above — see the note there for why [IOException] is the
+        // only type worth naming.
+        val admins = try {
+            bot.getChatAdministrators(ChatId.fromId(chatId)).getOrNull()
+        } catch (e: IOException) {
+            logger.error("Could not read chat administrators: ${e::class.simpleName}")
+            null
+        }
 
         if (admins == null) {
             logger.warn("Failed to get chat administrators")

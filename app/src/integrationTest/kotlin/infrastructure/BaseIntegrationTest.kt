@@ -187,6 +187,12 @@ abstract class BaseIntegrationTest {
             TelegramBotResult.Success(
                 Chat(id = testChatId, type = "supergroup"),
             )
+        // The default chat above is a supergroup, so `/start` always walks into admin
+        // pre-registration. Same erased-generic trap as `sendMessage` below — and it stayed hidden
+        // until spovishun-190 removed the `runCatching` that was swallowing the ClassCastException
+        // and reporting it as "failed to get chat administrators". A test that needs real admins
+        // overrides this.
+        every { bot.getChatAdministrators(any()) } returns TelegramBotResult.Success(emptyList())
         // A relaxed mock erases the generic and hands back an Object, which the readiness runner
         // cannot read a messageId from. Return a real result so the poll registers a session.
         every { bot.sendMessage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns

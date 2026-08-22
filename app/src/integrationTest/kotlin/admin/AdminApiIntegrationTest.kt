@@ -20,6 +20,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -188,7 +189,15 @@ class AdminApiIntegrationTest : BaseIntegrationTest() {
      */
     private suspend fun awaitAccepting() {
         repeat(READINESS_ATTEMPTS) {
-            runCatching { httpClient.get("$baseUrl/health") }.onSuccess { return }
+            try {
+                httpClient.get("$baseUrl/health")
+                return
+            } catch (e: CancellationException) {
+                // A cancelled test must abandon the wait, not keep polling for another 5 seconds.
+                throw e
+            } catch (ignored: Exception) {
+                // Not listening yet — that is what the next attempt is for.
+            }
             delay(READINESS_INTERVAL_MILLIS)
         }
         error("admin API did not start accepting connections on $baseUrl")

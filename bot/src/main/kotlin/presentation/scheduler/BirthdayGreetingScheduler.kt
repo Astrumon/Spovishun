@@ -9,6 +9,7 @@ import com.ua.astrumon.domain.bot.service.BirthdayService
 import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.util.toHtmlMention
 import com.ua.astrumon.presentation.util.withChatLogContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -82,6 +83,12 @@ class BirthdayGreetingScheduler(
 
                 val sentAt = Instant.fromEpochMilliseconds(clock.instant().toEpochMilli())
                 birthdayService.recordGreetingSent(member.id, year, sentAt)
+            } catch (e: CancellationException) {
+                // `stopKoin()` cancels this scope through `onClose { it?.cancel() }` (spovishun-155),
+                // and `safeDbQuery` re-throws rather than fabricating a Failure (spovishun-173) — so
+                // shutdown arrives here as an Exception. Swallowing it walked the rest of the member
+                // list logging one error per member instead of unwinding (spovishun-190).
+                throw e
             } catch (e: Exception) {
                 // Reached only by the lookups and the record step, which span every chat the member
                 // is in — this pass-level failure has no one chat to name and logs as `system`.
@@ -113,6 +120,10 @@ class BirthdayGreetingScheduler(
             val text = messagesProvider.forChat(chatId).birthday.randomGreeting(member.toHtmlMention())
             bot.sendMessage(chatId = ChatId.fromId(chatId), text = text, parseMode = ParseMode.HTML)
             true
+        } catch (e: CancellationException) {
+            // The language lookup above suspends, so cancellation surfaces here too. Reporting it as
+            // a plain `false` reads as "this send failed, retry later" and let the pass continue.
+            throw e
         } catch (e: Exception) {
             logger.error("Failed to send birthday greeting", e)
             false
