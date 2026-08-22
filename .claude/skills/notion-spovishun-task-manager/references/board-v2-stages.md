@@ -6,7 +6,7 @@ Configure via `spovishun-skills.config.yaml`:
 
 ```yaml
 notion:
-  database_id: "36f3462f-68a9-8132-8625-d728cac86ea3"
+  database_id: "36f3462f68a981328625d728cac86ea3"
   picker:
     stage_filter: "Sprint"        # optional. Unset → no Stage filter (Board v1 behavior)
 ```

@@ -13,16 +13,16 @@ New documentation articles are created as records in the category inline databas
 
 | I want to document... | Category | Group Page ID |
 |-----------------------|----------|--------------|
-| New architecture pattern, design decision, layer change | Architecture | `33c3462f-68a9-8198-94a4-df73c3b7d9fe` |
-| Tech stack change, new dependency, code convention | Architecture | `33c3462f-68a9-8198-94a4-df73c3b7d9fe` |
-| New DB table, schema change, ORM update | Database | `33c3462f-68a9-817e-83ae-f4f1a912a8dd` |
-| Database migration workflow, DB setup | Database | `33c3462f-68a9-817e-83ae-f4f1a912a8dd` |
-| E2E test setup, integration test infrastructure | Testing | `33c3462f-68a9-8108-b41c-f3b5c83610fb` |
-| GitHub Actions workflow, CI pipeline, repo setup | CI/CD | `33c3462f-68a9-8146-bf26-cc0e5f5c2799` |
-| New user-facing feature (new command, scheduler, behaviour change) | Features | `35f3462f-68a9-8141-9511-fb0ea80d1bb4` |
-| New or updated skill, hook, agent, rule in .claude/ | AI Tools | `33c3462f-68a9-8143-9024-cf50673df3a7` |
-| Idea planning pipeline, Claude Code guides | AI Tools | `33c3462f-68a9-8143-9024-cf50673df3a7` |
-| New Epic (multi-task initiative description) | Epics | `3633462f-68a9-8109-8385-fa260e9ce132` |
+| New architecture pattern, design decision, layer change | Architecture | `33c3462f68a9819894a4df73c3b7d9fe` |
+| Tech stack change, new dependency, code convention | Architecture | `33c3462f68a9819894a4df73c3b7d9fe` |
+| New DB table, schema change, ORM update | Database | `33c3462f68a9817e83aef4f1a912a8dd` |
+| Database migration workflow, DB setup | Database | `33c3462f68a9817e83aef4f1a912a8dd` |
+| E2E test setup, integration test infrastructure | Testing | `33c3462f68a98108b41cf3b5c83610fb` |
+| GitHub Actions workflow, CI pipeline, repo setup | CI/CD | `33c3462f68a98146bf26cc0e5f5c2799` |
+| New user-facing feature (new command, scheduler, behaviour change) | Features | `35f3462f68a981419511fb0ea80d1bb4` |
+| New or updated skill, hook, agent, rule in .claude/ | AI Tools | `33c3462f68a981439024cf50673df3a7` |
+| Idea planning pipeline, Claude Code guides | AI Tools | `33c3462f68a981439024cf50673df3a7` |
+| New Epic (multi-task initiative description) | Epics | `3633462f68a981098385fa260e9ce132` |
 | Learning resources, reference links | Other/Learning | fetch from workspace root |
 | General project rules (for AI or devs) | CLAUDE.md | `31c3462f-68a9-819c-8150-ff31d729293e` |
 
@@ -41,8 +41,8 @@ New documentation articles are created as records in the category inline databas
 Fetch via `notion-fetch` using the workspace root URL to discover top-level structure.
 
 Key resources:
-- Board (task kanban) — `36f3462f-68a9-8132-8625-d728cac86ea3` (database_id; queried via REST `/databases/{id}/query`)
-- Epics database — `d0c00200-49f7-4b05-8997-9065d8cfe7d3` (database_id; same REST path)
+- Board (task kanban) — `36f3462f68a981328625d728cac86ea3` (database_id; queried via REST `/databases/{id}/query`)
+- Epics database — `d0c0020049f74b0589979065d8cfe7d3` (database_id; same REST path)
 - CLAUDE.md — `31c3462f-68a9-819c-8150-ff31d729293e`
 
 For MCP create flows that need a `data_source_id`, fetch the live collection id from the database first (`<data-source url="collection://...">`); the IDs above are database_ids, not collection ids — they are not interchangeable.

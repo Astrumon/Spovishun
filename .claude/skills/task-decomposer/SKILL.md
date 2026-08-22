@@ -20,7 +20,7 @@ node .claude/scripts/notion/get-board.js          # JSON board snapshot — use 
 notion-fetch(id: "31c3462f-68a9-819c-8150-ff31d729293e")
 ```
 
-`get-board.js` queries the board via REST `/databases/36f3462f-68a9-8132-8625-d728cac86ea3/query` and returns a JSON list of tasks with their `Name` property, from which the highest existing task number N is extracted. New tasks start at N+1.
+`get-board.js` queries the board via REST `/databases/36f3462f68a981328625d728cac86ea3/query` and returns a JSON list of tasks with their `Name` property, from which the highest existing task number N is extracted. New tasks start at N+1.
 
 (MCP `notion-search` with `data_source_url: "collection://<id>"` is an alternative, but it requires the live data_source_id of the board — fetch it from the database first; do not interpolate it from config.)
 
@@ -41,7 +41,7 @@ If the decomposition produces **3 or more tasks**, an Epic is required.
    - Create via MCP so callouts/tables/toggles render correctly:
      ```
      notion-create-pages(
-       parent: { type: "database_id", database_id: "d0c00200-49f7-4b05-8997-9065d8cfe7d3" },
+       parent: { type: "database_id", database_id: "d0c0020049f74b0589979065d8cfe7d3" },
        pages: [{
          properties: { "Name": "<Epic name>", "Status": "Active", "Goal": "<1–2 sentences>" },
          icon: "🧩",

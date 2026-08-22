@@ -1,7 +1,7 @@
 ---
 x-spovishun: kotlin-specialist
 name: kotlin-specialist
-description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gradle Kotlin DSL, and idiomatic patterns. Includes structured concurrency rules and dispatcher enforcement. Triggers: coroutine, suspend, Flow, launch, withContext, sealed class, Gradle DSL, корутина, flow, сілд клас, нульова безпека."
+description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gradle Kotlin DSL, and idiomatic patterns. Includes structured concurrency rules, cancellation propagation, bounded parallelism, and dispatcher enforcement. Triggers: coroutine, suspend, Flow, launch, withContext, limitedParallelism, Semaphore, NonCancellable, sealed class, Gradle DSL, корутина, паралелізм, flow, сілд клас, нульова безпека."
 ---
 # Kotlin Specialist
 
@@ -20,6 +20,7 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 |---|---|
 | Structured concurrency, scope ownership, `SupervisorJob`, suspend functions | `references/coroutines.md` |
 | `withTimeout`, `TimeoutCancellationException`, cancellation propagation | `references/cancellation-timeouts.md` |
+| Parallelism limits, `Semaphore`, `limitedParallelism`, shared mutable state | `references/concurrency-limits.md` |
 | Cold/hot Flow, `StateFlow`, `SharedFlow`, collect and transform | `references/flow.md` |
 | `sealed interface`, exhaustive `when`, state/response modeling | `references/sealed-classes.md` |
 | Null safety, extension functions, `data class`, Kotlin idioms | `references/kotlin-idioms.md` |
@@ -32,6 +33,8 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 - Never use `runBlocking` in production coroutine context — causes deadlock.
 - Never use `GlobalScope.launch` — breaks structured concurrency and causes memory leaks.
 - Never swallow `CancellationException` — always rethrow or propagate it.
+- Never wrap suspending work in `runCatching` or a broad `catch (e: Exception)`. Both catch `CancellationException` too, so a cancelled call is logged as a failure and the enclosing loop carries on — the scope is gone and the work is still running. Catch named types, or re-throw `CancellationException` as the first `catch`.
+- Blocking work gets a bounded parallelism matched to the resource pool behind it (`Dispatchers.IO` runs 64 threads; a connection pool typically has 10).
 - Every `CoroutineScope` context MUST carry three elements: Dispatcher + Job + `CoroutineExceptionHandler` — a scope without a handler silently swallows uncaught exceptions.
 - `SupervisorJob` only isolates a failing child from its siblings — it does NOT catch, log, or surface the exception. An uncaught throw reaches the default `Thread.UncaughtExceptionHandler` and disappears, so the bot keeps running but the feature stops working invisibly.
 
@@ -40,6 +43,7 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 - Do NOT load all references at once — pick exactly one based on the Decision Table.
 - Do NOT use `!!` without a documented invariant that guarantees non-null at that point.
 - Do NOT use `runBlocking`, `GlobalScope`, or undocumented `!!` — hard bans.
+- Do NOT use `runCatching` or a broad `catch (e: Exception)` around a suspending call — hard ban.
 - Do NOT hardcode any dispatcher inside a class — take it as a constructor parameter.
 
 ## Error Handling
@@ -51,11 +55,13 @@ description: "Expert Kotlin development — coroutines, Flow, sealed classes, Gr
 ## Related Skills
 
 - `telegram-bot-development` — coroutine scope wiring for bot handlers
-- `postgresql-exposed-orm` — `safeDbQuery` / `safeDbTransaction` patterns built on coroutines
+- `postgresql-exposed-orm` — the `safeDbQuery` pattern built on coroutines (`withContext(Dispatchers.IO)` + `transaction {}`)
 - `unit-testing-kotlin` — `runTest`, `StandardTestDispatcher`, Turbine for Flow assertions
 - `gradle-build-auditor` — whole-build audit: version catalog, repositories, wrapper, caches, CI
 
 ## Example Invocation
 
 - User: "How do I run two fetches concurrently in a service?" → load `references/coroutines.md`, apply `supervisorScope` + `async` pattern.
+- User: "This scheduler hammers the database" → load `references/concurrency-limits.md`, hoist the
+  `withContext` out of the loop and cap the fan-out.
 - User: "Model bot command results with sealed classes" → load `references/sealed-classes.md`, apply sealed interface + exhaustive `when`.
