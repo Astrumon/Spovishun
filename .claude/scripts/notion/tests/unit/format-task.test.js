@@ -50,9 +50,22 @@ test('extractBlocks: bulleted_list_item → "- text"', () => {
   assert.equal(extractBlocks(blocks), '- item');
 });
 
-test('extractBlocks: numbered_list_item → "- text"', () => {
+// Since plugin 1.24.0 a numbered run carries a real ordinal instead of a dash —
+// the Steps section of a task page loses its order otherwise.
+test('extractBlocks: numbered_list_item → "N. text"', () => {
   const blocks = [{ type: 'numbered_list_item', numbered_list_item: { rich_text: [{ plain_text: 'step' }] } }];
-  assert.equal(extractBlocks(blocks), '- step');
+  assert.equal(extractBlocks(blocks), '1. step');
+});
+
+test('extractBlocks: numbered run increments and restarts on a non-numbered sibling', () => {
+  const numbered = (text) => ({ type: 'numbered_list_item', numbered_list_item: { rich_text: [{ plain_text: text }] } });
+  const blocks = [
+    numbered('first'),
+    numbered('second'),
+    { type: 'paragraph', paragraph: { rich_text: [{ plain_text: 'break' }] } },
+    numbered('restarted'),
+  ];
+  assert.equal(extractBlocks(blocks), '1. first\n2. second\nbreak\n1. restarted');
 });
 
 test('extractBlocks: quote → "> text"', () => {

@@ -11,6 +11,7 @@ import com.ua.astrumon.domain.bot.service.ChatService
 import com.ua.astrumon.domain.bot.service.ReleaseNotesService
 import com.ua.astrumon.presentation.util.ReleaseNotesFormatter
 import com.ua.astrumon.presentation.util.withChatLogContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -83,6 +84,13 @@ class ReleaseAnnouncer(
             withChatLogContext(id) {
                 try {
                     bot.sendMessage(ChatId.fromId(id), text, parseMode = ParseMode.HTML)
+                } catch (e: CancellationException) {
+                    // Defensive, unlike the two guards in [BirthdayGreetingScheduler]: the send is a
+                    // blocking call, so nothing inside this try can currently raise cancellation —
+                    // `withChatLogContext` is the suspension point and it sits outside. The guard
+                    // exists so that adding a suspending call here does not silently reintroduce
+                    // spovishun-190.
+                    throw e
                 } catch (e: Exception) {
                     logger.warn("Failed to broadcast release notes: ${e.message}")
                 }

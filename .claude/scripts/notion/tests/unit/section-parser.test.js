@@ -3,6 +3,9 @@
 const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildSectionIndex, extractSection } = require('../../lib/section-parser');
+// The temp cache below must be written under the key the script actually reads;
+// it was bumped to `claude-md-v2` in plugin 1.28.0.
+const { CACHE_KEY } = require('../../get-claude-md');
 
 const SAMPLE = `## Commands
 run build
@@ -81,7 +84,7 @@ describe('extractSection', () => {
 
     // Write a temp cache so script doesn't need API
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-section-test-'));
-    const cacheFile = path.join(tmpDir, 'claude-md.json');
+    const cacheFile = path.join(tmpDir, `${CACHE_KEY}.json`);
     fs.writeFileSync(cacheFile, JSON.stringify({ value: { content: SAMPLE, sections: null }, ts: Date.now() }));
 
     const result = spawnSync(

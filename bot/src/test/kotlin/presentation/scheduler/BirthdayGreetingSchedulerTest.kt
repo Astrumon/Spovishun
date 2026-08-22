@@ -7,6 +7,7 @@ import com.ua.astrumon.common.result.ResultContainer
 import com.ua.astrumon.domain.bot.model.BirthDate
 import com.ua.astrumon.domain.bot.model.Member
 import com.ua.astrumon.domain.bot.service.BirthdayService
+import com.ua.astrumon.presentation.bot.BotMessagesProvider
 import com.ua.astrumon.presentation.scheduler.BirthdayGreetingScheduler
 import com.ua.astrumon.presentation.util.ChatLogContext
 import io.mockk.clearAllMocks
@@ -15,6 +16,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -260,5 +262,62 @@ class BirthdayGreetingSchedulerTest {
         coVerify { birthdayService.getMembersWithBirthday(BirthDate(28, 2)) }
         coVerify(exactly = 0) { birthdayService.getMembersWithBirthday(BirthDate(29, 2)) }
         scope.cancel()
+    }
+
+    // --- cancellation must unwind the pass, not be logged and skipped (spovishun-190) ---
+
+    /**
+     * `stopKoin()` cancels the scheduler scope through `onClose { it?.cancel() }` (spovishun-155).
+     * `safeDbQuery` re-throws the resulting [CancellationException] rather than turning it into a
+     * `Failure` (spovishun-173), so it surfaces inside the per-member loop — where a broad
+     * `catch (e: Exception)` used to log it and walk on to every remaining member.
+     */
+    @Test
+    fun `should_stopThePass_when_scopeIsCancelledDuringAMemberLookup`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, testMessagesProvider())
+
+        coEvery {
+            birthdayService.getMembersWithBirthday(BirthDate(25, 12))
+        } returns ResultContainer.success(listOf(memberAlice, memberBob))
+        coEvery { birthdayService.wasGreetedThisYear(memberAlice.id, 2025) } coAnswers {
+            scope.cancel()
+            throw CancellationException("scheduler scope closed mid-pass")
+        }
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        coVerify(exactly = 0) { birthdayService.wasGreetedThisYear(memberBob.id, any()) }
+    }
+
+    /**
+     * The same guard one level down: the per-chat send resolves the chat's language first, and that
+     * lookup suspends. Swallowing cancellation there reported the send as a plain failure, which the
+     * loop treats as "retry next time" — and carried on to the next member.
+     */
+    @Test
+    fun `should_stopThePass_when_scopeIsCancelledWhileResolvingChatLanguage`() = runTest {
+        val clock = clockAt(2025, 12, 25)
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
+        val messagesProvider: BotMessagesProvider = mockk()
+        val scheduler = BirthdayGreetingScheduler(birthdayService, clock, scope, messagesProvider)
+
+        coEvery {
+            birthdayService.getMembersWithBirthday(BirthDate(25, 12))
+        } returns ResultContainer.success(listOf(memberAlice, memberBob))
+        coEvery { birthdayService.wasGreetedThisYear(memberAlice.id, 2025) } returns ResultContainer.success(false)
+        coEvery { birthdayService.findChatIdsForMember(memberAlice.id) } returns ResultContainer.success(listOf(-100L))
+        coEvery { messagesProvider.forChat(-100L) } coAnswers {
+            scope.cancel()
+            throw CancellationException("scheduler scope closed mid-send")
+        }
+
+        scheduler.start(bot)
+        testScheduler.runCurrent()
+
+        coVerify(exactly = 0) { birthdayService.wasGreetedThisYear(memberBob.id, any()) }
+        coVerify(exactly = 0) { birthdayService.recordGreetingSent(memberAlice.id, any(), any()) }
     }
 }

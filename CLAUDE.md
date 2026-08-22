@@ -181,7 +181,7 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
   picker filters to the Sprint stage (`notion.picker.stage_filter: "Sprint"`); `create-task.js`
   defaults new tasks to `Stage: Backlog`. The board DB id lives in config (`notion.database_id`);
   `.claude/scripts/notion/lib/constants.js` resolves it at runtime (env var → config, not hard-coded).
-- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.21.0`) then
+- **Install / sync:** `npm install` (pulls `spovishun-skills@^1.28.0`) then
   `npx spovishun-skills install --target=claude` (or `npx spovishun-skills sync` to re-apply with the
   existing config + lockfile). State is tracked in `spovishun-skills.lock.yaml` (committed).
 - **Validate:** export `NOTION_TOKEN` from `.env`, then `npx spovishun-skills doctor` → expect 0 errors.
@@ -198,7 +198,8 @@ plugin (dogfooding, spovishun-93). Do not hand-edit generated artifacts — they
     project-owned. Run from repo root with a glob — `node --test "**/.claude/scripts/notion/tests/**/*.test.js"`
     (a bare directory arg fails on Node ≥ 22, which tries to load the dir as a module). Integration
     tests skip themselves unless `NOTION_TOKEN` is set.
-  - `.claude/rules/common/testing.md` — **unmanaged since the 1.21.0 sync**, not by choice: the
+  - `.claude/rules/common/testing.md` — **unmanaged since the 1.21.0 sync** (skipped again at
+    1.28.0 with the same stderr line), not by choice: the
     plugin's 1.18.0 render added a KMP disclaimer, so the on-disk 1.12.0 body matched neither the
     locked checksum nor the current render and was classified owner-authored. It has no `kind: rule`
     lock entry, `doctor` does not see it, and plugin updates to it will not land. Kept deliberately —
