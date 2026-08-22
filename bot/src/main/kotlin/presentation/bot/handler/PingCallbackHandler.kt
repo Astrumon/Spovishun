@@ -1,7 +1,6 @@
 package com.ua.astrumon.presentation.bot.handler
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.entities.ChatId
 import com.ua.astrumon.common.util.escapeHtml
 import com.ua.astrumon.presentation.bot.BotMessages
 import com.ua.astrumon.presentation.controller.PingController
@@ -54,7 +53,7 @@ class PingCallbackHandler(
 
         // The poll needs its own message to edit in place, so the picker prompt is dropped first.
         is PingOutcome.Readiness -> {
-            runCatching { bot.deleteMessage(chatId = ChatId.fromId(ctx.chatId), messageId = ctx.messageId) }
+            bot.deleteQuietly(ctx.chatId, ctx.messageId)
             readinessSessionRunner.start(
                 bot,
                 ctx.chatId,

@@ -74,3 +74,22 @@ style:
   ForbiddenComment:
     # Allow TODO/FIXME during development; tracked separately on the board.
     active: false
+
+coroutines:
+  # Absent until spovishun-190, and that absence is why the bug it fixes reached production:
+  # buildUponDefaultConfig = true keeps detekt's defaults, and both rules below ship `active: false`.
+  GlobalCoroutineUsage:
+    # Free to enable — `GlobalScope` appears nowhere in the codebase (grep -> 0), so this buys pure
+    # regression cover for a scope that outlives Koin's `onClose { it?.cancel() }` teardown
+    # (spovishun-155). Note the limit: it matches `GlobalScope` by name only, so an inline
+    # `CoroutineScope(Dispatchers.IO)` slips past it and stays the job of spovishun-architecture.md
+    # and review.
+    active: true
+  SuspendFunSwallowedCancellation:
+    # The rule that would have caught spovishun-190: a broad `catch (e: Exception)` (or `runCatching`,
+    # which catches Throwable) around a suspending call eats the CancellationException that
+    # `ResultContainer.catching` deliberately re-throws (spovishun-173), so a cancelled scheduler
+    # logs its way to the end of the list instead of unwinding.
+    # It visits both try/catch and runCatching, but only where the block actually contains a suspend
+    # call — a broad catch around purely blocking Telegram calls is out of its reach by design.
+    active: true

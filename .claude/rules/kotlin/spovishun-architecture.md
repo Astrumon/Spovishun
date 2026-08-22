@@ -75,6 +75,22 @@ spovishun-169's scope.
 in tests), require a compile classpath — see the Linting section of the root `CLAUDE.md` for how the
 `detekt` task is wired and why it must not be simplified back.
 
+### Coroutine rules turned on — spovishun-190
+
+`config/detekt/detekt.yml` had `complexity`, `naming` and `style` and no `coroutines:` section at
+all. `buildUponDefaultConfig = true` then leaves detekt's own defaults in force, and both rules below
+ship `active: false` — which is how a swallowed `CancellationException` in two schedulers reached
+production. The section exists now and both are on.
+
+| detekt rule | Catches | Does **not** catch |
+|---|---|---|
+| `SuspendFunSwallowedCancellation` | a broad `catch (e: Exception)` or a `runCatching` around a block that contains a real suspend call — the loop keeps draining work after shutdown was requested | a broad catch around purely blocking work (the Telegram API calls in `PickerKeyboard`, `StartCommand`, `ReleaseAnnouncer`) — no suspension point, nothing for the rule to see |
+| `GlobalCoroutineUsage` | `GlobalScope` by name | an inline `CoroutineScope(Dispatchers.IO)`, which outlives Koin's `onClose { it?.cancel() }` teardown just as badly |
+
+Both gaps stay with the Koin section above and with review: a scope that nothing cancels, and a broad
+catch around a call that is blocking *today*, are rule-and-reviewer concerns, not build failures.
+`kotlin-style.md` states the same ban as a review target; this table is the half CI enforces.
+
 Never hand-edit `.claude/rules/kotlin/kotlin-style.md` to record project numbers: it is a
 plugin-managed artifact (`kind: rule`, `id: kotlin/kotlin-style` in `spovishun-skills.lock.yaml`) and
 an edit is both reported as drift by `doctor` and overwritten by the next `spovishun-skills sync`.

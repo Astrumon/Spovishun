@@ -67,6 +67,13 @@ class ReadinessSessionRunnerTest {
         every {
             bot.sendMessage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         } returns TelegramBotResult.Success(sentMessage())
+        // `editMessageText` returns `Pair<Response<Message?>?, Exception?>`, and a relaxed mock fills
+        // both erased slots with a bare `Object`. `editInPlace` reads `.second` as the declared
+        // `Exception?`, so the relaxed default fails the cast. It never surfaced before spovishun-190
+        // because the `runCatching` that used to wrap the call caught the ClassCastException too.
+        every {
+            bot.editMessageText(any(), any(), any(), any(), any(), any(), any())
+        } returns Pair(null, null)
     }
 
     private fun sentMessage(): Message = Message(
