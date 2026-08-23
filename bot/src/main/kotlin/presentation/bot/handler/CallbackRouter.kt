@@ -29,7 +29,7 @@ class CallbackRouter(
 
         // Wraps the whole dispatch so the handler, its controller and every query it makes log
         // against the chat the button was tapped in (spovishun-168).
-        withChatLogContext(chat?.id, chat?.type) {
+        withChatLogContext(chat) {
             val handler = handlers.firstOrNull { data.startsWith(it.prefix) }
             if (handler == null) {
                 bot.answerCallbackQuery(callbackQuery.id) // unknown prefix: silent ack, no dispatch
