@@ -11,6 +11,7 @@ import com.ua.astrumon.admin.dto.DatabaseHealthDto
 import com.ua.astrumon.admin.dto.HealthDto
 import com.ua.astrumon.admin.dto.LogLineDto
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.domain.admin.repository.ServerHealthRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -73,12 +74,27 @@ fun Application.adminApiModule(
 private fun Route.healthRoute(healthRepository: ServerHealthRepository) {
     get("/health") {
         val dto = healthRepository.check().fold(
-            onSuccess = { HealthDto(status = "ok", database = DatabaseHealthDto(connected = true, sizeBytes = it.dbSizeBytes)) },
-            onFailure = { HealthDto(status = "degraded", database = DatabaseHealthDto(connected = false, sizeBytes = 0)) },
+            onSuccess = { healthDto("ok", DatabaseHealthDto(connected = true, sizeBytes = it.dbSizeBytes)) },
+            onFailure = { healthDto("degraded", DatabaseHealthDto(connected = false, sizeBytes = 0)) },
         )
         call.respond(dto)
     }
 }
+
+/**
+ * Stamps every `/health` answer with the running build. Version and release date are the same on the
+ * `ok` and `degraded` paths — they describe the process, not the database — so they are filled here
+ * rather than repeated in both `fold` branches (spovishun-194).
+ */
+private fun healthDto(
+    status: String,
+    database: DatabaseHealthDto,
+) = HealthDto(
+    status = status,
+    database = database,
+    botVersion = VersionInfo.VERSION,
+    releaseDate = VersionInfo.RELEASE_DATE,
+)
 
 private fun Route.metricsRoute(dockerClient: DockerApiClient) {
     get("/metrics") {
