@@ -24,6 +24,7 @@ class ChatContextCommandTest {
 
     private val chatId = -1009876543210L
     private val chatType = "supergroup"
+    private val chatTitleValue = "Astrumon Team"
 
     /** Records what the chat context looked like at the moment the real command ran. */
     private class RecordingCommand(
@@ -32,6 +33,7 @@ class ChatContextCommandTest {
     ) : BotCommand {
         var observedChatId: String? = null
         var observedChatType: String? = null
+        var observedChatTitle: String? = null
 
         override suspend fun execute(
             bot: Bot,
@@ -39,6 +41,7 @@ class ChatContextCommandTest {
         ) {
             observedChatId = MDC.get(ChatLogContext.CHAT_ID)
             observedChatType = MDC.get(ChatLogContext.CHAT_TYPE)
+            observedChatTitle = MDC.get(ChatLogContext.CHAT_TITLE)
             onExecute()
         }
     }
@@ -49,8 +52,11 @@ class ChatContextCommandTest {
     @AfterTest
     fun tearDown() = MDC.clear()
 
-    private fun buildUpdate(chatIdValue: Long = chatId): Update {
-        val chat = Chat(id = chatIdValue, type = chatType)
+    private fun buildUpdate(
+        chatIdValue: Long = chatId,
+        chatTitle: String? = chatTitleValue,
+    ): Update {
+        val chat = Chat(id = chatIdValue, type = chatType, title = chatTitle)
         val message = Message(messageId = 1L, date = 0L, chat = chat, text = "/ping")
         return Update(updateId = 1L, message = message)
     }
@@ -68,6 +74,18 @@ class ChatContextCommandTest {
 
         assertEquals(chatId.toString(), delegate.observedChatId)
         assertEquals(chatType, delegate.observedChatType)
+        assertEquals(chatTitleValue, delegate.observedChatTitle)
+    }
+
+    /** Private chats carry no title — the field then names nothing rather than naming the id again. */
+    @Test
+    fun `should expose no chat title when the chat has none`() = runTest {
+        val delegate = RecordingCommand()
+
+        ChatContextCommand(delegate).execute(bot, buildUpdate(chatTitle = null))
+
+        assertEquals(chatId.toString(), delegate.observedChatId)
+        assertNull(delegate.observedChatTitle)
     }
 
     @Test
@@ -110,5 +128,6 @@ class ChatContextCommandTest {
 
         assertNull(delegate.observedChatId)
         assertNull(delegate.observedChatType)
+        assertNull(delegate.observedChatTitle)
     }
 }

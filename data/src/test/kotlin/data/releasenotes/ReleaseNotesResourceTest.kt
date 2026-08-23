@@ -1,5 +1,6 @@
 package data.releasenotes
 
+import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.data.bot.releasenotes.ReleaseNoteDto
 import com.ua.astrumon.domain.bot.model.BotLanguage
 import kotlinx.serialization.json.Json
@@ -54,6 +55,26 @@ class ReleaseNotesResourceTest {
             internalOnly.filter { it.changes.isEmpty() },
             internalOnly,
             "An internal-only release must use \"changes\": {}, not per-language empty lists",
+        )
+    }
+
+    /**
+     * Closes the loop on the build-time generation (spovishun-194): `:common`'s `generateVersionInfo`
+     * copies the date out of this very file into `VersionInfo.RELEASE_DATE`, and `/health` serves it
+     * to the Admin client. A stale or missing generation — which renders the date as `unknown` —
+     * surfaces here rather than as a wrong date on the dashboard.
+     *
+     * This module is the one that sees both sides: `release_notes.json` on its classpath and
+     * `:common` among its dependencies.
+     */
+    @Test
+    fun `the generated release date should match the record for the running version`() {
+        val current = records.firstOrNull { it.version == VersionInfo.VERSION }
+
+        assertEquals(
+            current?.date,
+            VersionInfo.RELEASE_DATE,
+            "VersionInfo.RELEASE_DATE is out of step with release_notes.json for ${VersionInfo.VERSION}",
         )
     }
 

@@ -80,7 +80,7 @@ class DockerApiClient(
         onChunk: suspend (rawBytes: ByteArray) -> Unit,
     ) {
         val url = "$baseUrl/containers/$id/logs"
-        logger.info("Docker API GET {} (stream)", url)
+        logger.debug("Docker API GET {} (stream)", url)
         httpClient
             .prepareGet(url) {
                 parameter("stdout", "true")
@@ -112,23 +112,38 @@ class DockerApiClient(
     // network), runs the request, then classifies the outcome: 2xx -> success; non-2xx -> HttpError;
     // transport throw -> mapped domain error. Cancellation is re-thrown so structured concurrency is
     // preserved.
+    //
+    // The URL line is DEBUG, not INFO (spovishun-194): the Spovishun Admin live-log view polls
+    // GET /containers/{id}/logs every ~3s, so an INFO line here wrote into the very log it was
+    // reading — the view fed itself. The root logger sits at INFO, which is what filters these out;
+    // no per-logger entry in logback.xml is needed to keep them quiet.
+    //
+    // Only the SUCCESS path went quiet. The failure branches still name the URL at WARN, because
+    // that is the diagnostic this logging exists for and nothing downstream reproduces it: routing
+    // folds the ResultContainer without logging, and the StatusPages net "rarely fires". Silencing
+    // both levels would leave a misconfigured DOCKER_API_URL with no trace at all in prod.
     private suspend fun <T> execute(
         url: String,
         request: suspend () -> HttpResponse,
         onSuccess: suspend (HttpResponse) -> T,
     ): ResultContainer<T> {
-        logger.info("Docker API GET {}", url)
+        logger.debug("Docker API GET {}", url)
         return try {
             val response = request()
             if (response.status.isSuccess()) {
                 ResultContainer.success(onSuccess(response))
             } else {
+                logger.warn("Docker API GET {} answered HTTP {}", url, response.status.value)
                 ResultContainer.failure(DockerClientException.HttpError(response.status.value))
             }
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {
-            ResultContainer.failure(DockerErrorMapper.map(error))
+            val mapped = DockerErrorMapper.map(error)
+            // Class name only — the message can carry the proxy host, and this line is served back
+            // through the very log view an unauthenticated reader must not learn topology from.
+            logger.warn("Docker API GET {} failed: {}", url, mapped::class.simpleName)
+            ResultContainer.failure(mapped)
         }
     }
 

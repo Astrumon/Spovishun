@@ -20,6 +20,6 @@ class MessageHandler(
 
         if (config.allowedChatIds.isNotEmpty() && chat.id !in config.allowedChatIds) return
 
-        withChatLogContext(chat.id, chat.type) { autoRegistrar.ensure(bot, chat, user) }
+        withChatLogContext(chat) { autoRegistrar.ensure(bot, chat, user) }
     }
 }

@@ -132,14 +132,32 @@ for it in `:app`. Two shared fixtures:
 Anything that needs a real database, a real registration or the dispatch decorators belongs to
 `:app` `integrationTest` — see the *Testing consequence* note in the Auto-registration section above.
 
-## Chat log context (spovishun-168)
+## Chat log context (spovishun-168, spovishun-194)
 Every log line emitted while handling an update carries the originating chat, so the Spovishun
 Admin live-log view can attribute and filter per chat. `presentation/util/ChatLogContext.kt` owns
-the mechanics: `withChatLogContext(chatId, chatType) { }` puts the two `ChatLogContext` keys into
-the SLF4J MDC **via `MDCContext`**, never via a bare `MDC.put`. That is not a stylistic choice —
-the MDC is a thread-local, so a plain put is lost the moment `safeDbQuery` hops to
-`Dispatchers.IO`, which is where most interesting lines come from. Passing the map explicitly also
-means the coroutines machinery owns cleanup, on completion, cancellation and failure alike.
+the mechanics: `withChatLogContext(chat) { }` puts the three `ChatLogContext` keys — `chatId`,
+`chatType`, `chatTitle` — into the SLF4J MDC **via `MDCContext`**, never via a bare `MDC.put`. That
+is not a stylistic choice — the MDC is a thread-local, so a plain put is lost the moment
+`safeDbQuery` hops to `Dispatchers.IO`, which is where most interesting lines come from. Passing the
+map explicitly also means the coroutines machinery owns cleanup, on completion, cancellation and
+failure alike.
+
+**Take the `Chat` overload, not the primitive one.** It owns the single definition of the chat's name
+and the sanitizing the log format depends on. The `(chatId, chatType, chatTitle)` overload exists for
+the two schedulers, which hold only an id.
+
+**Only a group's `title` becomes the name.** There is deliberately no fallback to `username` or
+`firstName` for a private chat: there the chat is one person, so either field names them outright,
+and `security.md` permits only anonymized identifiers in a log line. A private chat therefore renders
+as `[chat=system]`, and `chatId` is what correlates its lines. `ChatLogContextTest` guards this.
+
+The title is rendered in its **own** trailing bracket group, `[chat=…]`, not as a third key inside
+`[chatId=… chatType=…]`. Titles contain spaces, which would end the client's `(\S+)` capture early
+and break every already-deployed Admin build; as a separate group the change is purely additive, so
+the server can ship ahead of the client. `LogbackChatContextPatternTest` in `:app` holds both regexes
+— the pre-title one included, deliberately — so that guarantee cannot be lost silently.
+`sanitizeChatTitle` strips `[`, `]`, CR and LF and caps the value at 64 characters, so a chat cannot
+corrupt the log format by renaming itself.
 
 Three dispatch paths, one wrap each — do not add a fourth without a wrap:
 | Path | Wrapped by |
@@ -155,8 +173,8 @@ individually (`BirthdayGreetingScheduler.sendGreetings`, `ReleaseAnnouncer.sendT
 pass-level lines correctly render as `system`.
 
 An absent key renders as `system` through the encoder default in `app/src/main/resources/logback.xml`
-— there is no "system context" API to call. Per `security.md`, these fields carry the chat id and
-chat type only; never a username, user id, or message body.
+— there is no "system context" API to call. Per `security.md`, these fields carry the chat id, the
+chat type and a group's own title only; never a username, user id, or message body.
 
 ## Adding a new command
 1. Create `bot/commands/{Name}Command.kt` implementing `BotCommand` (`name`, `execute`)

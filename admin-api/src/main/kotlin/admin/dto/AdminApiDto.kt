@@ -7,12 +7,19 @@ import kotlinx.serialization.Serializable
  *
  * These DTOs are the deliberate, single source of the JSON contract that the future `spovishun-admin`
  * client will duplicate. Keep them engine-agnostic (no Ktor/Exposed types) and stable.
+ *
+ * `HealthDto.botVersion` / `releaseDate` come from the build-generated `VersionInfo` (spovishun-194),
+ * so they read the same whatever `status` says — which build is running does not depend on whether
+ * the database answered. `releaseDate` is `unknown` for a version bumped ahead of its
+ * `release_notes.json` entry.
  */
 
 @Serializable
 data class HealthDto(
     val status: String,
     val database: DatabaseHealthDto,
+    val botVersion: String,
+    val releaseDate: String,
 )
 
 @Serializable

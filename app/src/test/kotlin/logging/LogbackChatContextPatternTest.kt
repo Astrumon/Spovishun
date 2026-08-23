@@ -67,12 +67,24 @@ class LogbackChatContextPatternTest {
     }
 
     @Test
+    fun `should render the chat title in its own trailing group`() {
+        val line = renderLogLine {
+            MDC.put(ChatLogContext.CHAT_ID, chatId.toString())
+            MDC.put(ChatLogContext.CHAT_TYPE, "supergroup")
+            MDC.put(ChatLogContext.CHAT_TITLE, "Astrumon Team")
+            LoggerFactory.getLogger(TEST_LOGGER).info("Command 'ping' invoked")
+        }
+
+        assertTrue(line.contains("[chatId=$chatId chatType=supergroup] [chat=Astrumon Team]"), line)
+    }
+
+    @Test
     fun `should render a line with no originating chat as system`() {
         val line = renderLogLine {
             LoggerFactory.getLogger(TEST_LOGGER).info("Initializing database")
         }
 
-        assertTrue(line.contains("[chatId=system chatType=system]"), line)
+        assertTrue(line.contains("[chatId=system chatType=system] [chat=system]"), line)
     }
 
     /** The exact expression the Admin client uses to split the field back out of a raw Docker line. */
@@ -87,6 +99,38 @@ class LogbackChatContextPatternTest {
         val match = Regex("""\[chatId=(\S+) chatType=(\S+)]""").find(line)
 
         assertEquals(listOf(chatId.toString(), "private"), match?.destructured?.toList())
+    }
+
+    /**
+     * The whole reason the title got its own bracket group (spovishun-194): a client that predates
+     * the field must keep parsing chatId/chatType out of a line that now carries a spaced title.
+     * If this fails, the server can no longer ship ahead of the Admin client.
+     */
+    @Test
+    fun `should stay parseable by the pre-title client regex once a title is present`() {
+        val line = renderLogLine {
+            MDC.put(ChatLogContext.CHAT_ID, chatId.toString())
+            MDC.put(ChatLogContext.CHAT_TYPE, "supergroup")
+            MDC.put(ChatLogContext.CHAT_TITLE, "Astrumon Team")
+            LoggerFactory.getLogger(TEST_LOGGER).info("hello")
+        }
+
+        val match = Regex("""\[chatId=(\S+) chatType=(\S+)]""").find(line)
+
+        assertEquals(listOf(chatId.toString(), "supergroup"), match?.destructured?.toList())
+    }
+
+    /** The expression the Admin client adds to read the new field. */
+    @Test
+    fun `should have its title read by the documented title regex`() {
+        val line = renderLogLine {
+            MDC.put(ChatLogContext.CHAT_TITLE, "Astrumon Team")
+            LoggerFactory.getLogger(TEST_LOGGER).info("hello")
+        }
+
+        val match = Regex("""\[chat=([^]]*)]""").find(line)
+
+        assertEquals("Astrumon Team", match?.groupValues?.get(1))
     }
 
     private companion object {
