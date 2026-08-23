@@ -16,7 +16,10 @@ contract), `docker/` (`DockerApiClient` + raw models + pure `DockerResponseMappe
 - Telegram SDK.
 
 ## Endpoints (all under bearer auth, `/api/v1`)
-- `GET /health` — DB connectivity + `pg_database_size` via `ServerHealthRepository`.
+- `GET /health` — DB connectivity + `pg_database_size` via `ServerHealthRepository`, plus the
+  running build's `botVersion` / `releaseDate` from the generated `:common` `VersionInfo`
+  (spovishun-194). Those two read the same on a `degraded` answer — which build is running does
+  not depend on whether the database replied.
 - `GET /metrics` — Docker `/info` + per-running-container stats (memory + cpu%).
 - `GET /containers` — `/containers/json`.
 - `GET /containers/{id}/logs?tail=N` — de-multiplexed container logs (default tail 100).

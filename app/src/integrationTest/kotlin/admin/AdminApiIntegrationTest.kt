@@ -6,6 +6,7 @@ import com.ua.astrumon.admin.dto.HealthDto
 import com.ua.astrumon.admin.server.AdminApiServer
 import com.ua.astrumon.common.exception.DatabaseException
 import com.ua.astrumon.common.result.ResultContainer
+import com.ua.astrumon.common.util.VersionInfo
 import com.ua.astrumon.data.admin.repository.ServerHealthRepositoryImpl
 import com.ua.astrumon.domain.admin.model.ServerHealth
 import com.ua.astrumon.domain.admin.repository.ServerHealthRepository
@@ -122,6 +123,8 @@ class AdminApiIntegrationTest : BaseIntegrationTest() {
         assertEquals("ok", body.status)
         assertTrue(body.database.connected)
         assertTrue(body.database.sizeBytes > 0, "pg_database_size must report the real test database")
+        assertEquals(VersionInfo.VERSION, body.botVersion)
+        assertEquals(VersionInfo.RELEASE_DATE, body.releaseDate)
     }
 
     @Test
@@ -160,6 +163,10 @@ class AdminApiIntegrationTest : BaseIntegrationTest() {
         assertEquals("degraded", body.status)
         assertEquals(false, body.database.connected)
         assertEquals(0L, body.database.sizeBytes)
+        // The build identity does not depend on the database — a degraded answer still names the
+        // running version (spovishun-194).
+        assertEquals(VersionInfo.VERSION, body.botVersion)
+        assertEquals(VersionInfo.RELEASE_DATE, body.releaseDate)
     }
 
     @Test

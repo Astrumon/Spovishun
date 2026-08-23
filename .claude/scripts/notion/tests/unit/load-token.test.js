@@ -27,10 +27,13 @@ afterEach(() => {
   else delete process.env.NOTION_TOKEN;
 });
 
-test('returns NOTION_SKILLS_TOKEN first when both env vars set', () => {
+// NOTION_TOKEN wins on the env path exactly as it does on the .env path below and
+// in hooks/hook-config.js — one precedence everywhere, so a stale NOTION_SKILLS_TOKEN
+// cannot silently shadow a working NOTION_TOKEN.
+test('returns NOTION_TOKEN first when both env vars set', () => {
   process.env.NOTION_SKILLS_TOKEN = 'skills-tok';
   process.env.NOTION_TOKEN = 'regular-tok';
-  assert.equal(loadToken(), 'skills-tok');
+  assert.equal(loadToken(), 'regular-tok');
 });
 
 test('falls back to NOTION_TOKEN when NOTION_SKILLS_TOKEN absent', () => {

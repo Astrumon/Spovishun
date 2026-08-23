@@ -7,6 +7,10 @@ const path = require('path');
 const { loadToken } = require('../../lib/load-token');
 const http = require('../../lib/notion-http');
 const { toDashed } = require('../../lib/page-id');
+// Read the default off create-task.js rather than repeating the label: the board
+// moved from v1 ("To do") to v2 ("Not started"), and this assertion was the last
+// place still holding the old one.
+const { DEFAULT_STATUS } = require('../../create-task');
 
 const SCRIPTS_DIR = path.join(__dirname, '..', '..');
 const REPO_ROOT = path.join(SCRIPTS_DIR, '..', '..', '..');
@@ -49,7 +53,7 @@ describe('CRUD cycle integration', { skip: SKIP_MSG }, () => {
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const task = JSON.parse(result.stdout);
     assert.ok(task.title.includes('[TEST-62]'), 'title should contain test prefix');
-    assert.equal(task.status, 'To do');
+    assert.equal(task.status, DEFAULT_STATUS);
     assert.equal(task.priority, 'Low');
     assert.ok(typeof task.content === 'string');
   });

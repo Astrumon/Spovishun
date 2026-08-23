@@ -8,6 +8,11 @@ const fs = require('fs');
 const path = require('path');
 
 const SCRIPTS_DIR = path.join(__dirname, '..', '..');
+// lib/cache.js names the cache file `basename(key) + '.json'`, so seeding it means
+// knowing the current key. Read it off the script instead of hardcoding: the key is
+// bumped whenever the cached shape changes (claude-md -> claude-md-v2), and a stale
+// literal here silently misses the cache and sends the script to the network.
+const { CACHE_KEY: CLAUDE_MD_CACHE_KEY } = require('../../get-claude-md');
 // Scripts resolve Notion IDs from config.yaml at process.cwd(); run them from
 // the repo root so config-driven constants resolve (matches production usage).
 const REPO_ROOT = path.join(SCRIPTS_DIR, '..', '..', '..');
@@ -109,7 +114,7 @@ describe('get-task.js --format=md', () => {
 describe('get-claude-md.js --format=json', () => {
   test('--format=json wraps content in JSON object', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-fmt-test-'));
-    const cacheFile = path.join(tmpDir, 'claude-md.json');
+    const cacheFile = path.join(tmpDir, CLAUDE_MD_CACHE_KEY + '.json');
     fs.writeFileSync(cacheFile, JSON.stringify({ value: { content: '## Commands\nrun build', sections: null }, ts: Date.now() }));
 
     const r = runScript('get-claude-md.js', ['--format=json'], {
@@ -126,7 +131,7 @@ describe('get-claude-md.js --format=json', () => {
 
   test('default format returns raw text (backward compat)', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-fmt-test-'));
-    const cacheFile = path.join(tmpDir, 'claude-md.json');
+    const cacheFile = path.join(tmpDir, CLAUDE_MD_CACHE_KEY + '.json');
     fs.writeFileSync(cacheFile, JSON.stringify({ value: { content: '## Commands\nrun build', sections: null }, ts: Date.now() }));
 
     const r = runScript('get-claude-md.js', [], {

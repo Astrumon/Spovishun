@@ -26,7 +26,7 @@ internal class ChatContextCommand(
         update: Update,
     ) {
         val chat = update.message?.chat
-        withChatLogContext(chat?.id, chat?.type) {
+        withChatLogContext(chat) {
             logger.info("Command '{}' invoked", name)
             delegate.execute(bot, update)
         }

@@ -6,8 +6,16 @@
         Admin live-log view can split it out of the raw Docker line with `\[chatId=(\S+) chatType=(\S+)\]`
         (spovishun-168). `system` is the default for a line with no originating chat — startup,
         shutdown, admin API, a scheduler between per-chat passes.
+
+        The chat's name follows in a SECOND bracket group, `\[chat=([^\]]*)\]` (spovishun-194).
+        Deliberately not a third key inside the first group: titles contain spaces, which would end
+        the `(\S+)` capture early and break every already-deployed client. As its own group it is
+        purely additive — the regex above keeps matching unchanged, so the server can ship before
+        the client learns to read the new field.
+        The value is sanitized at the source (`ChatLogContext.sanitizeChatTitle`): no `[`, `]`, CR or
+        LF, and at most 64 characters, so `[^\]]*` can never run past the field.
       -->
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [chatId=%X{chatId:-system} chatType=%X{chatType:-system}] %logger{36} - %msg%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [chatId=%X{chatId:-system} chatType=%X{chatType:-system}] [chat=%X{chatTitle:-system}] %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
   <root level="INFO">

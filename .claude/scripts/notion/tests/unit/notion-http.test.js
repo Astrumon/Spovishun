@@ -77,11 +77,13 @@ test('patch() sets method to PATCH', async (t) => {
   assert.equal(captured.method, 'PATCH');
 });
 
-test('resolves null on malformed JSON response', async (t) => {
+// A non-JSON body means the response is broken (proxy HTML page, truncated read),
+// not empty. Resolving null there made an API outage indistinguishable from an
+// empty board at every call site; the transport rejects instead.
+test('rejects on malformed JSON response', async (t) => {
   t.mock.method(https, 'request', makeFakeHttps('not-valid-json{{{'));
 
-  const result = await notionHttp.get('tok', '/v1/test');
-  assert.equal(result, null);
+  await assert.rejects(() => notionHttp.get('tok', '/v1/test'), /non-JSON response/);
 });
 
 test('rejects on network error', async (t) => {
