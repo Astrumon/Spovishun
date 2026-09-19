@@ -13,14 +13,14 @@ Break a solution into atomic, Notion-compatible tasks. Input: Solution Decision 
 Fetch CLAUDE.md and the current board state to determine the next task number. Do not announce this step.
 
 ```bash
-node .claude/scripts/notion/get-board.js          # JSON board snapshot — use to find max task number
+node .claude/scripts/notion/get-board.js --latest --format json   # 10 newest tasks — use to find max task number
 ```
 
 ```
 notion-fetch(id: "31c3462f-68a9-819c-8150-ff31d729293e")
 ```
 
-`get-board.js` queries the board via REST `/databases/36f3462f68a981328625d728cac86ea3/query` and returns a JSON list of tasks with their `Name` property, from which the highest existing task number N is extracted. New tasks start at N+1.
+`get-board.js --latest` queries the board via REST `/databases/36f3462f68a981328625d728cac86ea3/query` sorted by `created_time` descending and returns the 10 newest tasks with their `Name` property, from which the highest existing task number N is extracted. New tasks start at N+1. `--latest` is required here: without it the board applies its default status filter, so tasks in other statuses are missing and N comes out too low.
 
 (MCP `notion-search` with `data_source_url: "collection://<id>"` is an alternative, but it requires the live data_source_id of the board — fetch it from the database first; do not interpolate it from config.)
 
