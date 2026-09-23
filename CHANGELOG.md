@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning: [S
 
 ---
 
+## [1.8.4] - 2026-09-23
+
+### Fixed
+- Postgres тепер має `restart: unless-stopped`: після ребуту прод-VM база не піднімалась сама,
+  і бот падав у crash-loop з `UnknownHostException: postgres` (spovishun-197).
+- JVM бота обмежена `-Xmx256m -XX:+UseSerialGC` через `JAVA_OPTS` (перевизначається з `.env`) —
+  на 1 GB VM без ліміту heap пам'ять вичерпувалась і VM годинами «задихалась» (spovishun-197).
+
 ## [1.8.3] - 2026-08-23
 
 ### Added
