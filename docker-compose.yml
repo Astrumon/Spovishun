@@ -24,6 +24,9 @@ services:
       ADMIN_API_BIND: ${ADMIN_API_BIND:-0.0.0.0}
       ADMIN_API_PORT: ${ADMIN_API_PORT:-8081}
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      # JVM limits for the 1 GB prod VM (spovishun-197); read by the installDist launcher bin/spovishun.
+      # SerialGC: the burstable single-OCPU VM has no spare cores for parallel GC threads.
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx256m -XX:+UseSerialGC}
     restart: unless-stopped
     # Publish the admin API on the tailnet interface only (ADMIN_API_BIND_IP = the VM's tailnet IP,
     # e.g. 100.105.149.58). Never bind to 0.0.0.0 here — that would expose it on the public IP.
@@ -56,6 +59,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    # Without it a VM reboot leaves the DB down and the bot crash-loops on UnknownHostException (spovishun-197)
+    restart: unless-stopped
 
   # Read-only Docker API gateway: exposes a GET-only subset of the Docker Engine API
   # so the bot/admin-api never touches the raw docker.sock. No host port — internal only.
